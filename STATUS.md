@@ -32,6 +32,8 @@ Status: macOS accuracy hardening in progress; release classification `future/inv
 - offline multi-result aggregation with coverage strata and Wilson 95%
   confidence intervals;
 - macOS-only hosted CI definition and real-device validation command.
+- separately labelled controlled-compatibility CI for macOS 14, 15, and 26 on
+  Apple Silicon plus macOS 15 on Intel; these runs are not field evidence.
 
 ## Intentionally absent
 

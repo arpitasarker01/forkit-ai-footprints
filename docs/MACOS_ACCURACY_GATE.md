@@ -98,3 +98,11 @@ it is intentionally not nested inside npm's publication lifecycle.
 
 These are release gates, not current achievements. No public accuracy claim is
 allowed until an independently reviewed aggregate evaluation satisfies them.
+
+## Controlled CI is not field evidence
+
+The labelled compatibility workflow may run tests and privacy/stability checks
+on GitHub-hosted Apple Silicon and Intel macOS runners. Those machines improve
+OS and architecture compatibility evidence, but they do not contain a human's
+independently established inventory truth and must never be counted toward the
+100-Mac field minimum.
