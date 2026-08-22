@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import test from 'node:test';
-import { parseArgs } from './cli';
+import { clipboardCommands, parseArgs } from './cli';
 
 function runCli(args: string[]) {
   const result = spawnSync(process.execPath, [path.join(process.cwd(), 'dist', 'cli.js'), ...args], {
@@ -31,22 +31,62 @@ test('CLI emits a valid empty metadata-only JSON census', () => {
   assert.equal(report.product, 'forkit-census');
   assert.deepEqual(report.privacy, {
     mode: 'metadata-only',
-    raw_commands_collected: false,
-    file_contents_collected: false,
-    credentials_collected: false,
+    raw_commands_retained: false,
+    model_file_contents_read: false,
+    config_values_emitted: false,
+    sensitive_content_retained: false,
     remote_endpoints_allowed: false,
+    external_requests_made: 0,
+    backend_contacted: false,
+    account_read: false,
+    local_state_written: false,
   });
+});
+
+test('argument parser accepts guess, verbose, copy, and separately consented aggregate preview', () => {
+  const parsed = parseArgs(['scan', '--guess', '7', '--verbose', '--copy', '--anonymous-payload', '--consent-share']);
+  assert.equal(parsed.guess, 7);
+  assert.equal(parsed.verbose, true);
+  assert.equal(parsed.copy, true);
+  assert.equal(parsed.anonymousPayload, true);
+  assert.equal(parsed.shareConsent, true);
 });
 
 test('CLI help states the non-writing privacy boundary', () => {
   const result = runCli(['--help']);
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /does not read model bytes/i);
-  assert.match(result.stdout, /write to any\s+passport/i);
+  assert.match(result.stdout, /write to\s+any passport/i);
 });
 
 test('CLI rejects unknown arguments', () => {
   const result = runCli(['scan', '--publish']);
   assert.equal(result.status, 2);
   assert.match(result.stderr, /Unknown argument: --publish/);
+});
+
+test('anonymous payload is withheld without separate consent after local result', () => {
+  const result = runCli([
+    'scan', '--json', '--anonymous-payload', '--no-runtimes', '--no-model-files', '--no-agents', '--no-tools', '--no-mcp',
+  ]);
+  assert.equal(result.status, 2);
+  assert.equal(JSON.parse(result.stdout).product, 'forkit-census');
+  assert.match(result.stderr, /separate --consent-share is required/i);
+});
+
+test('consented anonymous payload is an explicit preview and remains not uploaded', () => {
+  const result = runCli([
+    'scan', '--json', '--anonymous-payload', '--consent-share', '--no-runtimes', '--no-model-files', '--no-agents', '--no-tools', '--no-mcp',
+  ]);
+  assert.equal(result.status, 0, result.stderr);
+  const envelope = JSON.parse(result.stdout);
+  assert.equal(envelope.uploaded, false);
+  assert.equal(envelope.local_report.product, 'forkit-census');
+  assert.equal(envelope.anonymous_contribution.schema_version, '1.0');
+});
+
+test('clipboard integration maps to native commands without a shell', () => {
+  assert.deepEqual(clipboardCommands('darwin'), [{ command: 'pbcopy', args: [] }]);
+  assert.deepEqual(clipboardCommands('win32'), [{ command: 'clip', args: [] }]);
+  assert.deepEqual(clipboardCommands('linux').map((entry) => entry.command), ['wl-copy', 'xclip']);
 });

@@ -55,6 +55,11 @@ export function createRuntime(input: {
     model_count: input.modelCount,
     observed_at: input.observedAt,
     error_code: input.errorCode ?? null,
+    evidence_status: input.status === 'available'
+      ? 'online'
+      : input.status === 'inventory-only'
+        ? 'configured'
+        : 'unavailable',
   };
 }
 
@@ -86,6 +91,7 @@ export function createModel(input: {
     source: input.source,
     location_hint: input.locationHint ?? null,
     confidence: input.confidence,
+    evidence_status: 'discovered',
   };
 }
 

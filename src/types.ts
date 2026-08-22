@@ -1,4 +1,5 @@
 export type Confidence = 'high' | 'medium' | 'low';
+export type EvidenceStatus = 'discovered' | 'configured' | 'online' | 'confirmed-running';
 
 export type RuntimeKind = 'ollama' | 'lmstudio' | 'openai-compatible' | 'filesystem';
 
@@ -12,6 +13,7 @@ export interface CensusRuntime {
   model_count: number;
   observed_at: string;
   error_code: string | null;
+  evidence_status: 'configured' | 'online' | 'unavailable';
 }
 
 export interface CensusModel {
@@ -28,6 +30,7 @@ export interface CensusModel {
   source: 'runtime-api' | 'filesystem';
   location_hint: string | null;
   confidence: Confidence;
+  evidence_status: 'discovered' | 'confirmed-running';
 }
 
 export type AgentKind =
@@ -46,6 +49,23 @@ export interface CensusAgent {
   executable_names: string[];
   evidence_hashes: string[];
   detection_reason: string;
+  evidence_status: 'online';
+}
+
+export interface CensusTool {
+  tool_id: string;
+  name: string;
+  evidence_status: 'configured' | 'online';
+  confidence: Confidence;
+  detector_types: Array<'config' | 'executable' | 'process'>;
+  instance_count: number;
+}
+
+export interface CensusMcpConfig {
+  client: string;
+  evidence_status: 'configured';
+  confidence: Confidence;
+  server_count: number;
 }
 
 export interface CensusWarning {
@@ -60,11 +80,16 @@ export interface CensusSummary {
   model_count: number;
   agent_product_count: number;
   agent_process_count: number;
+  tool_count: number;
+  mcp_config_count: number;
+  confirmed_running_model_count: number;
+  storage_bytes: number;
+  storage_bucket: string;
   warning_count: number;
 }
 
 export interface CensusReport {
-  schema_version: '1.0';
+  schema_version: '1.1';
   product: 'forkit-census';
   product_version: string;
   census_id: string;
@@ -76,15 +101,27 @@ export interface CensusReport {
   };
   privacy: {
     mode: 'metadata-only';
-    raw_commands_collected: false;
-    file_contents_collected: false;
-    credentials_collected: false;
+    raw_commands_retained: false;
+    model_file_contents_read: false;
+    config_values_emitted: false;
+    sensitive_content_retained: false;
     remote_endpoints_allowed: false;
+    external_requests_made: 0;
+    backend_contacted: false;
+    account_read: false;
+    local_state_written: false;
   };
   summary: CensusSummary;
   runtimes: CensusRuntime[];
   models: CensusModel[];
   agents: CensusAgent[];
+  tools: CensusTool[];
+  mcp_configs: CensusMcpConfig[];
+  guess: {
+    provided: number | null;
+    discovered: number;
+    difference: number | null;
+  };
   warnings: CensusWarning[];
 }
 
@@ -110,8 +147,16 @@ export interface CensusOptions {
   includeRuntimes?: boolean;
   includeFilesystem?: boolean;
   includeAgents?: boolean;
+  includeTools?: boolean;
+  includeMcp?: boolean;
   filesystemRoots?: string[];
   processEntries?: ProcessEntry[];
   providers?: RuntimeProvider[];
   now?: () => Date;
+  guess?: number | null;
+  homeDir?: string;
+  cwd?: string;
+  env?: NodeJS.ProcessEnv;
+  platform?: NodeJS.Platform;
+  architecture?: string;
 }

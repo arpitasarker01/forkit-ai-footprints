@@ -19,6 +19,11 @@ test('Ollama census prefers a content-addressed weights digest', async () => {
         }],
       }), { status: 200 });
     }
+    if (url.endsWith('/api/ps')) {
+      return new Response(JSON.stringify({
+        models: [{ name: 'llama-test:latest', digest: `sha256:${manifest}` }],
+      }), { status: 200 });
+    }
     return new Response(JSON.stringify({
       layers: [{
         mediaType: 'application/vnd.ollama.image.model',
@@ -38,6 +43,23 @@ test('Ollama census prefers a content-addressed weights digest', async () => {
   assert.equal(result.models[0]?.identity_kind, 'content-sha256');
   assert.equal(result.models[0]?.confidence, 'high');
   assert.equal(result.models[0]?.architecture, 'llama');
+  assert.equal(result.models[0]?.evidence_status, 'confirmed-running');
+});
+
+test('Ollama inventory remains useful when api/ps is unavailable', async () => {
+  const fetchImpl: typeof fetch = async (input) => {
+    const url = String(input);
+    if (url.endsWith('/api/tags')) {
+      return new Response(JSON.stringify({ models: [{ name: 'model-a', digest: `sha256:${'a'.repeat(64)}` }] }), { status: 200 });
+    }
+    if (url.endsWith('/api/ps')) return new Response('{}', { status: 404 });
+    return new Response('{}', { status: 200 });
+  };
+  const result = await new OllamaProvider('http://localhost:11434', fetchImpl)
+    .scan('2026-08-22T00:00:00.000Z');
+  assert.equal(result.runtime.evidence_status, 'online');
+  assert.equal(result.models[0]?.evidence_status, 'discovered');
+  assert.equal(result.warnings[0]?.code, 'ollama_running_state_unavailable');
 });
 
 test('LM Studio census uses provider identity without retaining model paths', async () => {

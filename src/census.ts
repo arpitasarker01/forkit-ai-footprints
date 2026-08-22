@@ -1,4 +1,5 @@
 import os from 'node:os';
+import path from 'node:path';
 import { detectAgentProducts, listSystemProcesses } from './agents';
 import { scanFilesystemModels } from './filesystem';
 import { stableId } from './hash';
@@ -13,6 +14,8 @@ import type {
   RuntimeScanResult,
 } from './types';
 import { PRODUCT_NAME, PRODUCT_VERSION, SCHEMA_VERSION } from './version';
+import { detectAiTools } from './tools';
+import { detectMcpConfigs } from './mcp';
 
 function uniqueBy<T>(items: T[], key: (item: T) => string): T[] {
   const seen = new Map<string, T>();
@@ -32,6 +35,7 @@ function safeProviderFailure(name: string, observedAt: string): RuntimeScanResul
       model_count: 0,
       observed_at: observedAt,
       error_code: 'provider_scan_failed',
+      evidence_status: 'unavailable',
     },
     models: [],
     warnings: [{
@@ -71,11 +75,28 @@ function buildCensusId(
   return stableId('census', evidence);
 }
 
+function storageBucket(bytes: number): string {
+  const gib = bytes / (1024 ** 3);
+  if (gib === 0) return '0 GB';
+  if (gib < 1) return '<1 GB';
+  if (gib < 10) return '1-10 GB';
+  if (gib < 50) return '10-50 GB';
+  if (gib < 100) return '50-100 GB';
+  if (gib < 500) return '100-500 GB';
+  return '500+ GB';
+}
+
 export async function runCensus(options: CensusOptions = {}): Promise<CensusReport> {
   const generatedAt = (options.now ?? (() => new Date()))().toISOString();
   const includeRuntimes = options.includeRuntimes !== false;
   const includeFilesystem = options.includeFilesystem !== false;
   const includeAgents = options.includeAgents !== false;
+  const includeTools = options.includeTools !== false;
+  const includeMcp = options.includeMcp !== false;
+  const homeDir = options.homeDir ?? os.homedir();
+  const cwd = options.cwd ?? process.cwd();
+  const env = options.env ?? process.env;
+  const platform = options.platform ?? process.platform;
   const providers = options.providers ?? createDefaultProviders();
   const providerResults = includeRuntimes
     ? await Promise.all(providers.map(async (provider) => {
@@ -120,6 +141,14 @@ export async function runCensus(options: CensusOptions = {}): Promise<CensusRepo
     ...(filesystemResult?.models ?? []),
   ], (model) => model.model_id));
   const processCount = agents.reduce((total, agent) => total + agent.instance_count, 0);
+  const [tools, mcpConfigs] = await Promise.all([
+    includeTools ? detectAiTools({ homeDir, env, platform, agents }) : Promise.resolve([]),
+    includeMcp ? detectMcpConfigs({ homeDir, cwd: path.resolve(cwd), env, platform }) : Promise.resolve([]),
+  ]);
+  const storageBytes = models.reduce((total, model) => total + Number(model.size_bytes ?? 0), 0);
+  const guessed = options.guess === undefined || options.guess === null
+    ? null
+    : Math.max(0, Math.floor(options.guess));
 
   return {
     schema_version: SCHEMA_VERSION,
@@ -128,16 +157,21 @@ export async function runCensus(options: CensusOptions = {}): Promise<CensusRepo
     census_id: buildCensusId(generatedAt, runtimes, models, agents),
     generated_at: generatedAt,
     system: {
-      platform: process.platform,
-      architecture: os.arch(),
+      platform,
+      architecture: options.architecture ?? os.arch(),
       node_major: Number(process.versions.node.split('.')[0] ?? 0),
     },
     privacy: {
       mode: 'metadata-only',
-      raw_commands_collected: false,
-      file_contents_collected: false,
-      credentials_collected: false,
+      raw_commands_retained: false,
+      model_file_contents_read: false,
+      config_values_emitted: false,
+      sensitive_content_retained: false,
       remote_endpoints_allowed: false,
+      external_requests_made: 0,
+      backend_contacted: false,
+      account_read: false,
+      local_state_written: false,
     },
     summary: {
       runtime_count: runtimes.length,
@@ -145,11 +179,23 @@ export async function runCensus(options: CensusOptions = {}): Promise<CensusRepo
       model_count: models.length,
       agent_product_count: agents.length,
       agent_process_count: processCount,
+      tool_count: tools.length,
+      mcp_config_count: mcpConfigs.length,
+      confirmed_running_model_count: models.filter((model) => model.evidence_status === 'confirmed-running').length,
+      storage_bytes: storageBytes,
+      storage_bucket: storageBucket(storageBytes),
       warning_count: warnings.length,
     },
     runtimes,
     models,
     agents,
+    tools,
+    mcp_configs: mcpConfigs,
+    guess: {
+      provided: guessed,
+      discovered: models.length,
+      difference: guessed === null ? null : models.length - guessed,
+    },
     warnings,
   };
 }

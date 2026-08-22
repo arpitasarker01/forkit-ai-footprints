@@ -14,6 +14,8 @@ Forkit Connect discovery work.
 - classify and deduplicate known local agent products;
 - produce human and JSON reports;
 - diagnose local Census readiness;
+- prepare a consent-gated, aggregate-only anonymous contribution preview without
+  transmitting it;
 - package and test on macOS, Ubuntu, and Windows.
 
 ## Explicitly excluded
@@ -23,7 +25,7 @@ Forkit Connect discovery work.
 - registry writes;
 - Runtime_C2 mutation or heartbeat;
 - billing, plans, workspaces, or account state;
-- telemetry upload;
+- telemetry or Global Census upload;
 - remote endpoint inspection;
 - native desktop/mobile packaging;
 - npm publication or production deployment.

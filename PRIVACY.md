@@ -9,6 +9,9 @@ Forkit Census is metadata-only by design.
   agent signature and calculate a one-way evidence hash;
 - directory entries and file metadata for supported model extensions;
 - loopback runtime API responses from explicitly supported local endpoints.
+- known AI-tool installation/configuration path existence;
+- up to 1 MiB from a known MCP JSON/TOML configuration file solely to count
+  server entries.
 
 ## Prohibited collection
 
@@ -21,6 +24,8 @@ Census must not retain or emit:
 - prompts, responses, terminal logs, or source-code content;
 - credentials, cookies, tokens, API keys, or passwords;
 - hostname, username, email, or Forkit.dev account identity.
+- MCP server names, commands, URLs, environment keys, environment values,
+  workspace names, or repository names.
 
 ## Network boundary
 
@@ -45,3 +50,12 @@ Model bytes are never read for hashing.
 
 Runtime, model, and agent findings are inventory suggestions. They must not be
 used as automatic evidence of ownership, safety, provenance, or passport status.
+
+## Anonymous contribution boundary
+
+The current build can create a local, allowlisted aggregate preview only after
+separate explicit consent. It contains OS/architecture, aggregate counts,
+confirmed-running count, storage bucket, optional numeric guess, detector types,
+and version numbers. It excludes the local Census ID and all item-level records.
+No upload transport or Global Census backend is present while the product stays
+`future/investigate`.

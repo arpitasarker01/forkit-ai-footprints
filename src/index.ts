@@ -1,5 +1,8 @@
 export { detectAgentProducts, listSystemProcesses } from './agents';
 export { runCensus } from './census';
+export { buildAnonymousCensusContribution } from './sharing';
+export { detectAiTools } from './tools';
+export { detectMcpConfigs } from './mcp';
 export { runDoctor } from './doctor';
 export { parseLoopbackEndpoint, parseLoopbackEndpointList } from './endpoints';
 export { scanFilesystemModels } from './filesystem';

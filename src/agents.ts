@@ -26,6 +26,9 @@ const SIGNATURES: AgentSignature[] = [
   { signature: 'goose', name: 'Goose', kind: 'coding-agent', terms: ['goose'], executables: ['goose'] },
   { signature: 'cursor', name: 'Cursor', kind: 'ide-agent', terms: ['cursor'], executables: ['cursor'] },
   { signature: 'windsurf', name: 'Windsurf', kind: 'ide-agent', terms: ['windsurf'], executables: ['windsurf'] },
+  { signature: 'gemini-cli', name: 'Gemini CLI', kind: 'coding-agent', terms: ['gemini'], executables: ['gemini'] },
+  { signature: 'opencode', name: 'OpenCode', kind: 'coding-agent', terms: ['opencode'], executables: ['opencode'] },
+  { signature: 'openclaw', name: 'OpenClaw', kind: 'coding-agent', terms: ['openclaw'], executables: ['openclaw'] },
   { signature: 'cline', name: 'Cline', kind: 'ide-agent', terms: ['cline'], executables: ['cline'] },
   { signature: 'roo-code', name: 'Roo Code', kind: 'ide-agent', terms: ['roo-code', 'roo_code'], executables: ['roo-code', 'roo_code'] },
   { signature: 'mcp-server', name: 'MCP Server', kind: 'mcp-server', terms: ['mcp-server', 'modelcontextprotocol'], executables: ['mcp-server'] },
@@ -46,13 +49,11 @@ function basename(value: string): string {
 
 function tokens(value: string): Set<string> {
   const normalized = String(value || '').toLowerCase();
-  const result = new Set(normalized.split(/[^a-z0-9_-]+/).filter(Boolean));
-  for (const token of [...result]) {
-    for (const part of token.split(/[._-]+/)) {
-      if (part) result.add(part);
-    }
-  }
-  return result;
+  // Keep compound tokens intact. Splitting `agno-tooling`, `cursor-helper`, or
+  // `pydantic_ai_examples` into smaller words turns unrelated processes into
+  // false positives. Signatures that legitimately use `-` or `_` are listed
+  // explicitly above, so an exact compound token remains detectable.
+  return new Set(normalized.split(/[^a-z0-9_-]+/).filter(Boolean));
 }
 
 function classifyProcess(entry: ProcessEntry): AgentEvidence | null {
@@ -110,6 +111,7 @@ export function detectAgentProducts(processes: ProcessEntry[]): CensusAgent[] {
       executable_names: [...new Set(evidence.map((entry) => entry.executable))].sort(),
       evidence_hashes: [...new Set(evidence.map((entry) => entry.evidenceHash))].sort(),
       detection_reason: strongest === 'high' ? 'exact_executable_match' : 'exact_command_token_match',
+      evidence_status: 'online' as const,
     };
   }).sort((left, right) => left.name.localeCompare(right.name));
 }

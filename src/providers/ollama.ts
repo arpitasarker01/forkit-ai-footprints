@@ -31,11 +31,10 @@ export class OllamaProvider implements RuntimeProvider {
   }
 
   async scan(observedAt: string): Promise<RuntimeScanResult> {
-    const tags = await fetchJson(
-      `${this.endpoint.url}/api/tags`,
-      { method: 'GET' },
-      this.fetchImpl,
-    );
+    const [tags, running] = await Promise.all([
+      fetchJson(`${this.endpoint.url}/api/tags`, { method: 'GET' }, this.fetchImpl),
+      fetchJson(`${this.endpoint.url}/api/ps`, { method: 'GET' }, this.fetchImpl),
+    ]);
     if (!tags.ok) {
       return {
         runtime: createRuntime({
@@ -51,6 +50,13 @@ export class OllamaProvider implements RuntimeProvider {
       };
     }
 
+    const runningBody = readRecord(running.body);
+    const runningEntries = readArray(runningBody?.models);
+    const runningNames = new Set(runningEntries.flatMap((value) => {
+      const entry = readRecord(value);
+      const name = readString(entry?.name) ?? readString(entry?.model);
+      return name ? [name.toLowerCase()] : [];
+    }));
     const body = readRecord(tags.body);
     const entries = readArray(body?.models);
     const models = await Promise.all(entries.map(async (entryValue) => {
@@ -77,7 +83,7 @@ export class OllamaProvider implements RuntimeProvider {
       const details = readRecord(detailsBody?.details);
       const contentIdentity = weightsDigest ?? manifestDigest;
       const identity = contentIdentity ?? sha256(`ollama:${name}`);
-      return createModel({
+      const model = createModel({
         name,
         runtime: this.name,
         identityKind: contentIdentity ? 'content-sha256' : 'provider-id',
@@ -90,9 +96,30 @@ export class OllamaProvider implements RuntimeProvider {
         architecture: readString(details?.family),
         parameterSize: readString(details?.parameter_size),
       });
+      return {
+        ...model,
+        evidence_status: runningNames.has(name.toLowerCase()) ? 'confirmed-running' as const : 'discovered' as const,
+      };
     }));
 
     const detectedModels = models.filter((model) => model !== null);
+    const detectedNames = new Set(detectedModels.map((model) => model.name.toLowerCase()));
+    for (const value of runningEntries) {
+      const entry = readRecord(value);
+      const name = readString(entry?.name) ?? readString(entry?.model);
+      if (!name || detectedNames.has(name.toLowerCase())) continue;
+      const digest = parseSha256(readString(entry?.digest));
+      const model = createModel({
+        name,
+        runtime: this.name,
+        identityKind: digest ? 'content-sha256' : 'provider-id',
+        identity: digest ?? sha256(`ollama:${name}`),
+        source: 'runtime-api',
+        confidence: digest ? 'high' : 'medium',
+        sizeBytes: readNumber(entry?.size),
+      });
+      detectedModels.push({ ...model, evidence_status: 'confirmed-running' });
+    }
     return {
       runtime: createRuntime({
         name: this.name,
@@ -102,7 +129,11 @@ export class OllamaProvider implements RuntimeProvider {
         observedAt,
       }),
       models: detectedModels,
-      warnings: [],
+      warnings: running.ok ? [] : [{
+        code: 'ollama_running_state_unavailable',
+        message: 'Ollama inventory was available, but confirmed loaded-model state could not be read.',
+        scope: 'runtime',
+      }],
     };
   }
 }

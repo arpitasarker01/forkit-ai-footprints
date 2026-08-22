@@ -21,12 +21,12 @@ function run(command, args, options = {}) {
   if (result.status !== 0) throw new Error(`Command failed: ${command}`);
 }
 
-function capture(command, args) {
+function capture(command, args, options = {}) {
   const executable = process.platform === 'win32' ? 'cmd.exe' : command;
   const executableArgs = process.platform === 'win32'
     ? ['/d', '/s', '/c', command, ...args]
     : args;
-  const result = spawnSync(executable, executableArgs, { cwd: root, encoding: 'utf8' });
+  const result = spawnSync(executable, executableArgs, { cwd: root, encoding: 'utf8', ...options });
   if (result.status !== 0) throw new Error(result.stderr || `Command failed: ${command}`);
   return result.stdout;
 }
@@ -38,18 +38,47 @@ try {
   if (!filename) throw new Error('npm pack did not return a filename.');
   const tarball = path.join(root, filename);
   const install = path.join(work, 'install');
+  const home = path.join(work, 'home');
   fs.mkdirSync(install, { recursive: true });
+  fs.mkdirSync(home, { recursive: true });
   run('npm', ['init', '-y'], { cwd: install });
   run('npm', ['install', tarball], { cwd: install });
   const environment = {
     ...process.env,
+    APPDATA: path.join(home, 'AppData', 'Roaming'),
+    HOME: home,
+    USERPROFILE: home,
+    XDG_CONFIG_HOME: path.join(home, '.config'),
     FORKIT_CENSUS_DISABLE_DEFAULT_RUNTIMES: '1',
   };
+  fs.mkdirSync(environment.APPDATA, { recursive: true });
+  fs.mkdirSync(environment.XDG_CONFIG_HOME, { recursive: true });
   run('npx', ['forkit-census', '--help'], { cwd: install, env: environment });
-  run('npx', ['forkit-census', 'scan', '--json', '--no-runtimes', '--no-model-files', '--no-agents'], {
-    cwd: install,
-    env: environment,
-  });
+  const apiSmoke = path.join(install, 'api-smoke.cjs');
+  fs.writeFileSync(apiSmoke, [
+    "const assert = require('node:assert/strict');",
+    "const api = require('forkit-census');",
+    "assert.equal(typeof api.runCensus, 'function');",
+    "assert.equal(typeof api.detectAgentProducts, 'function');",
+    "api.runCensus({ includeRuntimes: false, includeFilesystem: false, includeAgents: false, includeTools: false, includeMcp: false })",
+    "  .then((report) => {",
+    "    assert.equal(report.schema_version, '1.1');",
+    "    assert.equal(report.privacy.external_requests_made, 0);",
+    "    assert.equal(report.privacy.local_state_written, false);",
+    "  })",
+    "  .catch((error) => { console.error(error); process.exitCode = 1; });",
+  ].join('\n'));
+  run(process.execPath, [apiSmoke], { cwd: install, env: environment });
+  const output = capture('npx', [
+    'forkit-census', 'scan', '--json', '--no-runtimes', '--no-model-files', '--no-agents', '--no-tools', '--no-mcp',
+  ], { cwd: install, env: environment });
+  const report = JSON.parse(output);
+  if (report.schema_version !== '1.1' || report.privacy?.external_requests_made !== 0 || report.privacy?.backend_contacted !== false) {
+    throw new Error('Installed Census privacy contract failed.');
+  }
+  if (fs.existsSync(path.join(home, '.forkit-connect')) || fs.existsSync(path.join(home, '.forkit-census'))) {
+    throw new Error('Installed Census wrote persistent local state.');
+  }
   fs.rmSync(tarball, { force: true });
   process.stdout.write('Forkit Census package smoke passed.\n');
 } finally {

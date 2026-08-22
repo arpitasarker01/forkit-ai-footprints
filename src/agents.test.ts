@@ -5,6 +5,8 @@ import { detectAgentProducts } from './agents';
 test('agent census requires exact tokens and rejects the known Agno false positive', () => {
   const agents = detectAgentProducts([
     { pid: 1, name: 'diagnostics_agent', cmd: '/usr/bin/diagnostics_agent --collect' },
+    { pid: 3, name: 'node', cmd: 'node agno-tooling diagnostics' },
+    { pid: 4, name: 'cursor-helper', cmd: '/usr/bin/cursor-helper --type utility' },
     { pid: 2, name: 'python', cmd: 'python -m agno serve' },
   ]);
   assert.deepEqual(agents.map((agent) => agent.signature), ['agno']);

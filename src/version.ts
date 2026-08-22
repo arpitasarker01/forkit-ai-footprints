@@ -1,3 +1,3 @@
 export const PRODUCT_NAME = 'forkit-census' as const;
 export const PRODUCT_VERSION = '0.1.0';
-export const SCHEMA_VERSION = '1.0' as const;
+export const SCHEMA_VERSION = '1.1' as const;
