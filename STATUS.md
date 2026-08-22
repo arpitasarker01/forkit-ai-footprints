@@ -4,7 +4,7 @@ Last updated: 2026-08-22
 
 Version: `0.1.0`
 
-Status: `future/investigate`
+Status: implementation complete; product classification `future/investigate`
 
 ## Implemented
 
@@ -49,14 +49,21 @@ The real-device census aggregated 18 Codex-related processes into one Codex
 product and did not reproduce Forkit Connect's prior `Agno Tooling` false
 positive. This is encouraging evidence, not an accuracy benchmark.
 
-Hosted macOS, Ubuntu, and Windows validation is pending the first GitHub Actions
-run. Census must not be called cross-platform ready until every required job is
-green.
+Hosted GitHub Actions validation for implementation commit `239005b`:
 
-## Remaining before an experimental release candidate
+- Node 20, 22, and 24 test/package inspection: 9/9 pass across Ubuntu, macOS,
+  and Windows;
+- isolated installed-package smoke: 3/3 pass across Ubuntu, macOS, and Windows;
+- workflow conclusion: success ([run 32583418237](https://github.com/arpitasarker01/forkit-census/actions/runs/32583418237)).
 
-- pass the hosted macOS, Ubuntu, and Windows matrix;
+This proves the tested package and CLI paths work on the supported hosted runner
+matrix. It does not measure detector precision or recall on a labeled device
+corpus.
+
+## Remaining product decisions
+
 - complete founder review of the product boundary;
+- choose the experimental distribution and support policy;
 - keep npm publication and production promotion as separate approvals.
 
 The npm name `forkit-census` returned `E404` on 2026-08-22 and therefore appears
