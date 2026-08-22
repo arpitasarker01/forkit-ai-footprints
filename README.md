@@ -55,6 +55,24 @@ forkit-census evaluate --truth /absolute/path/to/local-truth.json
 `evaluate` always runs locally and emits aggregate counts and metrics only. It
 does not upload the truth file or include its item names in the output.
 
+Create the truth file only after manually checking that Mac. Empty arrays are
+valid when a surface is not installed or running:
+
+```json
+{
+  "schema_version": "1.0",
+  "expected": {
+    "agent_signatures": ["codex"],
+    "tool_names": ["Codex"],
+    "online_runtime_names": ["ollama"],
+    "model_keys": ["ollama:example-model:latest"],
+    "mcp_clients": ["Codex"]
+  }
+}
+```
+
+Keep truth files local; model names and installed-tool labels may be private.
+
 ```bash
 forkit-census
 forkit-census scan
