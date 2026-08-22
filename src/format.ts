@@ -7,7 +7,7 @@ function line(label: string, value: string | number): string {
 
 export function formatCensusReport(report: CensusReport, options: { verbose?: boolean } = {}): string {
   const output = [
-    'Forkit Census',
+    'Forkit AI Footprints',
     'Metadata-only local AI inventory',
     '-'.repeat(72),
     line('census id', report.census_id),
@@ -62,13 +62,13 @@ export function formatCensusReport(report: CensusReport, options: { verbose?: bo
     output.push('', 'Review notes');
     for (const warning of report.warnings) output.push(`  - ${warning.message}`);
   }
-  output.push('', 'Optional next step: use Forkit Connect if you later choose Passport review and an explicit final Mint. Census has not created or registered anything.');
+  output.push('', 'Optional next step: use Forkit Connect if you later choose Passport review and an explicit final Mint. AI Footprints has not created or registered anything.');
   return `${output.join('\n')}\n`;
 }
 
 export function formatDoctorReport(report: DoctorReport): string {
   const output = [
-    'Forkit Census Doctor',
+    'Forkit AI Footprints Doctor',
     '-'.repeat(72),
     ...report.checks.map((check) => line(check.name, `${check.ok ? 'ok' : 'failed'} · ${check.detail}`)),
   ];

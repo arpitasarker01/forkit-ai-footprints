@@ -11,7 +11,7 @@ test('human report is readable and repeats no raw process command', async () => 
     now: () => new Date('2026-08-22T00:00:00.000Z'),
   });
   const output = formatCensusReport(report);
-  assert.match(output, /Forkit Census/);
+  assert.match(output, /Forkit AI Footprints/);
   assert.match(output, /Codex/);
   assert.match(output, /metadata only/);
   assert.equal(output.includes('do-not-print'), false);

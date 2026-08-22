@@ -37,16 +37,19 @@ test('share snapshot contains aggregate facts without item-level records', async
   assert.equal(snapshot.storage_bucket, '1–10 GB');
 
   const html = renderCensusSharePage(report);
-  assert.match(html, /Your AI footprint/);
-  assert.match(html, /Share snapshot/);
+  assert.match(html, /Forkit AI Footprints/);
+  assert.match(html, /Your AI\.<br>Counted\./);
+  assert.match(html, /Share my footprint/);
   assert.match(html, /navigator\.share/);
   assert.match(html, /zero uploads/i);
+  assert.match(html, /No global numbers are fabricated/i);
+  assert.match(html, /npm ci &amp;&amp; npm run build/);
   assert.doesNotMatch(html, new RegExp(sentinel));
   assert.doesNotMatch(html, /https?:\/\//i);
   assert.doesNotMatch(html, /<script[^>]+src=/i);
 });
 
-test('share page states model and process-count limitations', async () => {
+test('share page states the compact result limitations', async () => {
   const report = await runCensus({
     includeRuntimes: false,
     includeFilesystem: false,
@@ -55,7 +58,38 @@ test('share page states model and process-count limitations', async () => {
     includeMcp: false,
   });
   const html = renderCensusSharePage(report);
-  assert.match(html, /one model may have more than one evidence source/i);
-  assert.match(html, /supporting processes, not independent agents/i);
-  assert.match(html, /not proof of ownership, safety, provenance, or passport status/i);
+  assert.match(html, /metadata evidence, not ownership/i);
+  assert.match(html, /no proof of safety, provenance, or ownership/i);
+});
+
+test('global pulse renders only when a consented aggregate is supplied', async () => {
+  const report = await runCensus({
+    includeRuntimes: false,
+    includeFilesystem: false,
+    includeAgents: false,
+    includeTools: false,
+    includeMcp: false,
+  });
+  const html = renderCensusSharePage(report, {
+    globalPulse: {
+      participating_devices: 1250,
+      model_records: 4020,
+      active_agent_products: 610,
+      updated_at: '2026-08-22T12:00:00.000Z',
+      source: 'consented-aggregate',
+    },
+  });
+  assert.match(html, /Live consented aggregate/);
+  assert.match(html, /1,250/);
+  assert.match(html, /4,020/);
+  assert.match(html, /610/);
+  assert.throws(() => renderCensusSharePage(report, {
+    globalPulse: {
+      participating_devices: -1,
+      model_records: 4020,
+      active_agent_products: 610,
+      updated_at: 'not-a-date',
+      source: 'consented-aggregate',
+    },
+  }), /INVALID_GLOBAL_AI_FOOTPRINT_PULSE/);
 });

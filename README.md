@@ -1,7 +1,8 @@
-# Forkit Census
+# Forkit AI Footprints
 
-Forkit Census is a metadata-only CLI for creating a reviewable inventory of
-local AI runtimes, models, and agent products.
+Forkit AI Footprints is a private, metadata-only view of the models, runtimes,
+and AI agents present on a Mac. The technical package and executable remain
+`forkit-census` for compatibility.
 
 It is derived from the discovery lessons in Forkit Connect, but it has a
 different safety boundary: Census does not authenticate to Forkit.dev and has
@@ -14,7 +15,7 @@ Current support target: **macOS only**. The real-device validation so far is on
 Apple Silicon. Ubuntu, Windows, Android, and Intel Mac are not part of the
 current release claim.
 
-## Install for development
+## Install on macOS — developer preview
 
 Requirements:
 
@@ -26,7 +27,9 @@ Requirements:
 git clone https://github.com/arpitasarker01/forkit-census.git
 cd forkit-census
 npm ci
-npm test
+npm run build
+node dist/cli.js share-page --output ai-footprint.html
+open ai-footprint.html
 ```
 
 The package is not published to npm. Do not treat the command below as available
@@ -36,10 +39,10 @@ from the public registry until a founder authorizes publication:
 npm install -g ./forkit-census-0.1.0.tgz
 ```
 
-After an authorized npm release, the intended zero-install entry point is:
+After an authorized npm release, the intended one-command entry point is:
 
 ```bash
-npx -y forkit-census@latest
+npx -y forkit-census@latest share-page --output ai-footprint.html
 ```
 
 ## Commands
@@ -84,6 +87,9 @@ aggregate-only HTML snapshot. It loads no external assets and contains no model
 names, paths, commands, endpoints, configuration values, account identity, or
 Census ID. Its copy/share controls include only the visible aggregate summary
 and run only after a user click.
+
+The compact Global AI Pulse stays empty until a caller supplies a validated,
+consented aggregate. The local page never fetches or invents global totals.
 
 ```bash
 forkit-census
@@ -224,7 +230,7 @@ macOS evaluation.
 
 ## Relationship to Forkit Connect
 
-- Forkit Census: canonical read-only inventory core and report generation.
+- Forkit AI Footprints: canonical read-only inventory core and report generation.
 - Forkit Connect: supporting bridge for governed Model and Agent Passport flows.
 - Forkit.dev website/registry: authoritative review and explicit final Mint.
 

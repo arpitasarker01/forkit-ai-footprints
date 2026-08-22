@@ -29,8 +29,8 @@ interface ParsedOptions {
   results: string | null;
 }
 
-const HELP = `Forkit Census
-Metadata-only local AI runtime, model, and agent inventory.
+const HELP = `Forkit AI Footprints
+Private, metadata-only local AI inventory.
 macOS-only experimental release candidate.
 
 Usage:
@@ -43,7 +43,7 @@ Usage:
   forkit-census --version
 
 Options:
-  --json                 Print a machine-readable Census Report
+  --json                 Print a machine-readable AI Footprint report
   --verbose              Show detector and identity details
   --guess <count>        Compare your estimate with discovered models
   --copy                 Copy the rendered local result to the clipboard
@@ -61,7 +61,7 @@ Options:
   -h, --help             Show this help
 
 Privacy:
-  Census reads metadata only. It does not read model bytes, retain raw process
+  AI Footprints reads metadata only. It does not read model bytes, retain raw process
   commands or MCP configuration values, authenticate to Forkit.dev, or write to
   any passport, registry, Runtime_C2, or production service.
 `;
@@ -277,7 +277,7 @@ if (require.main === module) {
   void main().then((code) => {
     process.exitCode = code;
   }).catch(() => {
-    process.stderr.write('Forkit Census failed safely. No raw error details were printed.\n');
+    process.stderr.write('Forkit AI Footprints failed safely. No raw error details were printed.\n');
     process.exitCode = 1;
   });
 }

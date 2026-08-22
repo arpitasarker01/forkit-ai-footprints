@@ -1,6 +1,6 @@
 # macOS Accuracy and Release Gate
 
-Forkit Census must remain unpublished and `future/investigate` until this gate
+Forkit AI Footprints must remain unpublished and `future/investigate` until this gate
 is reviewed. Passing local tests is necessary but is not field accuracy.
 
 ## Current supported claim

@@ -3,6 +3,7 @@ export { aggregateMacosFieldEvaluationDirectory, aggregateMacosFieldEvaluations 
 export { runCensus } from './census';
 export { buildAnonymousCensusContribution } from './sharing';
 export { buildCensusShareSnapshot, renderCensusSharePage } from './share-page';
+export type { AiFootprintPageOptions, GlobalAiFootprintPulse } from './share-page';
 export { detectAiTools } from './tools';
 export { detectMcpConfigs } from './mcp';
 export { runDoctor } from './doctor';

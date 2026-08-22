@@ -114,14 +114,14 @@ try {
     '--no-runtimes', '--no-model-files', '--no-agents', '--no-tools', '--no-mcp',
   ], { cwd: install, env: environment });
   const sharePage = fs.readFileSync(sharePagePath, 'utf8');
-  if (!sharePage.includes('Your AI footprint') || /https?:\/\//i.test(sharePage)) {
+  if (!sharePage.includes('Forkit AI Footprints') || /https?:\/\//i.test(sharePage)) {
     throw new Error('Installed Census aggregate share-page contract failed.');
   }
   if (fs.existsSync(path.join(home, '.forkit-connect')) || fs.existsSync(path.join(home, '.forkit-census'))) {
     throw new Error('Installed Census wrote persistent local state.');
   }
   fs.rmSync(tarball, { force: true });
-  process.stdout.write('Forkit Census package smoke passed.\n');
+  process.stdout.write('Forkit AI Footprints package smoke passed.\n');
 } finally {
   fs.rmSync(work, { recursive: true, force: true });
 }

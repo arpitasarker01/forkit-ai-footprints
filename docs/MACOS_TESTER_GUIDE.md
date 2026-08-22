@@ -1,6 +1,6 @@
-# Forkit Census macOS Field Test
+# Forkit AI Footprints macOS Field Test
 
-This is a private experimental test. Forkit Census is not production software,
+This is a private experimental test. Forkit AI Footprints is not production software,
 is not published on npm, and has no uploader. Do not test it on a machine where
 you are unable to review the local metadata it will inspect.
 

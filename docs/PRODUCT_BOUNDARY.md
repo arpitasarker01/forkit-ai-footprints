@@ -4,8 +4,9 @@ Sector: CLI discovery and local inventory
 
 Status: `future/investigate`
 
-Forkit Census is an experimental metadata-only inventory CLI derived from
-Forkit Connect discovery work.
+Forkit AI Footprints is the public name for the experimental metadata-only
+inventory CLI. Its technical package remains `forkit-census` so developer
+interfaces do not break.
 
 ## Allowed MVP
 

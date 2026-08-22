@@ -1,4 +1,7 @@
-# Forkit Census Status
+# Forkit AI Footprints Status
+
+Public product name: **Forkit AI Footprints**. Technical package and executable:
+`forkit-census`.
 
 Last updated: 2026-08-22
 

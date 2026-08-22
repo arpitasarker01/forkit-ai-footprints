@@ -19,6 +19,18 @@ export interface CensusShareSnapshot {
   external_request_count: 0;
 }
 
+export interface GlobalAiFootprintPulse {
+  participating_devices: number;
+  model_records: number;
+  active_agent_products: number;
+  updated_at: string;
+  source: 'consented-aggregate';
+}
+
+export interface AiFootprintPageOptions {
+  globalPulse?: GlobalAiFootprintPulse;
+}
+
 function escapeHtml(value: string | number): string {
   return String(value)
     .replaceAll('&', '&amp;')
@@ -30,6 +42,19 @@ function escapeHtml(value: string | number): string {
 
 function plural(value: number, singular: string, pluralValue = `${singular}s`): string {
   return value === 1 ? singular : pluralValue;
+}
+
+function formatGlobalValue(value: number | undefined): string {
+  return value === undefined ? '—' : new Intl.NumberFormat('en-US').format(value);
+}
+
+function validateGlobalPulse(pulse: GlobalAiFootprintPulse): void {
+  const counts = [pulse.participating_devices, pulse.model_records, pulse.active_agent_products];
+  if (pulse.source !== 'consented-aggregate'
+    || counts.some((value) => !Number.isSafeInteger(value) || value < 0)
+    || !Number.isFinite(Date.parse(pulse.updated_at))) {
+    throw new Error('INVALID_GLOBAL_AI_FOOTPRINT_PULSE');
+  }
 }
 
 export function buildCensusShareSnapshot(report: CensusReport): CensusShareSnapshot {
@@ -64,19 +89,22 @@ export function buildCensusShareSnapshot(report: CensusReport): CensusShareSnaps
   };
 }
 
-export function renderCensusSharePage(report: CensusReport): string {
+export function renderCensusSharePage(report: CensusReport, options: AiFootprintPageOptions = {}): string {
   const snapshot = buildCensusShareSnapshot(report);
+  const pulse = options.globalPulse;
+  if (pulse) validateGlobalPulse(pulse);
   const shareText = [
     `My Mac has ${snapshot.model_record_count} local AI model ${plural(snapshot.model_record_count, 'record')},`,
     `${snapshot.online_runtime_count} active ${plural(snapshot.online_runtime_count, 'runtime')}, and`,
     `${snapshot.active_agent_product_count} active AI agent ${plural(snapshot.active_agent_product_count, 'product')}.`,
-    `Discovered locally with Forkit Census — ${snapshot.storage_bucket} model storage, no data uploaded.`,
+    `${snapshot.storage_bucket} model storage. Discovered privately with Forkit AI Footprints.`,
   ].join(' ');
   const safeShareText = JSON.stringify(shareText).replaceAll('<', '\\u003c');
-  const highConfidenceLabel = snapshot.active_agent_product_count > 0
-    && snapshot.high_confidence_agent_count === snapshot.active_agent_product_count
-    ? 'High-confidence evidence'
-    : 'Reviewable evidence';
+  const localSummary = `${snapshot.model_record_count} model ${plural(snapshot.model_record_count, 'record')} · ${snapshot.online_runtime_count} ${plural(snapshot.online_runtime_count, 'runtime')} · ${snapshot.active_agent_product_count} ${plural(snapshot.active_agent_product_count, 'agent')}`;
+  const pulseState = pulse ? 'Live consented aggregate' : 'Opens after opt-in launch';
+  const pulseUpdated = pulse
+    ? `Updated ${new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' }).format(new Date(pulse.updated_at))} UTC`
+    : 'No global numbers are fabricated.';
 
   return `<!doctype html>
 <html lang="en">
@@ -84,217 +112,101 @@ export function renderCensusSharePage(report: CensusReport): string {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
-  <title>Your AI footprint · Forkit Census</title>
+  <title>My AI Footprint · Forkit</title>
   <style>
-    :root {
-      --bg: #f5f0e6;
-      --paper: #fffefa;
-      --ink: #2d2b27;
-      --muted: #6d6961;
-      --line: rgba(45, 43, 39, .12);
-      --teal: #008190;
-      --teal-soft: #dcecef;
-      --orange: #f49355;
-      --orange-soft: #fbe6d7;
-      --success: #2d987b;
-      --shadow: 0 28px 80px rgba(45, 43, 39, .10), 0 8px 28px rgba(45, 43, 39, .06);
-    }
-    * { box-sizing: border-box; }
-    html { background: var(--bg); }
-    body {
-      margin: 0;
-      min-width: 320px;
-      color: var(--ink);
-      background:
-        radial-gradient(circle at 7% 4%, rgba(244,147,85,.17), transparent 27rem),
-        radial-gradient(circle at 92% 8%, rgba(0,129,144,.13), transparent 30rem),
-        var(--bg);
-      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      -webkit-font-smoothing: antialiased;
-    }
-    button { font: inherit; }
-    .shell { width: min(1180px, calc(100% - 40px)); margin: 0 auto; padding: 28px 0 48px; }
-    .nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 54px; }
-    .brand { display: flex; align-items: center; gap: 12px; font-weight: 760; letter-spacing: -.03em; }
-    .brand-mark {
-      width: 38px; height: 38px; border-radius: 12px; position: relative; overflow: hidden;
-      background: linear-gradient(145deg, var(--teal), #6aa7ab 52%, var(--orange));
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 8px 20px rgba(0,129,144,.18);
-    }
-    .brand-mark::before, .brand-mark::after { content: ""; position: absolute; background: #fffefa; border-radius: 99px; }
-    .brand-mark::before { width: 20px; height: 5px; left: 9px; top: 10px; transform: rotate(-8deg); }
-    .brand-mark::after { width: 5px; height: 20px; left: 12px; top: 9px; transform: rotate(8deg); }
-    .brand small { display: block; margin-top: 2px; color: var(--muted); font-size: 10px; letter-spacing: .18em; text-transform: uppercase; font-weight: 650; }
-    .private-pill, .scan-pill { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); background: rgba(255,254,250,.62); backdrop-filter: blur(16px); }
-    .private-pill { border-radius: 999px; padding: 9px 13px; color: #4e4a44; font-size: 12px; font-weight: 680; }
-    .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); box-shadow: 0 0 0 5px rgba(45,152,123,.10); }
-    .hero { display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(350px, .88fr); gap: 48px; align-items: end; margin-bottom: 34px; }
-    .eyebrow { color: var(--teal); text-transform: uppercase; letter-spacing: .20em; font-size: 11px; font-weight: 780; margin: 0 0 16px; }
-    h1 { margin: 0; max-width: 760px; font-size: clamp(52px, 6vw, 88px); line-height: .91; letter-spacing: -.065em; font-weight: 760; }
-    .hero-copy { margin: 24px 0 0; max-width: 650px; color: var(--muted); font-size: 17px; line-height: 1.65; }
-    .hero-copy strong { color: var(--ink); font-weight: 680; }
-    .share-panel { border: 1px solid rgba(255,255,255,.66); border-radius: 28px; padding: 24px; background: rgba(255,254,250,.68); box-shadow: var(--shadow); backdrop-filter: blur(24px); }
-    .scan-pill { width: fit-content; border-radius: 999px; padding: 8px 11px; color: var(--teal); font-size: 11px; font-weight: 760; letter-spacing: .08em; text-transform: uppercase; }
-    .share-panel h2 { margin: 20px 0 8px; font-size: 25px; letter-spacing: -.04em; }
-    .share-panel p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.65; }
-    .actions { display: flex; gap: 10px; margin-top: 22px; }
-    .button { min-height: 44px; border-radius: 13px; padding: 0 17px; border: 1px solid var(--line); font-weight: 720; cursor: pointer; transition: transform .15s ease, box-shadow .15s ease; }
-    .button:hover { transform: translateY(-1px); }
-    .button.primary { color: #fffefa; border-color: var(--teal); background: var(--teal); box-shadow: 0 10px 24px rgba(0,129,144,.20); }
-    .button.secondary { color: var(--ink); background: #eee8df; }
-    .action-status { min-height: 18px; margin-top: 10px; color: var(--success); font-size: 12px; font-weight: 650; }
-    .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 14px; }
-    .metric { min-height: 192px; border: 1px solid var(--line); border-radius: 24px; padding: 23px; background: rgba(255,254,250,.76); box-shadow: 0 15px 35px rgba(45,43,39,.045); }
-    .metric:nth-child(2) { background: linear-gradient(145deg, rgba(220,236,239,.92), rgba(255,254,250,.85)); }
-    .metric:nth-child(3) { background: linear-gradient(145deg, rgba(251,230,215,.92), rgba(255,254,250,.85)); }
-    .metric-label { min-height: 34px; color: var(--muted); font-size: 12px; line-height: 1.4; font-weight: 720; letter-spacing: .08em; text-transform: uppercase; }
-    .metric-value { margin: 18px 0 7px; font-size: 52px; line-height: 1; letter-spacing: -.055em; font-weight: 760; }
-    .metric-value.storage { font-size: 35px; margin-top: 27px; }
-    .metric-note { color: var(--muted); font-size: 12px; line-height: 1.55; }
-    .details { display: grid; grid-template-columns: 1.15fr .85fr; gap: 14px; }
-    .card { border: 1px solid var(--line); border-radius: 24px; background: rgba(255,254,250,.72); padding: 25px; }
-    .card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-    .card h3 { margin: 0; font-size: 18px; letter-spacing: -.03em; }
-    .subtle { color: var(--muted); font-size: 11px; font-weight: 650; }
-    .signal-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-    .signal { display: flex; gap: 13px; align-items: center; border-radius: 16px; background: rgba(45,43,39,.035); padding: 14px; }
-    .signal-icon { width: 38px; height: 38px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 12px; color: var(--teal); background: var(--teal-soft); font-size: 14px; font-weight: 800; }
-    .signal:nth-child(2) .signal-icon, .signal:nth-child(4) .signal-icon { color: #aa5b2c; background: var(--orange-soft); }
-    .signal strong { display: block; font-size: 14px; }
-    .signal span { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; line-height: 1.4; }
-    .evidence { display: grid; gap: 12px; }
-    .evidence-row { display: grid; grid-template-columns: 1fr auto; gap: 18px; align-items: center; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
-    .evidence-row:last-child { border: 0; padding-bottom: 0; }
-    .evidence-row strong { display: block; font-size: 13px; }
-    .evidence-row span { display: block; color: var(--muted); font-size: 11px; margin-top: 4px; }
-    .evidence-badge { border-radius: 999px; padding: 7px 10px; background: #edf5f1; color: #23765f; font-size: 10px; font-weight: 780; white-space: nowrap; }
-    .evidence-badge.caution { color: #9b572e; background: #fbebdf; }
-    .foot { display: flex; justify-content: space-between; gap: 28px; margin-top: 16px; padding: 18px 4px 0; color: var(--muted); font-size: 10px; line-height: 1.55; }
-    .foot strong { color: var(--ink); }
-    @media (max-width: 900px) {
-      .hero { grid-template-columns: 1fr; align-items: start; }
-      .metrics { grid-template-columns: repeat(2, 1fr); }
-      .details { grid-template-columns: 1fr; }
-    }
-    @media (max-width: 560px) {
-      .shell { width: min(100% - 24px, 1180px); padding-top: 16px; }
-      .nav { margin-bottom: 38px; }
-      .private-pill { font-size: 0; padding: 11px; }
-      .hero { gap: 28px; }
-      h1 { font-size: 50px; }
-      .metrics { grid-template-columns: 1fr; }
-      .metric { min-height: 160px; }
-      .signal-grid { grid-template-columns: 1fr; }
-      .actions { flex-direction: column; }
-      .foot { flex-direction: column; }
-    }
+    :root { --bg:#f5f0e6; --paper:rgba(255,254,250,.76); --ink:#292824; --muted:#6d6961; --line:rgba(45,43,39,.12); --teal:#008190; --orange:#f49355; --green:#2d987b; --shadow:0 24px 70px rgba(45,43,39,.09); }
+    * { box-sizing:border-box; }
+    html { background:var(--bg); }
+    body { margin:0; min-width:320px; color:var(--ink); background:radial-gradient(circle at 0 0,rgba(244,147,85,.18),transparent 29rem),radial-gradient(circle at 100% 0,rgba(0,129,144,.15),transparent 31rem),var(--bg); font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; -webkit-font-smoothing:antialiased; }
+    button { font:inherit; }
+    .shell { width:min(1040px,calc(100% - 40px)); margin:0 auto; padding:26px 0 34px; }
+    .nav { display:flex; justify-content:space-between; align-items:center; margin-bottom:52px; }
+    .brand { display:flex; align-items:center; gap:11px; font-size:16px; font-weight:780; letter-spacing:-.03em; }
+    .mark { width:34px; height:34px; border-radius:11px; background:linear-gradient(145deg,var(--teal),#6aa7ab 54%,var(--orange)); box-shadow:0 8px 20px rgba(0,129,144,.18); }
+    .private { display:flex; align-items:center; gap:8px; color:var(--muted); font-size:12px; font-weight:680; }
+    .dot { width:8px; height:8px; border-radius:50%; background:var(--green); box-shadow:0 0 0 5px rgba(45,152,123,.10); }
+    .hero { display:grid; grid-template-columns:minmax(0,1.2fr) auto; gap:34px; align-items:end; margin-bottom:30px; }
+    .eyebrow { margin:0 0 13px; color:var(--teal); font-size:11px; font-weight:800; letter-spacing:.19em; text-transform:uppercase; }
+    h1 { margin:0; max-width:700px; font-size:clamp(58px,8vw,92px); line-height:.89; letter-spacing:-.07em; }
+    .summary { margin:22px 0 0; color:var(--muted); font-size:16px; }
+    .summary strong { color:var(--ink); }
+    .button { min-height:48px; padding:0 20px; border:1px solid var(--teal); border-radius:12px; color:#fff; background:var(--teal); font-weight:760; cursor:pointer; box-shadow:0 12px 26px rgba(0,129,144,.20); }
+    .button:hover { transform:translateY(-1px); }
+    .status { min-height:17px; margin-top:9px; color:var(--green); font-size:11px; text-align:center; }
+    .metrics { display:grid; grid-template-columns:repeat(3,1fr); gap:13px; }
+    .metric,.global,.install { border:1px solid var(--line); background:var(--paper); backdrop-filter:blur(20px); box-shadow:var(--shadow); }
+    .metric { min-height:160px; padding:23px; border-radius:22px; }
+    .metric:nth-child(2) { background:linear-gradient(145deg,rgba(220,236,239,.94),var(--paper)); }
+    .metric:nth-child(3) { background:linear-gradient(145deg,rgba(251,230,215,.94),var(--paper)); }
+    .label { color:var(--muted); font-size:10px; font-weight:800; letter-spacing:.13em; text-transform:uppercase; }
+    .value { margin:19px 0 7px; font-size:49px; line-height:.92; font-weight:780; letter-spacing:-.055em; }
+    .value.combo { font-size:30px; line-height:1.08; }
+    .note { color:var(--muted); font-size:11px; line-height:1.45; }
+    .global { display:grid; grid-template-columns:1fr 1.45fr; gap:30px; align-items:center; margin-top:13px; padding:24px; border-radius:22px; }
+    .global h2 { margin:7px 0; font-size:25px; letter-spacing:-.045em; }
+    .global p { margin:0; color:var(--muted); font-size:11px; line-height:1.5; }
+    .pulse-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:9px; }
+    .pulse { padding:13px; border-radius:14px; background:rgba(45,43,39,.035); }
+    .pulse strong { display:block; font-size:23px; letter-spacing:-.04em; }
+    .pulse span { display:block; margin-top:4px; color:var(--muted); font-size:9px; text-transform:uppercase; letter-spacing:.08em; }
+    .install { display:grid; grid-template-columns:.7fr 1.3fr; gap:24px; align-items:center; margin-top:13px; padding:20px 24px; border-radius:22px; }
+    .install h2 { margin:6px 0 4px; font-size:20px; letter-spacing:-.035em; }
+    .install p { margin:0; color:var(--muted); font-size:10px; }
+    .command { position:relative; padding:15px 48px 15px 16px; border-radius:13px; color:#f8f5ed; background:#292824; font:11px/1.65 ui-monospace,SFMono-Regular,Menlo,monospace; white-space:pre-wrap; }
+    .copy-install { position:absolute; top:9px; right:9px; min-height:30px; padding:0 10px; border:1px solid rgba(255,255,255,.2); border-radius:8px; color:#fff; background:rgba(255,255,255,.08); font-size:10px; cursor:pointer; }
+    footer { display:flex; justify-content:space-between; gap:20px; padding:16px 3px 0; color:var(--muted); font-size:9px; line-height:1.5; }
+    @media (max-width:720px) { .nav{margin-bottom:40px}.hero{grid-template-columns:1fr;align-items:start}.hero-action,.button{width:100%}.metrics{grid-template-columns:1fr}.metric{min-height:138px}.global,.install{grid-template-columns:1fr} }
+    @media (max-width:440px) { .shell{width:calc(100% - 24px);padding-top:16px}.private{font-size:0}h1{font-size:58px}.pulse-grid{grid-template-columns:1fr}footer{flex-direction:column} }
   </style>
 </head>
 <body>
   <main class="shell">
-    <nav class="nav" aria-label="Census result header">
-      <div class="brand"><span class="brand-mark" aria-hidden="true"></span><span>Forkit Census<small>Local AI inventory</small></span></div>
-      <div class="private-pill"><span class="dot" aria-hidden="true"></span>Private by default · zero uploads</div>
+    <nav class="nav" aria-label="AI Footprints result header">
+      <div class="brand"><span class="mark" aria-hidden="true"></span>Forkit AI Footprints</div>
+      <div class="private"><span class="dot" aria-hidden="true"></span>Private scan · zero uploads</div>
     </nav>
-
     <section class="hero">
-      <div>
-        <p class="eyebrow">Your local AI snapshot</p>
-        <h1>Your AI footprint,<br>discovered locally.</h1>
-        <p class="hero-copy">A metadata-only look at what is actually present on this Mac. <strong>No login. No cloud scan. No registry writes.</strong></p>
+      <div><p class="eyebrow">Your Mac · counted locally</p><h1>Your AI.<br>Counted.</h1><p class="summary"><strong>${escapeHtml(localSummary)}</strong> · nothing uploaded.</p></div>
+      <div class="hero-action"><button class="button" id="share-button" type="button">Share my footprint</button><div class="status" id="action-status" role="status" aria-live="polite"></div></div>
+    </section>
+    <section class="metrics" aria-label="Local AI footprint">
+      <article class="metric"><div class="label">Model records</div><div class="value">${escapeHtml(snapshot.model_record_count)}</div><div class="note">Metadata evidence, not ownership.</div></article>
+      <article class="metric"><div class="label">AI active now</div><div class="value combo">${escapeHtml(snapshot.online_runtime_count)} runtime<br>${escapeHtml(snapshot.active_agent_product_count)} agent</div><div class="note">Responding runtime and active product evidence.</div></article>
+      <article class="metric"><div class="label">Local model storage</div><div class="value combo">${escapeHtml(snapshot.storage_bucket)}</div><div class="note">Privacy-safe estimated range.</div></article>
+    </section>
+    <section class="global" aria-label="Global AI Footprints pulse">
+      <div><div class="label">Global AI Pulse · ${escapeHtml(pulseState)}</div><h2>The world's local AI, counted live.</h2><p>${escapeHtml(pulseUpdated)}</p></div>
+      <div class="pulse-grid">
+        <div class="pulse"><strong>${escapeHtml(formatGlobalValue(pulse?.participating_devices))}</strong><span>Participating devices</span></div>
+        <div class="pulse"><strong>${escapeHtml(formatGlobalValue(pulse?.model_records))}</strong><span>Model records</span></div>
+        <div class="pulse"><strong>${escapeHtml(formatGlobalValue(pulse?.active_agent_products))}</strong><span>Active agent findings</span></div>
       </div>
-      <aside class="share-panel" aria-label="Share this snapshot">
-        <div class="scan-pill"><span class="dot" aria-hidden="true"></span> Live local result</div>
-        <h2>Make your AI use visible.</h2>
-        <p>Share only these aggregate counts. Model names, paths, commands, configuration values, and account identity stay off the card.</p>
-        <div class="actions">
-          <button class="button primary" id="share-button" type="button">Share snapshot</button>
-          <button class="button secondary" id="copy-button" type="button">Copy summary</button>
-        </div>
-        <div class="action-status" id="action-status" role="status" aria-live="polite"></div>
-      </aside>
     </section>
-
-    <section class="metrics" aria-label="AI footprint metrics">
-      <article class="metric">
-        <div class="metric-label">Model records</div>
-        <div class="metric-value">${escapeHtml(snapshot.model_record_count)}</div>
-        <div class="metric-note">Metadata discoveries; one model may have more than one evidence source.</div>
-      </article>
-      <article class="metric">
-        <div class="metric-label">Active runtimes</div>
-        <div class="metric-value">${escapeHtml(snapshot.online_runtime_count)}</div>
-        <div class="metric-note">Runtime APIs responding on this Mac through loopback only.</div>
-      </article>
-      <article class="metric">
-        <div class="metric-label">Active agent products</div>
-        <div class="metric-value">${escapeHtml(snapshot.active_agent_product_count)}</div>
-        <div class="metric-note">${escapeHtml(highConfidenceLabel)} from explicit running-process evidence.</div>
-      </article>
-      <article class="metric">
-        <div class="metric-label">Discovered model storage</div>
-        <div class="metric-value storage">${escapeHtml(snapshot.storage_bucket)}</div>
-        <div class="metric-note">Best-effort local file metadata, shown as a privacy-safe range.</div>
-      </article>
+    <section class="install" aria-label="Install Forkit AI Footprints">
+      <div><div class="label">macOS developer preview</div><h2>Make yours visible.</h2><p>Run from the downloaded repository. Public one-command install follows npm approval.</p></div>
+      <div class="command" id="install-command">npm ci &amp;&amp; npm run build
+node dist/cli.js share-page --output ai-footprint.html &amp;&amp; open ai-footprint.html<button class="copy-install" id="copy-install" type="button">Copy</button></div>
     </section>
-
-    <section class="details">
-      <article class="card">
-        <div class="card-head"><h3>Your setup at a glance</h3><span class="subtle">This Mac · ${escapeHtml(snapshot.architecture_label)}</span></div>
-        <div class="signal-grid">
-          <div class="signal"><div class="signal-icon">AI</div><div><strong>${escapeHtml(snapshot.tool_count)} AI ${plural(snapshot.tool_count, 'tool')} found</strong><span>Installed, configured, or active evidence</span></div></div>
-          <div class="signal"><div class="signal-icon">MCP</div><div><strong>${escapeHtml(snapshot.mcp_config_count)} MCP ${plural(snapshot.mcp_config_count, 'config')}</strong><span>Counts only; server values are never shown</span></div></div>
-          <div class="signal"><div class="signal-icon">RUN</div><div><strong>${escapeHtml(snapshot.confirmed_running_model_count)} ${plural(snapshot.confirmed_running_model_count, 'model')} loaded now</strong><span>Direct confirmed-running evidence when available</span></div></div>
-          <div class="signal"><div class="signal-icon">PROC</div><div><strong>${escapeHtml(snapshot.agent_process_instance_count)} process ${plural(snapshot.agent_process_instance_count, 'instance')}</strong><span>Supporting processes, not independent agents</span></div></div>
-        </div>
-      </article>
-
-      <article class="card">
-        <div class="card-head"><h3>What makes this credible</h3><span class="subtle">v${escapeHtml(snapshot.product_version)}</span></div>
-        <div class="evidence">
-          <div class="evidence-row"><div><strong>Network boundary</strong><span>Only local loopback runtime checks</span></div><div class="evidence-badge">${escapeHtml(snapshot.external_request_count)} external</div></div>
-          <div class="evidence-row"><div><strong>Agent evidence</strong><span>Exact executable or explicit invocation</span></div><div class="evidence-badge">Reviewable</div></div>
-          <div class="evidence-row"><div><strong>Model filesystem</strong><span>Metadata only; model bytes are not read</span></div><div class="evidence-badge caution">Best effort</div></div>
-          <div class="evidence-row"><div><strong>Coverage notes</strong><span>Known limitations remain visible</span></div><div class="evidence-badge caution">${escapeHtml(snapshot.warning_count)} notes</div></div>
-        </div>
-      </article>
-    </section>
-
-    <footer class="foot">
-      <span><strong>Scanned ${escapeHtml(snapshot.generated_date)}</strong> · macOS ${escapeHtml(snapshot.architecture)} · Node ${escapeHtml(snapshot.node_major)}</span>
-      <span>Inventory suggestions are not proof of ownership, safety, provenance, or passport status.</span>
-    </footer>
+    <footer><span>Scanned ${escapeHtml(snapshot.generated_date)} · ${escapeHtml(snapshot.architecture_label)}</span><span>Local inventory only · no proof of safety, provenance, or ownership</span></footer>
   </main>
   <script>
     const shareText = ${safeShareText};
     const status = document.getElementById('action-status');
-    async function copySummary() {
-      try {
-        await navigator.clipboard.writeText(shareText);
-      } catch {
-        const area = document.createElement('textarea');
-        area.value = shareText;
-        area.style.position = 'fixed';
-        area.style.opacity = '0';
-        document.body.appendChild(area);
-        area.select();
-        document.execCommand('copy');
-        area.remove();
+    async function copyText(text) {
+      try { await navigator.clipboard.writeText(text); }
+      catch {
+        const area = document.createElement('textarea'); area.value = text; area.style.position = 'fixed'; area.style.opacity = '0'; document.body.appendChild(area); area.select(); document.execCommand('copy'); area.remove();
       }
-      status.textContent = 'Aggregate summary copied — no private item names included.';
     }
-    document.getElementById('copy-button').addEventListener('click', copySummary);
     document.getElementById('share-button').addEventListener('click', async () => {
       if (navigator.share) {
-        try {
-          await navigator.share({ title: 'My AI footprint · Forkit Census', text: shareText });
-          status.textContent = 'Shared through your device — Forkit received nothing.';
-          return;
-        } catch (error) {
-          if (error && error.name === 'AbortError') return;
-        }
+        try { await navigator.share({ title: 'My AI Footprint · Forkit', text: shareText }); status.textContent = 'Shared privately through your device.'; return; }
+        catch (error) { if (error && error.name === 'AbortError') return; }
       }
-      await copySummary();
+      await copyText(shareText); status.textContent = 'Footprint copied — no private item names included.';
+    });
+    document.getElementById('copy-install').addEventListener('click', async () => {
+      await copyText('npm ci && npm run build\\nnode dist/cli.js share-page --output ai-footprint.html && open ai-footprint.html'); document.getElementById('copy-install').textContent = 'Copied';
     });
   </script>
 </body>

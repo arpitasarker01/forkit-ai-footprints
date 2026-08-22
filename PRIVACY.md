@@ -1,6 +1,6 @@
 # Privacy Boundary
 
-Forkit Census is metadata-only by design.
+Forkit AI Footprints (`forkit-census`) is metadata-only by design.
 
 ## Allowed local reads
 

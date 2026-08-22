@@ -1,7 +1,7 @@
 {
   "name": "forkit-census",
   "version": "0.1.0",
-  "description": "Metadata-only local AI runtime, model, and agent inventory",
+  "description": "Forkit AI Footprints: private local AI model, runtime, and agent inventory",
   "license": "MIT",
   "repository": {
     "type": "git",
