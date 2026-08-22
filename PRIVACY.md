@@ -8,6 +8,8 @@ Forkit AI Footprints (`forkit-ai-footprints`) is metadata-only by design.
 - process name and command metadata held only long enough to classify explicit
   executable, module, or package-runner evidence; raw commands are not included
   in the report or in the evidence hash;
+- process CPU and memory percentages aggregated only for strongly classified
+  agent processes as a point-in-time local snapshot;
 - directory entries and file metadata for supported model extensions;
 - loopback runtime API responses from explicitly supported local endpoints.
 - known AI-tool installation/configuration path existence;
@@ -49,6 +51,8 @@ requires the same page origin and a random in-memory session token. The route
 returns aggregate display fields only; it never returns item names, paths,
 commands, endpoints, configuration values, or account data. The numeric guess
 is compared inside the browser and is not submitted to the local server.
+`Close local scan` uses the same origin and random in-memory token, then stops
+the loopback server.
 
 ## Filesystem identity
 
@@ -64,12 +68,13 @@ used as automatic evidence of ownership, safety, provenance, or passport status.
 
 ## Anonymous contribution boundary
 
-The current build can create a local, allowlisted aggregate preview only after
+The CLI can create a local, allowlisted aggregate preview only after
 separate explicit consent. It contains OS/architecture, aggregate counts,
-confirmed-running count, storage bucket, optional numeric guess, detector types,
-and version numbers. It excludes the local Census ID and all item-level records.
-No upload transport or Global AI Footprints backend is present while the product stays
-`future/investigate`.
+confirmed-running count, active agent product/process counts, storage bucket,
+optional numeric guess, detector types, and version numbers. It excludes the
+local Census ID and all item-level records. The CLI still has no uploader. A
+separate Forkit.dev aggregate endpoint candidate exists with contribution writes
+disabled by default; enabling it remains a founder/security release gate.
 
 ## Local share page
 
@@ -82,7 +87,8 @@ click and use aggregate text.
 
 The interactive `serve` page can also render a 1200×630 discovery card locally
 with browser Canvas. It includes the user's browser-only numeric guess plus
-aggregate model-record, active-runtime, active-agent, and storage-bucket values.
+aggregate model-record, loaded-state, agent-process, recognized storage, and
+point-in-time agent CPU/memory values.
 The image has no item names, paths, account identifiers, or external assets.
 Downloading it or opening the operating system share sheet requires a separate
 user click; AI Footprints does not receive the image.

@@ -49,7 +49,7 @@ export async function startAiFootprintsServer(options: AiFootprintsServerOptions
     const pathname = new URL(request.url ?? '/', origin).pathname;
     if (request.method === 'GET' && (pathname === '/' || pathname === '/index.html')) {
       sendText(response, 200, 'text/html; charset=utf-8', renderCensusSharePage(currentReport, {
-        rescan: { endpoint: '/api/scan', session_token: sessionToken },
+        rescan: { endpoint: '/api/scan', stop_endpoint: '/api/stop', session_token: sessionToken },
       }));
       return;
     }
@@ -76,6 +76,17 @@ export async function startAiFootprintsServer(options: AiFootprintsServerOptions
       return;
     }
 
+    if (request.method === 'POST' && pathname === '/api/stop') {
+      const requestOrigin = request.headers.origin;
+      if (requestOrigin !== origin || request.headers['x-forkit-footprints-session'] !== sessionToken) {
+        sendText(response, 403, 'application/json; charset=utf-8', JSON.stringify({ error: 'LOCAL_SESSION_REQUIRED' }));
+        return;
+      }
+      sendText(response, 200, 'application/json; charset=utf-8', JSON.stringify({ stopped: true }));
+      setImmediate(() => server.close());
+      return;
+    }
+
     sendText(response, 404, 'text/plain; charset=utf-8', 'Not found.');
   });
 
@@ -94,6 +105,7 @@ export async function startAiFootprintsServer(options: AiFootprintsServerOptions
     url: `${origin}/`,
     sessionToken,
     close: () => new Promise<void>((resolve, reject) => {
+      if (!server.listening) { resolve(); return; }
       server.close((error) => error ? reject(error) : resolve());
     }),
   };

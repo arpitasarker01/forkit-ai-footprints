@@ -18,6 +18,11 @@ function agent(signature: string, name: string): CensusAgent {
     evidence_hashes: ['safe-hash'],
     detection_reason: 'exact_executable_match',
     evidence_status: 'online',
+    resource_snapshot: {
+      cpu_percent: 0.5,
+      memory_percent: 0.2,
+      measurement: 'point-in-time-process-metadata',
+    },
   };
 }
 

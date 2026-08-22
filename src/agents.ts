@@ -16,6 +16,8 @@ interface AgentEvidence {
   executable: string;
   evidenceHash: string;
   reason: string;
+  cpuPercent: number | null;
+  memoryPercent: number | null;
 }
 
 const SIGNATURES: AgentSignature[] = [
@@ -109,6 +111,8 @@ function classifyProcess(entry: ProcessEntry): AgentEvidence | null {
       executable,
       evidenceHash: sha256(`${signature.signature}:${processName}:${executable}:${reason}`),
       reason,
+      cpuPercent: Number.isFinite(entry.cpu_percent) ? Math.max(0, Number(entry.cpu_percent)) : null,
+      memoryPercent: Number.isFinite(entry.memory_percent) ? Math.max(0, Number(entry.memory_percent)) : null,
     };
   }
   return null;
@@ -145,14 +149,25 @@ export function detectAgentProducts(processes: ProcessEntry[]): CensusAgent[] {
       evidence_hashes: [...new Set(evidence.map((entry) => entry.evidenceHash))].sort(),
       detection_reason: strongestEvidence.reason,
       evidence_status: 'online' as const,
+      resource_snapshot: {
+        cpu_percent: aggregateMetric(evidence.map((entry) => entry.cpuPercent)),
+        memory_percent: aggregateMetric(evidence.map((entry) => entry.memoryPercent)),
+        measurement: 'point-in-time-process-metadata' as const,
+      },
     };
   }).sort((left, right) => left.name.localeCompare(right.name));
+}
+
+function aggregateMetric(values: Array<number | null>): number | null {
+  const measured = values.filter((value): value is number => value !== null);
+  if (measured.length === 0) return null;
+  return Math.round(measured.reduce((total, value) => total + value, 0) * 10) / 10;
 }
 
 export async function listSystemProcesses(): Promise<ProcessEntry[]> {
   const dynamicImport = new Function('specifier', 'return import(specifier);') as (
     specifier: string,
-  ) => Promise<{ default: () => Promise<Array<{ pid: number; ppid: number; name: string; cmd?: string }>> }>;
+  ) => Promise<{ default: () => Promise<Array<{ pid: number; ppid: number; name: string; cmd?: string; cpu?: number; memory?: number }>> }>;
   const imported = await dynamicImport('ps-list');
   const list = imported.default;
   const processes = await list();
@@ -161,5 +176,7 @@ export async function listSystemProcesses(): Promise<ProcessEntry[]> {
     ppid: process.ppid,
     name: process.name,
     ...(process.cmd !== undefined ? { cmd: process.cmd } : {}),
+    ...(Number.isFinite(process.cpu) ? { cpu_percent: Number(process.cpu) } : {}),
+    ...(Number.isFinite(process.memory) ? { memory_percent: Number(process.memory) } : {}),
   }));
 }

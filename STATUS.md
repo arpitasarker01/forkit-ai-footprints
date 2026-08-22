@@ -13,6 +13,7 @@ Status: macOS accuracy hardening in progress; release classification `future/inv
 
 - independent package and `forkit-ai-footprints` executable;
 - token-protected `127.0.0.1` local UI with Guess → Actual and Scan again;
+- token-protected `Close local scan` action for the packaged-app lifecycle;
 - explicit package-root shared-core API with TypeScript declarations and an
   isolated consumer smoke test;
 - unified runtime, model-file, and agent scan;
@@ -25,6 +26,8 @@ Status: macOS accuracy hardening in progress; release classification `future/inv
 - a labeled agent-process conformance corpus with positive and difficult
   negative cases;
 - product-level agent deduplication with process instance counts;
+- point-in-time aggregate CPU and memory percentages for strongly classified
+  agent processes, with no per-process details retained in the report;
 - human and JSON reports;
 - passive AI-tool and MCP configuration detection;
 - storage buckets, guess comparison, verbose and native clipboard modes;
@@ -38,7 +41,10 @@ Status: macOS accuracy hardening in progress; release classification `future/inv
 - self-contained aggregate-only local HTML share page with explicit copy/native
   share controls and no automatic network activity;
 - browser-generated 1200×630 Guess → Discovered PNG with local download and
-  native share actions, aggregate fields only, and no external assets;
+  native share actions, dynamic result-based language, defensible resource
+  snapshots, aggregate fields only, and no external assets;
+- local 36 MB Apple Silicon `.pkg` candidate with a checksummed official Node
+  runtime bundled, app/CLI smoke, and valid ad-hoc app signature;
 - macOS-only hosted CI definition and real-device validation command.
 - separately labelled controlled-compatibility CI for macOS 14, 15, and 26 on
   Apple Silicon plus macOS 15 on Intel; these runs are not field evidence.
@@ -50,7 +56,8 @@ Status: macOS accuracy hardening in progress; release classification `future/inv
 - Forkit.dev registry writes;
 - Runtime_C2 mutation;
 - remote telemetry;
-- Global AI Footprints network transport or comparison backend;
+- enabled Global AI Footprints contribution transport;
+- Developer ID-signed, Apple-notarized, stapled installer;
 - model byte reads;
 - raw command/path output;
 - npm publication;
@@ -61,7 +68,7 @@ Status: macOS accuracy hardening in progress; release classification `future/inv
 Current local validation for the macOS hardening branch on macOS/arm64:
 
 - `npm ci`: pass; zero reported vulnerabilities;
-- `npm test`: 53/53 pass locally; hosted Node 20, 22, and 24 validation is
+- `npm test`: 52/52 pass locally; hosted Node 20, 22, and 24 validation is
   required for the new share-card commit;
 - curated agent detector benchmark: 58/58 cases pass (26 positive, 32 negative,
   zero false positives, zero false negatives, zero wrong classifications);
@@ -72,6 +79,11 @@ Current local validation for the macOS hardening branch on macOS/arm64:
 - repeated real-device unified Census with stable item sets: pass;
 - real-device loopback guard: 12 loopback requests across two scans, zero
   external requests;
+- real-device resource snapshot: 4 model records, 0 loaded models, 2.42 GB of
+  recognized model files, 1 active agent product across 13 processes; CPU and
+  memory percentages are explicitly point-in-time;
+- native app bundle launch and bundled-runtime CLI smoke: pass; package remains
+  unsigned and non-distributable;
 - real-browser Guess → Discovered, local rescan, caption copy, and 1200×630 PNG
   download: pass on the same Apple Silicon Mac;
 - privacy scan of the real report: no home-directory, Windows-user-path,

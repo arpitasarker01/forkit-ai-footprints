@@ -46,6 +46,7 @@
     "evaluate:macos": "npm run build && node ./scripts/evaluate-macos-field.mjs",
     "prepack": "npm run build && node ./scripts/prune-dist.mjs",
     "smoke:package": "node ./scripts/smoke-package.mjs",
+    "build:macos:installer": "npm run build && node ./scripts/prune-dist.mjs && COPYFILE_DISABLE=1 node ./scripts/build-macos-installer.mjs",
     "prepublishOnly": "npm test && npm run validate:macos"
   },
   "bin": {

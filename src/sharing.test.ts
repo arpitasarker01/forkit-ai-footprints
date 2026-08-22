@@ -25,4 +25,6 @@ test('anonymous contribution requires separate consent and contains only aggrega
     assert.equal(serialized.includes(forbidden), false, `unexpected field ${forbidden}`);
   }
   assert.equal(payload.guess, 9);
+  assert.equal(payload.counts.agent_products_active, 0);
+  assert.equal(payload.counts.agent_processes_active, 0);
 });

@@ -22,7 +22,7 @@ test('local server exposes aggregate HTML and token-gated metadata-only rescans'
     const pageResponse = await fetch(service.url);
     const html = await pageResponse.text();
     assert.equal(pageResponse.status, 200);
-    assert.match(html, /Guess first\. See what is actually here\./);
+    assert.match(html, /The scan is complete\. Guess before the local facts are revealed\./);
     assert.match(html, /Scan again/);
     assert.doesNotMatch(html, /https:\/\//i);
 
@@ -40,6 +40,17 @@ test('local server exposes aggregate HTML and token-gated metadata-only rescans'
     assert.equal(accepted.status, 200);
     assert.equal(snapshot.external_request_count, 0);
     assert.equal(scanCount, 2);
+
+    const stopped = await fetch(`${service.url}api/stop`, {
+      method: 'POST',
+      headers: {
+        origin: service.url.slice(0, -1),
+        'x-forkit-footprints-session': service.sessionToken,
+      },
+    });
+    assert.equal(stopped.status, 200);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    assert.equal(service.server.listening, false);
   } finally {
     await service.close();
   }

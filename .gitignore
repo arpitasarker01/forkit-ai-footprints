@@ -16,3 +16,4 @@ Thumbs.db
 test-results/
 local-truth*.json
 macos-field-results/
+artifacts/

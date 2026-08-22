@@ -66,7 +66,7 @@ try {
     "assert.equal(typeof api.renderCensusSharePage, 'function');",
     "api.runCensus({ includeRuntimes: false, includeFilesystem: false, includeAgents: false, includeTools: false, includeMcp: false })",
     "  .then((report) => {",
-    "    assert.equal(report.schema_version, '1.1');",
+    "    assert.equal(report.schema_version, '1.2');",
     "    assert.equal(report.privacy.external_requests_made, 0);",
     "    assert.equal(report.privacy.local_state_written, false);",
     "  })",
@@ -77,7 +77,7 @@ try {
     'forkit-ai-footprints', 'scan', '--json', '--no-runtimes', '--no-model-files', '--no-agents', '--no-tools', '--no-mcp',
   ], { cwd: install, env: environment });
   const report = JSON.parse(output);
-  if (report.schema_version !== '1.1' || report.privacy?.external_requests_made !== 0 || report.privacy?.backend_contacted !== false) {
+  if (report.schema_version !== '1.2' || report.privacy?.external_requests_made !== 0 || report.privacy?.backend_contacted !== false) {
     throw new Error('Installed Census privacy contract failed.');
   }
   const truthPath = path.join(work, 'local-truth.json');

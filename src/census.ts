@@ -141,6 +141,12 @@ export async function runCensus(options: CensusOptions = {}): Promise<CensusRepo
     ...(filesystemResult?.models ?? []),
   ], (model) => model.model_id));
   const processCount = agents.reduce((total, agent) => total + agent.instance_count, 0);
+  const agentCpuMeasurements = agents.flatMap((agent) => agent.resource_snapshot.cpu_percent === null
+    ? []
+    : [agent.resource_snapshot.cpu_percent]);
+  const agentMemoryMeasurements = agents.flatMap((agent) => agent.resource_snapshot.memory_percent === null
+    ? []
+    : [agent.resource_snapshot.memory_percent]);
   const [tools, mcpConfigs] = await Promise.all([
     includeTools ? detectAiTools({ homeDir, env, platform, agents }) : Promise.resolve([]),
     includeMcp ? detectMcpConfigs({ homeDir, cwd: path.resolve(cwd), env, platform }) : Promise.resolve([]),
@@ -179,6 +185,12 @@ export async function runCensus(options: CensusOptions = {}): Promise<CensusRepo
       model_count: models.length,
       agent_product_count: agents.length,
       agent_process_count: processCount,
+      agent_cpu_percent: agentCpuMeasurements.length === 0
+        ? null
+        : Math.round(agentCpuMeasurements.reduce((total, value) => total + value, 0) * 10) / 10,
+      agent_memory_percent: agentMemoryMeasurements.length === 0
+        ? null
+        : Math.round(agentMemoryMeasurements.reduce((total, value) => total + value, 0) * 10) / 10,
       tool_count: tools.length,
       mcp_config_count: mcpConfigs.length,
       confirmed_running_model_count: models.filter((model) => model.evidence_status === 'confirmed-running').length,

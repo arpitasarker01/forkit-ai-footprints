@@ -154,7 +154,7 @@ test('consented anonymous payload is an explicit preview and remains not uploade
   const envelope = JSON.parse(result.stdout);
   assert.equal(envelope.uploaded, false);
   assert.equal(envelope.local_report.product, 'forkit-ai-footprints');
-  assert.equal(envelope.anonymous_contribution.schema_version, '1.0');
+  assert.equal(envelope.anonymous_contribution.schema_version, '1.1');
 });
 
 test('clipboard integration maps to native commands without a shell', () => {

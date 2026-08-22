@@ -15,7 +15,24 @@ Current support target: **macOS only**. The real-device validation so far is on
 Apple Silicon. Ubuntu, Windows, Android, and Intel Mac are not part of the
 current release claim.
 
-## Install on macOS — developer preview
+## Install on macOS
+
+The intended public path is a Developer ID-signed and Apple-notarized `.pkg`
+that installs **Forkit AI Footprints.app** with its own checksummed Node runtime.
+Public users will not need Node, npm, Homebrew, or a Terminal command. The local
+installer candidate can be built with:
+
+```bash
+npm ci
+npm run build:macos:installer
+```
+
+The current output is an unsigned local validation artifact because no valid
+Developer ID Application or Installer identity is available on this Mac. It
+must not be distributed until signing, notarization, stapling, Gatekeeper
+verification, and clean-Mac installation tests pass.
+
+### Developer fallback
 
 Requirements:
 
@@ -40,13 +57,8 @@ npm install -g forkit-ai-footprints
 forkit-ai-footprints serve
 ```
 
-The two commands above follow the same install-first pattern as Forkit Connect.
-They become a public registry install only after an authorized npm release.
-The intended zero-install alternative is:
-
-```bash
-npx -y forkit-ai-footprints@latest serve
-```
+npm remains a developer fallback after an authorized package publication; it
+is not the primary public Mac installation experience.
 
 ## Commands
 
@@ -92,18 +104,22 @@ names, paths, commands, endpoints, configuration values, account identity, or
 Census ID. Its copy/share controls include only the visible aggregate summary
 and run only after a user click.
 
-The compact Global AI Pulse stays empty until a caller supplies a validated,
-consented aggregate. The local page never fetches or invents global totals.
-
 `serve` binds only to `127.0.0.1`, keeps the report in memory, and opens the
 Guess → Actual experience. `Scan again` calls a random-token-protected local
 endpoint and returns aggregate display fields only. The guess remains in the
-browser page and is never sent to the local server or Forkit.dev.
+browser page and is never sent to the local server or Forkit.dev. `Close local
+scan` shuts down the token-protected loopback service.
+
+The revealed resource view reports recognized model-file bytes and supported
+runtime loaded-model evidence. For active agent products it aggregates process
+count plus point-in-time CPU and memory percentages. Those percentages are a
+snapshot, not energy, token, cost, or lifetime usage.
 
 After revealing the result, `Create share card` renders a 1200×630 PNG entirely
 in the browser. The card turns Guess → Discovered into a visual story and uses
-only four aggregate fields: model records, active runtimes, active agents, and
-the model-storage bucket. It can be downloaded or passed to the operating
+only aggregate fields: model records, supported loaded state, agent process
+count, recognized model-file bytes, and the point-in-time agent resource
+snapshot. It can be downloaded or passed to the operating
 system share sheet after an explicit click; no model names or scan records are
 placed in the image or uploaded by AI Footprints.
 

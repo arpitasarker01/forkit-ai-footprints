@@ -50,6 +50,11 @@ export interface CensusAgent {
   evidence_hashes: string[];
   detection_reason: string;
   evidence_status: 'online';
+  resource_snapshot: {
+    cpu_percent: number | null;
+    memory_percent: number | null;
+    measurement: 'point-in-time-process-metadata';
+  };
 }
 
 export interface CensusTool {
@@ -80,6 +85,8 @@ export interface CensusSummary {
   model_count: number;
   agent_product_count: number;
   agent_process_count: number;
+  agent_cpu_percent: number | null;
+  agent_memory_percent: number | null;
   tool_count: number;
   mcp_config_count: number;
   confirmed_running_model_count: number;
@@ -89,7 +96,7 @@ export interface CensusSummary {
 }
 
 export interface CensusReport {
-  schema_version: '1.1';
+  schema_version: '1.2';
   product: 'forkit-ai-footprints';
   product_version: string;
   census_id: string;
@@ -141,6 +148,8 @@ export interface ProcessEntry {
   ppid?: number;
   name?: string;
   cmd?: string;
+  cpu_percent?: number;
+  memory_percent?: number;
 }
 
 export interface CensusOptions {
