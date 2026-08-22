@@ -8,6 +8,7 @@ interface ToolDefinition {
   signatures: string[];
   commands: string[];
   configPaths: string[];
+  appPaths?: string[];
 }
 
 export interface ToolDetectionOptions {
@@ -52,13 +53,16 @@ async function commandExists(command: string, platform: NodeJS.Platform, env: No
 function definitions(homeDir: string): ToolDefinition[] {
   return [
     { name: 'Claude Code', signatures: ['claude'], commands: ['claude'], configPaths: [path.join(homeDir, '.claude')] },
-    { name: 'Codex', signatures: ['codex'], commands: ['codex'], configPaths: [path.join(homeDir, '.codex')] },
-    { name: 'Cursor', signatures: ['cursor'], commands: ['cursor'], configPaths: [path.join(homeDir, '.cursor')] },
-    { name: 'Windsurf', signatures: ['windsurf'], commands: ['windsurf'], configPaths: [path.join(homeDir, '.codeium', 'windsurf')] },
+    { name: 'Codex', signatures: ['codex'], commands: ['codex'], configPaths: [path.join(homeDir, '.codex')], appPaths: ['/Applications/Codex.app', path.join(homeDir, 'Applications', 'Codex.app')] },
+    { name: 'Cursor', signatures: ['cursor'], commands: ['cursor'], configPaths: [path.join(homeDir, '.cursor')], appPaths: ['/Applications/Cursor.app', path.join(homeDir, 'Applications', 'Cursor.app')] },
+    { name: 'Windsurf', signatures: ['windsurf'], commands: ['windsurf'], configPaths: [path.join(homeDir, '.codeium', 'windsurf')], appPaths: ['/Applications/Windsurf.app', path.join(homeDir, 'Applications', 'Windsurf.app')] },
     { name: 'Gemini CLI', signatures: ['gemini-cli'], commands: ['gemini'], configPaths: [path.join(homeDir, '.gemini')] },
     { name: 'GitHub Copilot', signatures: ['github-copilot'], commands: [], configPaths: [] },
     { name: 'OpenCode', signatures: ['opencode'], commands: ['opencode'], configPaths: [path.join(homeDir, '.config', 'opencode')] },
     { name: 'OpenClaw', signatures: ['openclaw'], commands: ['openclaw'], configPaths: [path.join(homeDir, '.openclaw')] },
+    { name: 'Jan', signatures: [], commands: ['jan'], configPaths: [path.join(homeDir, 'Library', 'Application Support', 'Jan')], appPaths: ['/Applications/Jan.app', path.join(homeDir, 'Applications', 'Jan.app')] },
+    { name: 'LM Studio', signatures: [], commands: ['lms'], configPaths: [path.join(homeDir, '.lmstudio')], appPaths: ['/Applications/LM Studio.app', path.join(homeDir, 'Applications', 'LM Studio.app')] },
+    { name: 'Zed', signatures: [], commands: ['zed'], configPaths: [path.join(homeDir, '.zed')], appPaths: ['/Applications/Zed.app', path.join(homeDir, 'Applications', 'Zed.app')] },
   ];
 }
 
@@ -84,7 +88,10 @@ export async function detectAiTools(options: ToolDetectionOptions): Promise<Cens
     const detectorTypes = new Set<'config' | 'executable' | 'process'>();
     const matchingAgents = options.agents.filter((agent) => definition.signatures.includes(agent.signature));
     if (matchingAgents.length > 0) detectorTypes.add('process');
-    if ((await Promise.all(definition.commands.map((command) => commandExists(command, options.platform, options.env)))).some(Boolean)) {
+    const commandInstalled = (await Promise.all(definition.commands.map((command) => commandExists(command, options.platform, options.env)))).some(Boolean);
+    const appInstalled = options.platform === 'darwin'
+      && (await Promise.all((definition.appPaths ?? []).map((targetPath) => exists(targetPath)))).some(Boolean);
+    if (commandInstalled || appInstalled) {
       detectorTypes.add('executable');
     }
     const configured = definition.name === 'GitHub Copilot'

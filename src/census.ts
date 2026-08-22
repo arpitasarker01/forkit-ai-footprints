@@ -175,7 +175,7 @@ export async function runCensus(options: CensusOptions = {}): Promise<CensusRepo
     },
     summary: {
       runtime_count: runtimes.length,
-      available_runtime_count: runtimes.filter((runtime) => runtime.status !== 'unavailable').length,
+      available_runtime_count: runtimes.filter((runtime) => runtime.status === 'available').length,
       model_count: models.length,
       agent_product_count: agents.length,
       agent_process_count: processCount,

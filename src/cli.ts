@@ -26,6 +26,7 @@ interface ParsedOptions {
 
 const HELP = `Forkit Census
 Metadata-only local AI runtime, model, and agent inventory.
+macOS-only experimental release candidate.
 
 Usage:
   forkit-census scan [options]

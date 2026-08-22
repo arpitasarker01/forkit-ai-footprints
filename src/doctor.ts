@@ -38,6 +38,13 @@ export async function runDoctor(): Promise<DoctorReport> {
   }).length;
   const checks: DoctorCheck[] = [
     {
+      name: 'operating-system',
+      ok: process.platform === 'darwin',
+      detail: process.platform === 'darwin'
+        ? 'macOS is supported by this release candidate.'
+        : `This release candidate supports macOS only; detected ${process.platform}.`,
+    },
+    {
       name: 'node-version',
       ok: supportedNode,
       detail: supportedNode ? `Node ${nodeMajor} is supported.` : `Node ${nodeMajor} is unsupported; use 20, 22, or 24.`,

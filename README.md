@@ -10,10 +10,15 @@ path.
 
 Product status: `future/investigate`
 
+Current support target: **macOS only**. The real-device validation so far is on
+Apple Silicon. Ubuntu, Windows, Android, and Intel Mac are not part of the
+current release claim.
+
 ## Install for development
 
 Requirements:
 
+- macOS;
 - Node.js 20, 22, or 24
 - npm
 
@@ -129,9 +134,12 @@ that includes filesystem-discovered models.
 
 ## Agent identity
 
-Agent matching uses exact executable names or exact command tokens. It does not
-use arbitrary substring matching. Multiple processes with the same product
-signature are aggregated into one agent product with an `instance_count`.
+Agent matching uses exact executable names, explicit `python -m` module
+invocations, or explicit package-runner invocations such as `npx`. Product words
+appearing in unrelated arguments or paths are rejected. Multiple processes with
+the same product signature are aggregated into one agent product with an
+`instance_count`; this is a process count, not a count of independent autonomous
+agents or user sessions.
 
 The checked-in curated conformance corpus covers all supported agent signatures
 and difficult negative names on macOS, Linux, and Windows-style process
@@ -145,14 +153,33 @@ of real devices, so it must not be presented as field accuracy.
 npm ci
 npm test
 npm run benchmark:agents
+npm run validate:macos
 npm run smoke:package
 ```
 
-The GitHub Actions matrix covers Node 20, 22, and 24 on Ubuntu, macOS, and
-Windows. `npm test` includes the agent conformance benchmark, and isolated
-package smokes run on all three operating systems. See
+The active GitHub Actions matrix covers Node 20, 22, and 24 on macOS, plus an
+isolated installed-package smoke on macOS. `npm test` includes the conservative
+agent conformance benchmark. See
 [`benchmarks/README.md`](./benchmarks/README.md) for the benchmark method and
 limitations.
+
+`npm run validate:macos` performs two real-device scans, verifies stable item
+sets, rejects non-loopback requests, checks the report privacy contract, and
+fails if prohibited process/path keys appear. One machine is a release sanity
+check, not a field-accuracy sample.
+
+The multi-device protocol, local truth-file format, and quantitative public
+release thresholds are defined in
+[`docs/MACOS_ACCURACY_GATE.md`](./docs/MACOS_ACCURACY_GATE.md).
+
+## Accuracy boundary
+
+Census has no defensible global accuracy percentage yet. Runtime API evidence is
+strongest; filesystem findings are explicitly best-effort; tool and MCP coverage
+is limited to documented locations; and the agent benchmark is curated rather
+than independently sampled. Do not market a benchmark pass as field precision
+or recall. Global release requires a separately labelled, consented multi-device
+macOS evaluation.
 
 ## Relationship to Forkit Connect
 

@@ -45,12 +45,16 @@ function configuredRootsFromEnvironment(): string[] {
 
 export function getDefaultModelRoots(): string[] {
   const home = os.homedir();
+  const janData = path.join(home, 'Library', 'Application Support', 'Jan', 'data');
   const candidates = [
     ...configuredRootsFromEnvironment(),
     path.join(home, '.cache', 'huggingface', 'hub'),
     process.env.HF_HOME ? path.join(process.env.HF_HOME, 'hub') : '',
+    process.env.HF_HUB_CACHE ?? '',
     path.join(home, '.cache', 'lm-studio', 'models'),
     path.join(home, '.lmstudio', 'models'),
+    path.join(janData, 'llamacpp', 'models'),
+    path.join(janData, 'mlx', 'models'),
     path.join(home, 'models'),
     path.join(home, 'model'),
     path.join(home, 'ai', 'models'),
@@ -186,11 +190,18 @@ export async function scanFilesystemModels(
       errorCode: existingRoots.length > 0 ? null : 'no_model_directories_found',
     }),
     models,
-    warnings: models.length > 0 ? [{
-      code: 'filesystem_identity_is_metadata_only',
-      message: 'Filesystem identities use names, sizes, and modification times; model bytes were not read.',
-      scope: 'model',
-    }] : [],
+    warnings: models.length > 0 ? [
+      {
+        code: 'filesystem_identity_is_metadata_only',
+        message: 'Filesystem identities use names, sizes, and modification times; model bytes were not read.',
+        scope: 'model',
+      },
+      {
+        code: 'filesystem_detection_is_best_effort',
+        message: 'Filesystem findings are best-effort suggestions and may include unrelated weight-like files or miss unsupported locations.',
+        scope: 'model',
+      },
+    ] : [],
   };
 }
 

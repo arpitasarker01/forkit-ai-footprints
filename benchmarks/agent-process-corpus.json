@@ -10,14 +10,15 @@
     { "case_id": "goose-executable", "process": { "name": "goose", "cmd": "/usr/local/bin/goose session" }, "expected_signature": "goose" },
     { "case_id": "cursor-windows", "process": { "name": "Cursor.exe", "cmd": "C:\\Program Files\\Cursor\\Cursor.exe" }, "expected_signature": "cursor" },
     { "case_id": "windsurf-executable", "process": { "name": "windsurf", "cmd": "/usr/bin/windsurf" }, "expected_signature": "windsurf" },
-    { "case_id": "gemini-cli-module", "process": { "name": "node", "cmd": "node gemini prompt" }, "expected_signature": "gemini-cli" },
+    { "case_id": "gemini-cli-executable", "process": { "name": "gemini", "cmd": "/opt/homebrew/bin/gemini prompt" }, "expected_signature": "gemini-cli" },
+    { "case_id": "gemini-cli-scoped-package", "process": { "name": "npx", "cmd": "npx @google/gemini-cli prompt" }, "expected_signature": "gemini-cli" },
     { "case_id": "opencode-executable", "process": { "name": "opencode", "cmd": "/home/dev/.local/bin/opencode" }, "expected_signature": "opencode" },
     { "case_id": "openclaw-executable", "process": { "name": "openclaw", "cmd": "/usr/local/bin/openclaw serve" }, "expected_signature": "openclaw" },
     { "case_id": "cline-executable", "process": { "name": "cline", "cmd": "/usr/local/bin/cline" }, "expected_signature": "cline" },
-    { "case_id": "roo-code-hyphen", "process": { "name": "node", "cmd": "node roo-code worker" }, "expected_signature": "roo-code" },
+    { "case_id": "roo-code-hyphen", "process": { "name": "npx", "cmd": "npx roo-code worker" }, "expected_signature": "roo-code" },
     { "case_id": "roo-code-underscore", "process": { "name": "python", "cmd": "python -m roo_code" }, "expected_signature": "roo-code" },
     { "case_id": "mcp-server-executable", "process": { "name": "mcp-server", "cmd": "/usr/local/bin/mcp-server" }, "expected_signature": "mcp-server" },
-    { "case_id": "mcp-sdk-token", "process": { "name": "node", "cmd": "node modelcontextprotocol bridge" }, "expected_signature": "mcp-server" },
+    { "case_id": "mcp-sdk-package", "process": { "name": "npx", "cmd": "npx modelcontextprotocol bridge" }, "expected_signature": "mcp-server" },
     { "case_id": "langchain-module", "process": { "name": "python", "cmd": "python -m langchain serve" }, "expected_signature": "langchain" },
     { "case_id": "langgraph-module", "process": { "name": "python", "cmd": "python -m langgraph dev" }, "expected_signature": "langgraph" },
     { "case_id": "crewai-module", "process": { "name": "python", "cmd": "python -m crewai run" }, "expected_signature": "crewai" },
@@ -55,6 +56,10 @@
     { "case_id": "negative-smolagents-docs", "process": { "name": "node", "cmd": "node smolagents-docs build" }, "expected_signature": null },
     { "case_id": "negative-generic-node", "process": { "name": "node", "cmd": "node server.js" }, "expected_signature": null },
     { "case_id": "negative-generic-python", "process": { "name": "python3", "cmd": "python3 worker.py" }, "expected_signature": null },
-    { "case_id": "negative-vscode", "process": { "name": "code", "cmd": "/usr/bin/code --reuse-window" }, "expected_signature": null }
+    { "case_id": "negative-vscode", "process": { "name": "code", "cmd": "/usr/bin/code --reuse-window" }, "expected_signature": null },
+    { "case_id": "negative-unrelated-grep-codex", "process": { "name": "grep", "cmd": "grep codex README.md" }, "expected_signature": null },
+    { "case_id": "negative-unrelated-claude-path", "process": { "name": "python3", "cmd": "python3 /tmp/claude report.py" }, "expected_signature": null },
+    { "case_id": "negative-unrelated-cursor-shell-argument", "process": { "name": "bash", "cmd": "bash -c echo-cursor cursor" }, "expected_signature": null },
+    { "case_id": "negative-unrelated-langchain-argument", "process": { "name": "node", "cmd": "node docs.js langchain" }, "expected_signature": null }
   ]
 }

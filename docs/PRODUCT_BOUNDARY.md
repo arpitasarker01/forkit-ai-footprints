@@ -16,7 +16,10 @@ Forkit Connect discovery work.
 - diagnose local Census readiness;
 - prepare a consent-gated, aggregate-only anonymous contribution preview without
   transmitting it;
-- package and test on macOS, Ubuntu, and Windows.
+- package and test an experimental macOS-only release candidate.
+
+Ubuntu, Windows, Android, and other operating systems are outside the current
+support claim until separately validated and promoted.
 
 ## Explicitly excluded
 

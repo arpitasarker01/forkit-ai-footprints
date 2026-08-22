@@ -5,8 +5,9 @@ Forkit Census is metadata-only by design.
 ## Allowed local reads
 
 - local operating-system and Node version metadata;
-- process name and command metadata held only long enough to classify a known
-  agent signature and calculate a one-way evidence hash;
+- process name and command metadata held only long enough to classify explicit
+  executable, module, or package-runner evidence; raw commands are not included
+  in the report or in the evidence hash;
 - directory entries and file metadata for supported model extensions;
 - loopback runtime API responses from explicitly supported local endpoints.
 - known AI-tool installation/configuration path existence;

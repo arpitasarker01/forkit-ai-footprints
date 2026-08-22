@@ -35,16 +35,31 @@ test('unified census includes runtimes, models, and product-level agents', async
     includeFilesystem: false,
     processEntries: [
       { pid: 1, name: 'codex', cmd: 'codex app-server' },
-      { pid: 2, name: 'node', cmd: 'node codex worker' },
+      { pid: 2, name: 'node', cmd: 'node /usr/local/bin/.bin/codex worker' },
     ],
     now: () => new Date('2026-08-22T00:00:00.000Z'),
   });
   assert.equal(report.summary.runtime_count, 1);
+  assert.equal(report.summary.available_runtime_count, 1);
   assert.equal(report.summary.model_count, 1);
   assert.equal(report.summary.agent_product_count, 1);
   assert.equal(report.summary.agent_process_count, 2);
   assert.equal(report.agents[0]?.instance_count, 2);
   assert.equal(report.privacy.remote_endpoints_allowed, false);
+});
+
+test('filesystem inventory is configured evidence, not an available runtime', async () => {
+  const report = await runCensus({
+    providers: [],
+    includeFilesystem: true,
+    includeAgents: false,
+    includeTools: false,
+    includeMcp: false,
+    filesystemRoots: [],
+    now: () => new Date('2026-08-22T00:00:00.000Z'),
+  });
+  assert.equal(report.runtimes[0]?.evidence_status, 'unavailable');
+  assert.equal(report.summary.available_runtime_count, 0);
 });
 
 test('census report contains no auth, mint, credential, or raw-command surface', async () => {

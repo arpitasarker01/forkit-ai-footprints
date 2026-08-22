@@ -33,8 +33,11 @@ function candidates(options: McpDetectionOptions): McpConfigCandidate[] {
     { client: 'Cursor (workspace)', filePath: path.join(options.cwd, '.cursor', 'mcp.json'), format: 'json' },
     { client: 'Windsurf', filePath: path.join(options.homeDir, '.codeium', 'windsurf', 'mcp_config.json'), format: 'json' },
     { client: 'VS Code', filePath: path.join(root, 'Code', 'User', 'mcp.json'), format: 'json' },
+    { client: 'VS Code Insiders', filePath: path.join(root, 'Code - Insiders', 'User', 'mcp.json'), format: 'json' },
     { client: 'Gemini CLI', filePath: path.join(options.homeDir, '.gemini', 'settings.json'), format: 'json' },
     { client: 'OpenCode', filePath: path.join(options.homeDir, '.config', 'opencode', 'opencode.json'), format: 'json' },
+    { client: 'Zed', filePath: path.join(options.homeDir, '.zed', 'settings.json'), format: 'json' },
+    { client: 'Zed (workspace)', filePath: path.join(options.cwd, '.zed', 'settings.json'), format: 'json' },
   ];
 }
 
@@ -49,6 +52,9 @@ function jsonServerCount(value: unknown): number {
     if (servers && typeof servers === 'object' && !Array.isArray(servers)) {
       return Object.keys(servers as Record<string, unknown>).length;
     }
+  }
+  if (record.context_servers && typeof record.context_servers === 'object' && !Array.isArray(record.context_servers)) {
+    return Object.keys(record.context_servers as Record<string, unknown>).length;
   }
   return 0;
 }
@@ -78,7 +84,14 @@ async function inspect(candidate: McpConfigCandidate): Promise<CensusMcpConfig |
 }
 
 export async function detectMcpConfigs(options: McpDetectionOptions): Promise<CensusMcpConfig[]> {
-  const findings = await Promise.all(candidates(options).map((candidate) => inspect(candidate)));
+  const seenPaths = new Set<string>();
+  const uniqueCandidates = candidates(options).filter((candidate) => {
+    const normalized = path.resolve(candidate.filePath);
+    if (seenPaths.has(normalized)) return false;
+    seenPaths.add(normalized);
+    return true;
+  });
+  const findings = await Promise.all(uniqueCandidates.map((candidate) => inspect(candidate)));
   return findings
     .filter((finding): finding is CensusMcpConfig => finding !== null)
     .sort((left, right) => left.client.localeCompare(right.client));

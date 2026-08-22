@@ -6,7 +6,8 @@ Before changing code:
 2. Read `docs/PRODUCT_BOUNDARY.md`, `PRIVACY.md`, and `STATUS.md`.
 3. State the affected surface: runtime discovery, model discovery, agent
    discovery, reporting, privacy, packaging, CI, or docs.
-4. Treat the product status as `future/investigate`.
+4. Treat the product status as `future/investigate` and the active validation
+   scope as macOS only.
 
 ## Non-negotiable rules
 

@@ -2,11 +2,13 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { detectAgentProducts } from './agents';
 
-test('agent census requires exact tokens and rejects the known Agno false positive', () => {
+test('agent census requires executable or explicit invocation evidence', () => {
   const agents = detectAgentProducts([
     { pid: 1, name: 'diagnostics_agent', cmd: '/usr/bin/diagnostics_agent --collect' },
     { pid: 3, name: 'node', cmd: 'node agno-tooling diagnostics' },
     { pid: 4, name: 'cursor-helper', cmd: '/usr/bin/cursor-helper --type utility' },
+    { pid: 5, name: 'grep', cmd: 'grep codex README.md' },
+    { pid: 6, name: 'python3', cmd: 'python3 /tmp/claude report.py' },
     { pid: 2, name: 'python', cmd: 'python -m agno serve' },
   ]);
   assert.deepEqual(agents.map((agent) => agent.signature), ['agno']);
@@ -17,13 +19,24 @@ test('agent census requires exact tokens and rejects the known Agno false positi
 test('agent census deduplicates process instances into one product', () => {
   const agents = detectAgentProducts([
     { pid: 10, name: 'codex', cmd: '/usr/local/bin/codex app-server' },
-    { pid: 11, name: 'node', cmd: '/Applications/Codex.app/node codex worker' },
-    { pid: 12, name: 'node', cmd: '/Applications/Codex.app/node codex diagnostics' },
+    { pid: 11, name: 'node', cmd: 'node /usr/local/bin/.bin/codex worker' },
+    { pid: 12, name: 'npx', cmd: 'npx codex diagnostics' },
   ]);
   assert.equal(agents.length, 1);
   assert.equal(agents[0]?.name, 'Codex');
   assert.equal(agents[0]?.instance_count, 3);
   assert.equal(agents[0]?.confidence, 'high');
+  assert.equal(agents[0]?.detection_reason, 'exact_executable_match');
+});
+
+test('agent census rejects product words in unrelated arguments and paths', () => {
+  const agents = detectAgentProducts([
+    { pid: 30, name: 'grep', cmd: 'grep codex README.md' },
+    { pid: 31, name: 'python3', cmd: 'python3 /tmp/claude report.py' },
+    { pid: 32, name: 'node', cmd: 'node docs.js langchain' },
+    { pid: 33, name: 'bash', cmd: 'bash -c "echo cursor"' },
+  ]);
+  assert.deepEqual(agents, []);
 });
 
 test('agent census never exposes raw process commands', () => {

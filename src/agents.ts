@@ -26,7 +26,7 @@ const SIGNATURES: AgentSignature[] = [
   { signature: 'goose', name: 'Goose', kind: 'coding-agent', terms: ['goose'], executables: ['goose'] },
   { signature: 'cursor', name: 'Cursor', kind: 'ide-agent', terms: ['cursor'], executables: ['cursor'] },
   { signature: 'windsurf', name: 'Windsurf', kind: 'ide-agent', terms: ['windsurf'], executables: ['windsurf'] },
-  { signature: 'gemini-cli', name: 'Gemini CLI', kind: 'coding-agent', terms: ['gemini'], executables: ['gemini'] },
+  { signature: 'gemini-cli', name: 'Gemini CLI', kind: 'coding-agent', terms: ['gemini', 'gemini-cli'], executables: ['gemini'] },
   { signature: 'opencode', name: 'OpenCode', kind: 'coding-agent', terms: ['opencode'], executables: ['opencode'] },
   { signature: 'openclaw', name: 'OpenClaw', kind: 'coding-agent', terms: ['openclaw'], executables: ['openclaw'] },
   { signature: 'cline', name: 'Cline', kind: 'ide-agent', terms: ['cline'], executables: ['cline'] },
@@ -47,35 +47,68 @@ function basename(value: string): string {
   return path.posix.basename(normalized).toLowerCase().replace(/\.exe$/i, '');
 }
 
-function tokens(value: string): Set<string> {
-  const normalized = String(value || '').toLowerCase();
-  // Keep compound tokens intact. Splitting `agno-tooling`, `cursor-helper`, or
-  // `pydantic_ai_examples` into smaller words turns unrelated processes into
-  // false positives. Signatures that legitimately use `-` or `_` are listed
-  // explicitly above, so an exact compound token remains detectable.
-  return new Set(normalized.split(/[^a-z0-9_-]+/).filter(Boolean));
+function commandParts(value: string): string[] {
+  return String(value || '')
+    .match(/"[^"]*"|'[^']*'|\S+/g)
+    ?.map((part) => part.replace(/^(?:"|')|(?:"|')$/g, '')) ?? [];
+}
+
+function moduleName(parts: string[]): string | null {
+  const moduleFlag = parts.findIndex((part) => part === '-m');
+  if (moduleFlag < 0) return null;
+  const raw = parts[moduleFlag + 1]?.toLowerCase();
+  return raw?.split('.')[0] ?? null;
+}
+
+function packageRunnerName(parts: string[]): string | null {
+  const runner = basename(parts[0] ?? '');
+  let candidates: string[] = [];
+  if (runner === 'npx' || runner === 'bunx') candidates = parts.slice(1);
+  else if (runner === 'npm' && (parts[1] === 'exec' || parts[1] === 'x')) candidates = parts.slice(2);
+  else if (runner === 'pnpm' && (parts[1] === 'dlx' || parts[1] === 'exec')) candidates = parts.slice(2);
+  else if (runner === 'yarn' && (parts[1] === 'dlx' || parts[1] === 'exec')) candidates = parts.slice(2);
+  const candidate = candidates.find((part) => part !== '--' && !part.startsWith('-'));
+  if (!candidate) return null;
+  const packageName = candidate.replace(/@(?:latest|next|beta|alpha|canary|\d[^/]*)$/i, '');
+  return basename(packageName);
+}
+
+function nodeBinName(parts: string[]): string | null {
+  const runner = basename(parts[0] ?? '');
+  if (runner !== 'node' && runner !== 'bun' && runner !== 'deno') return null;
+  const script = String(parts[1] ?? '').replaceAll('\\', '/').toLowerCase();
+  if (!script.includes('/.bin/')) return null;
+  return basename(script);
 }
 
 function classifyProcess(entry: ProcessEntry): AgentEvidence | null {
   const processName = basename(entry.name ?? '');
   const command = String(entry.cmd ?? '');
-  const firstCommandToken = command.trim().split(/\s+/)[0] ?? '';
+  const parts = commandParts(command);
+  const firstCommandToken = parts[0] ?? '';
   const executable = basename(firstCommandToken || processName) || 'unknown';
-  const processTokens = tokens(processName);
-  const commandTokens = tokens(command);
+  const invokedModule = moduleName(parts);
+  const invokedPackage = packageRunnerName(parts) ?? nodeBinName(parts);
 
   for (const signature of SIGNATURES) {
     const executableMatch = signature.executables.includes(processName)
       || signature.executables.includes(executable);
-    const termMatch = signature.terms.some((term) => commandTokens.has(term) || processTokens.has(term));
-    if (!executableMatch && !termMatch) continue;
+    const moduleMatch = invokedModule !== null && signature.terms.includes(invokedModule);
+    const packageRunnerMatch = invokedPackage !== null
+      && [...signature.terms, ...signature.executables].includes(invokedPackage);
+    if (!executableMatch && !moduleMatch && !packageRunnerMatch) continue;
     const confidence: Confidence = executableMatch ? 'high' : 'medium';
+    const reason = executableMatch
+      ? 'exact_executable_match'
+      : moduleMatch
+        ? 'explicit_module_invocation'
+        : 'explicit_package_runner_invocation';
     return {
       signature,
       confidence,
       executable,
-      evidenceHash: sha256(`${signature.signature}:${processName}:${command}`),
-      reason: executableMatch ? 'exact_executable_match' : 'exact_command_token_match',
+      evidenceHash: sha256(`${signature.signature}:${processName}:${executable}:${reason}`),
+      reason,
     };
   }
   return null;
@@ -98,9 +131,9 @@ export function detectAgentProducts(processes: ProcessEntry[]): CensusAgent[] {
 
   return [...grouped.entries()].map(([signature, evidence]) => {
     const definition = evidence[0]!.signature;
-    const strongest = evidence
-      .map((entry) => entry.confidence)
-      .sort((left, right) => confidenceRank(right) - confidenceRank(left))[0] ?? 'low';
+    const strongestEvidence = [...evidence]
+      .sort((left, right) => confidenceRank(right.confidence) - confidenceRank(left.confidence))[0]!;
+    const strongest = strongestEvidence.confidence;
     return {
       agent_id: stableId('agent', signature),
       name: definition.name,
@@ -110,7 +143,7 @@ export function detectAgentProducts(processes: ProcessEntry[]): CensusAgent[] {
       instance_count: evidence.length,
       executable_names: [...new Set(evidence.map((entry) => entry.executable))].sort(),
       evidence_hashes: [...new Set(evidence.map((entry) => entry.evidenceHash))].sort(),
-      detection_reason: strongest === 'high' ? 'exact_executable_match' : 'exact_command_token_match',
+      detection_reason: strongestEvidence.reason,
       evidence_status: 'online' as const,
     };
   }).sort((left, right) => left.name.localeCompare(right.name));

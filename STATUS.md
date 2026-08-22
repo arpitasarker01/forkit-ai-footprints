@@ -4,7 +4,7 @@ Last updated: 2026-08-22
 
 Version: `0.1.0`
 
-Status: local MVP implementation complete; release classification `future/investigate`
+Status: macOS accuracy hardening in progress; release classification `future/investigate`
 
 ## Implemented
 
@@ -16,7 +16,8 @@ Status: local MVP implementation complete; release classification `future/invest
 - Ollama `/api/ps` confirmed-running model evidence;
 - Ollama content-addressed identity when the runtime exposes a digest;
 - metadata-only filesystem model identity;
-- exact-token agent signatures;
+- executable/module/package-runner agent evidence with arbitrary argument-token
+  matches rejected;
 - a labeled agent-process conformance corpus with positive and difficult
   negative cases;
 - product-level agent deduplication with process instance counts;
@@ -27,7 +28,7 @@ Status: local MVP implementation complete; release classification `future/invest
 - loopback-only endpoint enforcement;
 - doctor command;
 - local unit and isolated package-smoke tooling;
-- hosted cross-platform CI definition.
+- macOS-only hosted CI definition and real-device validation command.
 
 ## Intentionally absent
 
@@ -44,35 +45,39 @@ Status: local MVP implementation complete; release classification `future/invest
 
 ## Validation state
 
-Current local validation for the handoff-completion feature branch on
-macOS/arm64 with Node 24:
+Current local validation for the macOS hardening branch on macOS/arm64 with
+Node 24:
 
 - `npm ci`: pass; zero reported vulnerabilities;
-- `npm test`: 30/30 pass;
-- curated agent detector benchmark: 53/53 cases pass (25 positive, 28 negative,
+- `npm test`: 36/36 pass;
+- curated agent detector benchmark: 58/58 cases pass (26 positive, 32 negative,
   zero false positives, zero false negatives, zero wrong classifications);
 - `npm run smoke:package`: pass;
 - `forkit-census doctor --json`: pass;
-- real-device unified Census with runtime/model/agent/tool/MCP/guess output: pass;
+- repeated real-device unified Census with stable item sets: pass;
+- real-device loopback guard: 12 loopback requests across two scans, zero
+  external requests;
 - privacy scan of the real report: no home-directory, Windows-user-path,
   API-key-prefix, API-key-flag, or session-token leak found.
 
-The real-device census aggregated 18 Codex-related processes into one Codex
-product and did not reproduce Forkit Connect's prior `Agno Tooling` false
-positive. This is encouraging evidence, not an accuracy benchmark.
+The hardened real-device census reports one high-confidence Codex product using
+exact executable evidence. It rejects reproduced false positives from unrelated
+`grep codex` arguments and paths containing `claude`. This is encouraging
+evidence from one Apple Silicon Mac, not a field-accuracy benchmark.
 
-Hosted GitHub Actions validation for implementation commit `239005b`:
+Historical hosted GitHub Actions validation for implementation commit `239005b`:
 
 - Node 20, 22, and 24 test/package inspection: 9/9 pass across Ubuntu, macOS,
   and Windows;
 - isolated installed-package smoke: 3/3 pass across Ubuntu, macOS, and Windows;
 - workflow conclusion: success ([run 32583418237](https://github.com/arpitasarker01/forkit-census/actions/runs/32583418237)).
 
-This proves the tested package and CLI paths work on the supported hosted runner
-matrix. The curated benchmark measures conformance against its labeled fixtures,
-not precision or recall across a representative field-device corpus.
+Those historical runs prove the earlier package paths executed on those hosted
+runners. They are no longer a Windows or Ubuntu release claim. The active scope
+is macOS only, and the curated benchmark still does not measure precision or
+recall across representative field devices.
 
-Hosted GitHub Actions validation for handoff-completion commit `b5ae91e`:
+Historical hosted GitHub Actions validation for handoff-completion commit `b5ae91e`:
 
 - Node 20, 22, and 24 test/package inspection: 9/9 pass across Ubuntu, macOS,
   and Windows;
@@ -87,6 +92,9 @@ Hosted GitHub Actions validation for handoff-completion commit `b5ae91e`:
 - approve a Global Census schema, privacy policy, endpoint, retention policy,
   and comparison response before adding any uploader;
 - choose the experimental distribution and support policy;
+- obtain a separately labelled, consented multi-device macOS evaluation before
+  making any field-accuracy claim;
+- validate Intel Mac separately before adding it to the support claim;
 - keep npm publication and production promotion as separate approvals.
 
 The npm name `forkit-census` returned `E404` on 2026-08-22 and therefore appears

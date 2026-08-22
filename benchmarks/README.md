@@ -2,7 +2,7 @@
 
 `agent-process-corpus.json` is a labeled, curated conformance corpus for the
 metadata-only process detector. It includes every supported agent signature,
-macOS/Linux/Windows-style executable metadata, and difficult negative names
+explicit invocation styles, and difficult negative names and arguments
 that could be misclassified by substring or compound-token matching.
 
 Run it with:

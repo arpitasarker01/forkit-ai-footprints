@@ -48,3 +48,17 @@ test('generic VS Code install is not mislabeled as GitHub Copilot', async (t) =>
   const tools = await detectAiTools({ homeDir: root, env: { PATH: '' }, platform: 'linux', agents: [] });
   assert.equal(tools.some((tool) => tool.name === 'GitHub Copilot'), false);
 });
+
+test('macOS application bundles provide installation evidence without claiming online state', async (t) => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'census-tools-macos-'));
+  t.after(async () => fs.rm(root, { recursive: true, force: true }));
+  await fs.mkdir(path.join(root, 'Applications', 'Codex.app'), { recursive: true });
+  await fs.mkdir(path.join(root, 'Applications', 'Jan.app'), { recursive: true });
+  const tools = await detectAiTools({ homeDir: root, env: { PATH: '' }, platform: 'darwin', agents: [] });
+  for (const name of ['Codex', 'Jan']) {
+    const finding = tools.find((tool) => tool.name === name);
+    assert.equal(finding?.evidence_status, 'configured');
+    assert.equal(finding?.confidence, 'medium');
+    assert.deepEqual(finding?.detector_types, ['executable']);
+  }
+});
