@@ -62,6 +62,7 @@ try {
     "assert.equal(typeof api.detectAgentProducts, 'function');",
     "assert.equal(typeof api.evaluateMacosFieldTruth, 'function');",
     "assert.equal(typeof api.aggregateMacosFieldEvaluations, 'function');",
+    "assert.equal(typeof api.renderCensusSharePage, 'function');",
     "api.runCensus({ includeRuntimes: false, includeFilesystem: false, includeAgents: false, includeTools: false, includeMcp: false })",
     "  .then((report) => {",
     "    assert.equal(report.schema_version, '1.1');",
@@ -106,6 +107,15 @@ try {
   const aggregate = JSON.parse(aggregateOutput);
   if (aggregate.evaluation_count !== 1 || aggregate.uploaded !== false || aggregate.field_accuracy_claim_allowed !== false) {
     throw new Error('Installed Census field-aggregation contract failed.');
+  }
+  const sharePagePath = path.join(work, 'ai-footprint.html');
+  run('npx', [
+    'forkit-census', 'share-page', '--output', sharePagePath,
+    '--no-runtimes', '--no-model-files', '--no-agents', '--no-tools', '--no-mcp',
+  ], { cwd: install, env: environment });
+  const sharePage = fs.readFileSync(sharePagePath, 'utf8');
+  if (!sharePage.includes('Your AI footprint') || /https?:\/\//i.test(sharePage)) {
+    throw new Error('Installed Census aggregate share-page contract failed.');
   }
   if (fs.existsSync(path.join(home, '.forkit-connect')) || fs.existsSync(path.join(home, '.forkit-census'))) {
     throw new Error('Installed Census wrote persistent local state.');

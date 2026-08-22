@@ -13,6 +13,8 @@ Forkit Connect discovery work.
 - inventory model metadata;
 - classify and deduplicate known local agent products;
 - produce human and JSON reports;
+- generate an explicitly saved, self-contained aggregate-only local HTML share
+  page with no automatic network requests;
 - diagnose local Census readiness;
 - prepare a consent-gated, aggregate-only anonymous contribution preview without
   transmitting it;

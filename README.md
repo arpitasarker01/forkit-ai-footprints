@@ -51,6 +51,7 @@ forkit-census scan
 forkit-census doctor
 forkit-census evaluate --truth /absolute/path/to/local-truth.json
 forkit-census aggregate --results /absolute/path/to/evaluation-results
+forkit-census share-page --output /absolute/path/to/local-ai-footprint.html
 ```
 
 `evaluate` always runs locally and emits aggregate counts and metrics only. It
@@ -77,6 +78,12 @@ The evaluation result adds only macOS major version, CPU architecture, Node
 major, and aggregate counts. A coordinator can combine explicitly shared result
 files with `aggregate`; this remains local and always keeps automatic accuracy
 claims disabled. See [`docs/MACOS_TESTER_GUIDE.md`](./docs/MACOS_TESTER_GUIDE.md).
+
+`share-page` performs the same local scan and writes a self-contained,
+aggregate-only HTML snapshot. It loads no external assets and contains no model
+names, paths, commands, endpoints, configuration values, account identity, or
+Census ID. Its copy/share controls include only the visible aggregate summary
+and run only after a user click.
 
 ```bash
 forkit-census

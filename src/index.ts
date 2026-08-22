@@ -2,6 +2,7 @@ export { detectAgentProducts, listSystemProcesses } from './agents';
 export { aggregateMacosFieldEvaluationDirectory, aggregateMacosFieldEvaluations } from './aggregate';
 export { runCensus } from './census';
 export { buildAnonymousCensusContribution } from './sharing';
+export { buildCensusShareSnapshot, renderCensusSharePage } from './share-page';
 export { detectAiTools } from './tools';
 export { detectMcpConfigs } from './mcp';
 export { runDoctor } from './doctor';

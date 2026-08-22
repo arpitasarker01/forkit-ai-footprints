@@ -8,9 +8,10 @@ import { PRODUCT_VERSION } from './version';
 import { buildAnonymousCensusContribution } from './sharing';
 import { evaluateMacosFieldTruthFile } from './evaluate';
 import { aggregateMacosFieldEvaluationDirectory } from './aggregate';
+import { renderCensusSharePage } from './share-page';
 
 interface ParsedOptions {
-  command: 'help' | 'version' | 'scan' | 'doctor' | 'evaluate' | 'aggregate';
+  command: 'help' | 'version' | 'scan' | 'doctor' | 'evaluate' | 'aggregate' | 'share-page';
   json: boolean;
   output: string | null;
   includeRuntimes: boolean;
@@ -38,6 +39,7 @@ Usage:
   forkit-census doctor [--json]
   forkit-census evaluate --truth /path/to/local-truth.json
   forkit-census aggregate --results /path/to/evaluation-results
+  forkit-census share-page --output /path/to/local-ai-footprint.html
   forkit-census --version
 
 Options:
@@ -88,6 +90,7 @@ export function parseArgs(args: string[]): ParsedOptions {
     else if (arg === 'doctor') command = 'doctor';
     else if (arg === 'evaluate') command = 'evaluate';
     else if (arg === 'aggregate') command = 'aggregate';
+    else if (arg === 'share-page') command = 'share-page';
     else if (arg === '--version' || arg === '-V' || arg === 'version') command = 'version';
     else if (arg === '--help' || arg === '-h' || arg === 'help') command = 'help';
     else if (arg === '--json') json = true;
@@ -218,6 +221,24 @@ export async function main(args = process.argv.slice(2)): Promise<number> {
     }
     const aggregate = await aggregateMacosFieldEvaluationDirectory(options.results);
     await emit(`${JSON.stringify(aggregate, null, 2)}\n`, options.output);
+    return 0;
+  }
+  if (options.command === 'share-page') {
+    if (!options.output) {
+      process.stderr.write('share-page requires --output with a local HTML file path.\n');
+      return 2;
+    }
+    const report = await runCensus({
+      includeRuntimes: options.includeRuntimes,
+      includeFilesystem: options.includeFilesystem,
+      includeAgents: options.includeAgents,
+      includeTools: options.includeTools,
+      includeMcp: options.includeMcp,
+      guess: options.guess,
+      ...(options.modelDirs.length > 0 ? { filesystemRoots: options.modelDirs } : {}),
+    });
+    await fs.writeFile(options.output, renderCensusSharePage(report), { encoding: 'utf8', flag: 'w' });
+    process.stdout.write('Local aggregate share page written. No data was uploaded.\n');
     return 0;
   }
 

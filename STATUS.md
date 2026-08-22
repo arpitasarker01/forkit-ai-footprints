@@ -31,6 +31,8 @@ Status: macOS accuracy hardening in progress; release classification `future/inv
 - packaged local macOS field evaluator that emits aggregate metrics only;
 - offline multi-result aggregation with coverage strata and Wilson 95%
   confidence intervals;
+- self-contained aggregate-only local HTML share page with explicit copy/native
+  share controls and no automatic network activity;
 - macOS-only hosted CI definition and real-device validation command.
 - separately labelled controlled-compatibility CI for macOS 14, 15, and 26 on
   Apple Silicon plus macOS 15 on Intel; these runs are not field evidence.
@@ -53,7 +55,7 @@ Status: macOS accuracy hardening in progress; release classification `future/inv
 Current local validation for the macOS hardening branch on macOS/arm64:
 
 - `npm ci`: pass; zero reported vulnerabilities;
-- `npm test`: 45/45 pass on Node 20, 22, and 24;
+- `npm test`: 49/49 pass on Node 20, 22, and 24;
 - curated agent detector benchmark: 58/58 cases pass (26 positive, 32 negative,
   zero false positives, zero false negatives, zero wrong classifications);
 - `npm run smoke:package`: pass;

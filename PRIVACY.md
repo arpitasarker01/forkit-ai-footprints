@@ -13,6 +13,8 @@ Forkit Census is metadata-only by design.
 - known AI-tool installation/configuration path existence;
 - macOS major version, CPU architecture, and Node major in aggregate field-test
   results;
+- aggregate counts, storage bucket, architecture, Node major, product version,
+  and scan date in an explicitly saved local HTML share page;
 - up to 1 MiB from a known MCP JSON/TOML configuration file solely to count
   server entries.
 
@@ -62,3 +64,12 @@ confirmed-running count, storage bucket, optional numeric guess, detector types,
 and version numbers. It excludes the local Census ID and all item-level records.
 No upload transport or Global Census backend is present while the product stays
 `future/investigate`.
+
+## Local share page
+
+`forkit-census share-page --output ...` saves a self-contained HTML result only
+after the user supplies an output path. The page contains aggregate counts and
+limitations, not item names, paths, commands, endpoints, configuration values,
+account identity, or the local Census ID. It loads no external assets and makes
+no automatic network requests. Its copy/share controls act only after a user
+click and use aggregate text.

@@ -66,6 +66,12 @@ test('argument parser accepts a local evaluation-results directory for aggregati
   assert.equal(parsed.results, '/tmp/results');
 });
 
+test('argument parser accepts the local aggregate share page command', () => {
+  const parsed = parseArgs(['share-page', '--output', '/tmp/ai-footprint.html']);
+  assert.equal(parsed.command, 'share-page');
+  assert.equal(parsed.output, '/tmp/ai-footprint.html');
+});
+
 test('CLI evaluation emits aggregate metrics without labelled item names', () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'forkit-census-evaluate-'));
   const truthPath = path.join(directory, 'truth.json');
@@ -103,6 +109,12 @@ test('CLI aggregation requires an explicit results directory', () => {
   const result = runCli(['aggregate']);
   assert.equal(result.status, 2);
   assert.match(result.stderr, /requires --results/i);
+});
+
+test('CLI share page requires an explicit output path', () => {
+  const result = runCli(['share-page']);
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /requires --output/i);
 });
 
 test('CLI help states the non-writing privacy boundary', () => {
