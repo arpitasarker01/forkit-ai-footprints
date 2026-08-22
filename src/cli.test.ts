@@ -30,7 +30,7 @@ test('CLI emits a valid empty metadata-only JSON census', () => {
   const result = runCli(['scan', '--json', '--no-runtimes', '--no-model-files', '--no-agents']);
   assert.equal(result.status, 0, result.stderr);
   const report = JSON.parse(result.stdout) as Record<string, unknown>;
-  assert.equal(report.product, 'forkit-census');
+  assert.equal(report.product, 'forkit-ai-footprints');
   assert.deepEqual(report.privacy, {
     mode: 'metadata-only',
     raw_commands_retained: false,
@@ -70,6 +70,13 @@ test('argument parser accepts the local aggregate share page command', () => {
   const parsed = parseArgs(['share-page', '--output', '/tmp/ai-footprint.html']);
   assert.equal(parsed.command, 'share-page');
   assert.equal(parsed.output, '/tmp/ai-footprint.html');
+});
+
+test('argument parser accepts the local AI Footprints server and a safe port', () => {
+  const parsed = parseArgs(['serve', '--port', '49001']);
+  assert.equal(parsed.command, 'serve');
+  assert.equal(parsed.port, 49001);
+  assert.throws(() => parseArgs(['serve', '--port', '80']), /1024 to 65535/);
 });
 
 test('CLI evaluation emits aggregate metrics without labelled item names', () => {
@@ -135,7 +142,7 @@ test('anonymous payload is withheld without separate consent after local result'
     'scan', '--json', '--anonymous-payload', '--no-runtimes', '--no-model-files', '--no-agents', '--no-tools', '--no-mcp',
   ]);
   assert.equal(result.status, 2);
-  assert.equal(JSON.parse(result.stdout).product, 'forkit-census');
+  assert.equal(JSON.parse(result.stdout).product, 'forkit-ai-footprints');
   assert.match(result.stderr, /separate --consent-share is required/i);
 });
 
@@ -146,7 +153,7 @@ test('consented anonymous payload is an explicit preview and remains not uploade
   assert.equal(result.status, 0, result.stderr);
   const envelope = JSON.parse(result.stdout);
   assert.equal(envelope.uploaded, false);
-  assert.equal(envelope.local_report.product, 'forkit-census');
+  assert.equal(envelope.local_report.product, 'forkit-ai-footprints');
   assert.equal(envelope.anonymous_contribution.schema_version, '1.0');
 });
 

@@ -9,9 +9,10 @@ import { buildAnonymousCensusContribution } from './sharing';
 import { evaluateMacosFieldTruthFile } from './evaluate';
 import { aggregateMacosFieldEvaluationDirectory } from './aggregate';
 import { renderCensusSharePage } from './share-page';
+import { startAiFootprintsServer } from './server';
 
 interface ParsedOptions {
-  command: 'help' | 'version' | 'scan' | 'doctor' | 'evaluate' | 'aggregate' | 'share-page';
+  command: 'help' | 'version' | 'scan' | 'doctor' | 'evaluate' | 'aggregate' | 'share-page' | 'serve';
   json: boolean;
   output: string | null;
   includeRuntimes: boolean;
@@ -27,6 +28,7 @@ interface ParsedOptions {
   shareConsent: boolean;
   truth: string | null;
   results: string | null;
+  port: number;
 }
 
 const HELP = `Forkit AI Footprints
@@ -34,13 +36,11 @@ Private, metadata-only local AI inventory.
 macOS-only experimental release candidate.
 
 Usage:
-  forkit-census scan [options]
-  forkit-census report [options]
-  forkit-census doctor [--json]
-  forkit-census evaluate --truth /path/to/local-truth.json
-  forkit-census aggregate --results /path/to/evaluation-results
-  forkit-census share-page --output /path/to/local-ai-footprint.html
-  forkit-census --version
+  forkit-ai-footprints serve [--port 47811]
+  forkit-ai-footprints scan [options]
+  forkit-ai-footprints doctor [--json]
+  forkit-ai-footprints share-page --output /path/to/local-ai-footprint.html
+  forkit-ai-footprints --version
 
 Options:
   --json                 Print a machine-readable AI Footprint report
@@ -53,6 +53,7 @@ Options:
   --model-dir <path>     Inspect an explicit model directory; repeatable
   --truth <file>         Evaluate locally against manually labelled macOS truth
   --results <directory>  Aggregate local macOS evaluation JSON files
+  --port <number>        Local-only serve port (default: 47811)
   --no-runtimes          Skip local runtime API discovery
   --no-model-files       Skip filesystem model metadata discovery
   --no-agents            Skip local process metadata discovery
@@ -82,6 +83,7 @@ export function parseArgs(args: string[]): ParsedOptions {
   let shareConsent = false;
   let truth: string | null = null;
   let results: string | null = null;
+  let port = 47811;
   const modelDirs: string[] = [];
 
   for (let index = 0; index < args.length; index += 1) {
@@ -91,6 +93,7 @@ export function parseArgs(args: string[]): ParsedOptions {
     else if (arg === 'evaluate') command = 'evaluate';
     else if (arg === 'aggregate') command = 'aggregate';
     else if (arg === 'share-page') command = 'share-page';
+    else if (arg === 'serve') command = 'serve';
     else if (arg === '--version' || arg === '-V' || arg === 'version') command = 'version';
     else if (arg === '--help' || arg === '-h' || arg === 'help') command = 'help';
     else if (arg === '--json') json = true;
@@ -110,6 +113,15 @@ export function parseArgs(args: string[]): ParsedOptions {
         throw new Error('--guess requires a non-negative number.');
       }
       guess = Math.floor(parsedGuess);
+      index += 1;
+    }
+    else if (arg === '--port') {
+      const rawPort = args[index + 1];
+      const parsedPort = Number(rawPort);
+      if (!rawPort || !Number.isSafeInteger(parsedPort) || parsedPort < 1024 || parsedPort > 65535) {
+        throw new Error('--port requires an integer from 1024 to 65535.');
+      }
+      port = parsedPort;
       index += 1;
     }
     else if (arg === '--output') {
@@ -150,6 +162,7 @@ export function parseArgs(args: string[]): ParsedOptions {
     shareConsent,
     truth,
     results,
+    port,
   };
 }
 
@@ -195,6 +208,19 @@ export async function main(args = process.argv.slice(2)): Promise<number> {
   }
   if (options.command === 'version') {
     process.stdout.write(`${PRODUCT_VERSION}\n`);
+    return 0;
+  }
+  if (options.command === 'serve') {
+    const service = await startAiFootprintsServer({ port: options.port });
+    process.stdout.write(`Forkit AI Footprints is ready at ${service.url}\nMetadata stays on this device. Press Ctrl+C to stop.\n`);
+    if (process.platform === 'darwin' && process.env.FORKIT_AI_FOOTPRINTS_NO_OPEN !== '1') {
+      spawnSync('open', [service.url], { stdio: 'ignore', shell: false });
+    }
+    await new Promise<void>((resolve) => {
+      const stop = () => service.server.close(() => resolve());
+      process.once('SIGINT', stop);
+      process.once('SIGTERM', stop);
+    });
     return 0;
   }
   if (options.command === 'doctor') {

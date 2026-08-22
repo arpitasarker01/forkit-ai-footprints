@@ -1,7 +1,7 @@
 # Forkit AI Footprints Status
 
-Public product name: **Forkit AI Footprints**. Technical package and executable:
-`forkit-census`.
+Public product name: **Forkit AI Footprints**. Prepared package and executable:
+`forkit-ai-footprints`. Temporary compatibility binary: `forkit-census`.
 
 Last updated: 2026-08-22
 
@@ -11,7 +11,8 @@ Status: macOS accuracy hardening in progress; release classification `future/inv
 
 ## Implemented
 
-- independent package and `forkit-census` executable;
+- independent package and `forkit-ai-footprints` executable;
+- token-protected `127.0.0.1` local UI with Guess → Actual and Scan again;
 - explicit package-root shared-core API with TypeScript declarations and an
   isolated consumer smoke test;
 - unified runtime, model-file, and agent scan;
@@ -47,7 +48,7 @@ Status: macOS accuracy hardening in progress; release classification `future/inv
 - Forkit.dev registry writes;
 - Runtime_C2 mutation;
 - remote telemetry;
-- Global Census network transport or comparison backend;
+- Global AI Footprints network transport or comparison backend;
 - model byte reads;
 - raw command/path output;
 - npm publication;
@@ -62,9 +63,9 @@ Current local validation for the macOS hardening branch on macOS/arm64:
 - curated agent detector benchmark: 58/58 cases pass (26 positive, 32 negative,
   zero false positives, zero false negatives, zero wrong classifications);
 - `npm run smoke:package`: pass;
-- packaged `forkit-census evaluate --truth ...`: pass; aggregate-only result,
+- packaged `forkit-ai-footprints evaluate --truth ...`: pass; aggregate-only result,
   no labelled item names, no upload, and no accuracy-claim authorization;
-- `forkit-census doctor --json`: pass;
+- `forkit-ai-footprints doctor --json`: pass;
 - repeated real-device unified Census with stable item sets: pass;
 - real-device loopback guard: 12 loopback requests across two scans, zero
   external requests;
@@ -100,7 +101,7 @@ Historical hosted GitHub Actions validation for handoff-completion commit `b5ae9
 - complete founder review of the product boundary;
 - integrate `forkit-connect census` against this canonical package after an
   approved package/promotion sequence, removing the temporary duplicated core;
-- approve a Global Census schema, privacy policy, endpoint, retention policy,
+- approve a Global AI Footprints schema, privacy policy, endpoint, retention policy,
   and comparison response before adding any uploader;
 - choose the experimental distribution and support policy;
 - obtain a separately labelled, consented multi-device macOS evaluation before
@@ -108,6 +109,6 @@ Historical hosted GitHub Actions validation for handoff-completion commit `b5ae9
 - validate Intel Mac separately before adding it to the support claim;
 - keep npm publication and production promotion as separate approvals.
 
-The npm name `forkit-census` returned `E404` on 2026-08-22 and therefore appears
+The npm name `forkit-ai-footprints` returned `E404` on 2026-08-22 and therefore appears
 unpublished. Availability is not ownership and must be rechecked immediately
 before any separately authorized publication.

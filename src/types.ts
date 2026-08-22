@@ -90,7 +90,7 @@ export interface CensusSummary {
 
 export interface CensusReport {
   schema_version: '1.1';
-  product: 'forkit-census';
+  product: 'forkit-ai-footprints';
   product_version: string;
   census_id: string;
   generated_at: string;

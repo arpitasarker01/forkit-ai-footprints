@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const work = fs.mkdtempSync(path.join(os.tmpdir(), 'forkit-census-smoke-'));
+const work = fs.mkdtempSync(path.join(os.tmpdir(), 'forkit-ai-footprints-smoke-'));
 
 function run(command, args, options = {}) {
   const executable = process.platform === 'win32' ? 'cmd.exe' : command;
@@ -53,11 +53,12 @@ try {
   };
   fs.mkdirSync(environment.APPDATA, { recursive: true });
   fs.mkdirSync(environment.XDG_CONFIG_HOME, { recursive: true });
-  run('npx', ['forkit-census', '--help'], { cwd: install, env: environment });
+  run('npx', ['forkit-ai-footprints', '--help'], { cwd: install, env: environment });
+  run('npx', ['forkit-census', '--version'], { cwd: install, env: environment });
   const apiSmoke = path.join(install, 'api-smoke.cjs');
   fs.writeFileSync(apiSmoke, [
     "const assert = require('node:assert/strict');",
-    "const api = require('forkit-census');",
+    "const api = require('forkit-ai-footprints');",
     "assert.equal(typeof api.runCensus, 'function');",
     "assert.equal(typeof api.detectAgentProducts, 'function');",
     "assert.equal(typeof api.evaluateMacosFieldTruth, 'function');",
@@ -73,7 +74,7 @@ try {
   ].join('\n'));
   run(process.execPath, [apiSmoke], { cwd: install, env: environment });
   const output = capture('npx', [
-    'forkit-census', 'scan', '--json', '--no-runtimes', '--no-model-files', '--no-agents', '--no-tools', '--no-mcp',
+    'forkit-ai-footprints', 'scan', '--json', '--no-runtimes', '--no-model-files', '--no-agents', '--no-tools', '--no-mcp',
   ], { cwd: install, env: environment });
   const report = JSON.parse(output);
   if (report.schema_version !== '1.1' || report.privacy?.external_requests_made !== 0 || report.privacy?.backend_contacted !== false) {
@@ -92,7 +93,7 @@ try {
     },
   }));
   const evaluationOutput = capture('npx', [
-    'forkit-census', 'evaluate', '--truth', truthPath,
+    'forkit-ai-footprints', 'evaluate', '--truth', truthPath,
   ], { cwd: install, env: environment });
   const evaluation = JSON.parse(evaluationOutput);
   if (evaluation.uploaded !== false || evaluation.field_accuracy_claim_allowed !== false || evaluationOutput.includes(sentinel)) {
@@ -102,7 +103,7 @@ try {
   fs.mkdirSync(resultsDirectory);
   fs.writeFileSync(path.join(resultsDirectory, 'result-1.json'), evaluationOutput);
   const aggregateOutput = capture('npx', [
-    'forkit-census', 'aggregate', '--results', resultsDirectory,
+    'forkit-ai-footprints', 'aggregate', '--results', resultsDirectory,
   ], { cwd: install, env: environment });
   const aggregate = JSON.parse(aggregateOutput);
   if (aggregate.evaluation_count !== 1 || aggregate.uploaded !== false || aggregate.field_accuracy_claim_allowed !== false) {
@@ -110,7 +111,7 @@ try {
   }
   const sharePagePath = path.join(work, 'ai-footprint.html');
   run('npx', [
-    'forkit-census', 'share-page', '--output', sharePagePath,
+    'forkit-ai-footprints', 'share-page', '--output', sharePagePath,
     '--no-runtimes', '--no-model-files', '--no-agents', '--no-tools', '--no-mcp',
   ], { cwd: install, env: environment });
   const sharePage = fs.readFileSync(sharePagePath, 'utf8');

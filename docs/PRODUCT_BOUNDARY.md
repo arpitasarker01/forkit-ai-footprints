@@ -5,8 +5,8 @@ Sector: CLI discovery and local inventory
 Status: `future/investigate`
 
 Forkit AI Footprints is the public name for the experimental metadata-only
-inventory CLI. Its technical package remains `forkit-census` so developer
-interfaces do not break.
+inventory CLI. Its prepared package and command are `forkit-ai-footprints`,
+with `forkit-census` retained temporarily as a developer compatibility alias.
 
 ## Allowed MVP
 
@@ -16,7 +16,10 @@ interfaces do not break.
 - produce human and JSON reports;
 - generate an explicitly saved, self-contained aggregate-only local HTML share
   page with no automatic network requests;
-- diagnose local Census readiness;
+- run a token-protected UI bound only to `127.0.0.1`, keep the current report in
+  memory, and return only aggregate display fields when the user selects Scan again;
+- compare a browser-local numeric guess with the discovered model-record count;
+- diagnose local AI Footprints readiness;
 - prepare a consent-gated, aggregate-only anonymous contribution preview without
   transmitting it;
 - package and test an experimental macOS-only release candidate.
@@ -31,14 +34,14 @@ support claim until separately validated and promoted.
 - registry writes;
 - Runtime_C2 mutation or heartbeat;
 - billing, plans, workspaces, or account state;
-- telemetry or Global Census upload;
+- telemetry or Global AI Footprints upload;
 - remote endpoint inspection;
 - native desktop/mobile packaging;
 - npm publication or production deployment.
 
 ## Promotion gate
 
-Census remains `future/investigate` until founders intentionally update
+AI Footprints remains `future/investigate` until founders intentionally update
 `docs/PRODUCTION_LOCK.md` in `arpitasarker01/forkit_dev_base`.
 
 The standalone repository cannot promote itself. A future promotion must define

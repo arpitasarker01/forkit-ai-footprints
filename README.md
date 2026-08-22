@@ -1,11 +1,11 @@
 # Forkit AI Footprints
 
 Forkit AI Footprints is a private, metadata-only view of the models, runtimes,
-and AI agents present on a Mac. The technical package and executable remain
-`forkit-census` for compatibility.
+and AI agents present on a Mac. The prepared package and command are
+`forkit-ai-footprints`; `forkit-census` remains a temporary binary alias.
 
 It is derived from the discovery lessons in Forkit Connect, but it has a
-different safety boundary: Census does not authenticate to Forkit.dev and has
+different safety boundary: AI Footprints does not authenticate to Forkit.dev and has
 no passport, Mint, registry-write, Runtime_C2-write, or production deployment
 path.
 
@@ -27,22 +27,25 @@ Requirements:
 git clone https://github.com/arpitasarker01/forkit-census.git
 cd forkit-census
 npm ci
-npm run build
-node dist/cli.js share-page --output ai-footprint.html
-open ai-footprint.html
+npm pack
+npm install -g ./forkit-ai-footprints-0.1.0.tgz
+forkit-ai-footprints serve
 ```
 
 The package is not published to npm. Do not treat the command below as available
 from the public registry until a founder authorizes publication:
 
 ```bash
-npm install -g ./forkit-census-0.1.0.tgz
+npm install -g forkit-ai-footprints
+forkit-ai-footprints serve
 ```
 
-After an authorized npm release, the intended one-command entry point is:
+The two commands above follow the same install-first pattern as Forkit Connect.
+They become a public registry install only after an authorized npm release.
+The intended zero-install alternative is:
 
 ```bash
-npx -y forkit-census@latest share-page --output ai-footprint.html
+npx -y forkit-ai-footprints@latest serve
 ```
 
 ## Commands
@@ -50,11 +53,12 @@ npx -y forkit-census@latest share-page --output ai-footprint.html
 Run a local scan, verify the installation, or score one manually labelled Mac:
 
 ```bash
-forkit-census scan
-forkit-census doctor
-forkit-census evaluate --truth /absolute/path/to/local-truth.json
-forkit-census aggregate --results /absolute/path/to/evaluation-results
-forkit-census share-page --output /absolute/path/to/local-ai-footprint.html
+forkit-ai-footprints serve
+forkit-ai-footprints scan
+forkit-ai-footprints doctor
+forkit-ai-footprints evaluate --truth /absolute/path/to/local-truth.json
+forkit-ai-footprints aggregate --results /absolute/path/to/evaluation-results
+forkit-ai-footprints share-page --output /absolute/path/to/local-ai-footprint.html
 ```
 
 `evaluate` always runs locally and emits aggregate counts and metrics only. It
@@ -91,27 +95,32 @@ and run only after a user click.
 The compact Global AI Pulse stays empty until a caller supplies a validated,
 consented aggregate. The local page never fetches or invents global totals.
 
+`serve` binds only to `127.0.0.1`, keeps the report in memory, and opens the
+Guess → Actual experience. `Scan again` calls a random-token-protected local
+endpoint and returns aggregate display fields only. The guess remains in the
+browser page and is never sent to the local server or Forkit.dev.
+
 ```bash
-forkit-census
-forkit-census scan
-forkit-census scan --json
-forkit-census scan --verbose --guess 5
-forkit-census scan --copy
-forkit-census report --json --output census.json
-forkit-census scan --model-dir /path/you/selected
-forkit-census doctor
-forkit-census --version
+forkit-ai-footprints serve
+forkit-ai-footprints scan
+forkit-ai-footprints scan --json
+forkit-ai-footprints scan --verbose --guess 5
+forkit-ai-footprints scan --copy
+forkit-ai-footprints report --json --output footprint.json
+forkit-ai-footprints scan --model-dir /path/you/selected
+forkit-ai-footprints doctor
+forkit-ai-footprints --version
 ```
 
 One `scan` includes runtime APIs, filesystem model metadata, and agent process
 metadata by default. Individual surfaces can be disabled:
 
 ```bash
-forkit-census scan --no-runtimes
-forkit-census scan --no-model-files
-forkit-census scan --no-agents
-forkit-census scan --no-tools
-forkit-census scan --no-mcp
+forkit-ai-footprints scan --no-runtimes
+forkit-ai-footprints scan --no-model-files
+forkit-ai-footprints scan --no-agents
+forkit-ai-footprints scan --no-tools
+forkit-ai-footprints scan --no-mcp
 ```
 
 `--anonymous-payload --consent-share` creates an aggregate-only preview after
@@ -124,7 +133,7 @@ Forkit Connect should delegate to the package's public, read-only core rather
 than copy its detector implementation:
 
 ```js
-const { runCensus } = require('forkit-census');
+const { runCensus } = require('forkit-ai-footprints');
 
 const report = await runCensus();
 ```
@@ -134,7 +143,7 @@ provider adapters, endpoint validation, anonymous-preview builder, and TypeScrip
 types. A fresh-install smoke test imports the package root and verifies that an
 all-disabled core scan makes zero external requests and writes no local state.
 
-## What Census reports
+## What AI Footprints reports
 
 - availability of supported loopback runtime APIs;
 - model names and provider identities;
@@ -149,7 +158,7 @@ all-disabled core scan makes zero external requests and writes no local state.
 - confidence labels and review warnings;
 - platform, architecture, and Node major version.
 
-## What Census does not collect
+## What AI Footprints does not collect
 
 - model weights or file contents;
 - prompts or responses;
@@ -158,7 +167,7 @@ all-disabled core scan makes zero external requests and writes no local state.
 - credentials, tokens, API keys, or passwords;
 - hostname, username, email address, or account identity.
 
-Census only connects to loopback HTTP(S) endpoints. Remote hosts and URLs with
+AI Footprints only connects to loopback HTTP(S) endpoints. Remote hosts and URLs with
 embedded credentials are rejected.
 
 Known MCP configuration files are read only to count configured server entries.
@@ -176,7 +185,7 @@ See [`PRIVACY.md`](./PRIVACY.md), [`STATUS.md`](./STATUS.md), and
 | LM Studio/OpenAI-compatible API | Hashed provider/model identity | Medium |
 | Filesystem model metadata | Hashed name, relative location, size, and modification time | Low |
 
-A filesystem identity is not a content checksum. Census says so in every report
+A filesystem identity is not a content checksum. AI Footprints says so in every report
 that includes filesystem-discovered models.
 
 ## Agent identity
@@ -221,7 +230,7 @@ release thresholds are defined in
 
 ## Accuracy boundary
 
-Census has no defensible global accuracy percentage yet. Runtime API evidence is
+AI Footprints has no defensible global accuracy percentage yet. Runtime API evidence is
 strongest; filesystem findings are explicitly best-effort; tool and MCP coverage
 is limited to documented locations; and the agent benchmark is curated rather
 than independently sampled. Do not market a benchmark pass as field precision
@@ -234,7 +243,7 @@ macOS evaluation.
 - Forkit Connect: supporting bridge for governed Model and Agent Passport flows.
 - Forkit.dev website/registry: authoritative review and explicit final Mint.
 
-Census is not a replacement production release for Connect. The intended
+AI Footprints is not a replacement production release for Connect. The intended
 integration is for `forkit-connect census` to delegate to this package's public
 core, avoiding two scanner implementations. Promotion requires an intentional
 update to the Forkit.dev production lock.

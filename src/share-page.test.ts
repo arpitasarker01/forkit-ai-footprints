@@ -38,12 +38,13 @@ test('share snapshot contains aggregate facts without item-level records', async
 
   const html = renderCensusSharePage(report);
   assert.match(html, /Forkit AI Footprints/);
-  assert.match(html, /Your AI\.<br>Counted\./);
-  assert.match(html, /Share my footprint/);
+  assert.match(html, /Guess\.<br>Then know\./);
+  assert.match(html, /Reveal actual/);
+  assert.match(html, /Share result/);
   assert.match(html, /navigator\.share/);
-  assert.match(html, /zero uploads/i);
+  assert.match(html, /stays on this device/i);
   assert.match(html, /No global numbers are fabricated/i);
-  assert.match(html, /npm ci &amp;&amp; npm run build/);
+  assert.match(html, /npm install -g forkit-ai-footprints/);
   assert.doesNotMatch(html, new RegExp(sentinel));
   assert.doesNotMatch(html, /https?:\/\//i);
   assert.doesNotMatch(html, /<script[^>]+src=/i);
@@ -59,7 +60,8 @@ test('share page states the compact result limitations', async () => {
   });
   const html = renderCensusSharePage(report);
   assert.match(html, /metadata evidence, not ownership/i);
-  assert.match(html, /no proof of safety, provenance, or ownership/i);
+  assert.match(html, /No weights, prompts, commands, config values, or account data/i);
+  assert.doesNotMatch(html, /id="scan-button"/);
 });
 
 test('global pulse renders only when a consented aggregate is supplied', async () => {
@@ -92,4 +94,22 @@ test('global pulse renders only when a consented aggregate is supplied', async (
       source: 'consented-aggregate',
     },
   }), /INVALID_GLOBAL_AI_FOOTPRINT_PULSE/);
+});
+
+test('local rescan control requires a relative endpoint and random session token', async () => {
+  const report = await runCensus({
+    includeRuntimes: false,
+    includeFilesystem: false,
+    includeAgents: false,
+    includeTools: false,
+    includeMcp: false,
+  });
+  const html = renderCensusSharePage(report, {
+    rescan: { endpoint: '/api/scan', session_token: 'a'.repeat(48) },
+  });
+  assert.match(html, /Scan again/);
+  assert.match(html, /x-forkit-footprints-session/);
+  assert.throws(() => renderCensusSharePage(report, {
+    rescan: { endpoint: 'https://example.com/scan', session_token: 'weak' },
+  }), /INVALID_LOCAL_RESCAN_OPTIONS/);
 });

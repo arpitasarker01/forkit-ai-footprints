@@ -1,5 +1,5 @@
 {
-  "name": "forkit-census",
+  "name": "forkit-ai-footprints",
   "version": "0.1.0",
   "description": "Forkit AI Footprints: private local AI model, runtime, and agent inventory",
   "license": "MIT",
@@ -49,6 +49,7 @@
     "prepublishOnly": "npm test && npm run validate:macos"
   },
   "bin": {
+    "forkit-ai-footprints": "dist/cli.js",
     "forkit-census": "dist/cli.js"
   },
   "dependencies": {
