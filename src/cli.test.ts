@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { clipboardCommands, parseArgs } from './cli';
@@ -50,6 +52,45 @@ test('argument parser accepts guess, verbose, copy, and separately consented agg
   assert.equal(parsed.copy, true);
   assert.equal(parsed.anonymousPayload, true);
   assert.equal(parsed.shareConsent, true);
+});
+
+test('argument parser accepts a local macOS truth file for evaluation', () => {
+  const parsed = parseArgs(['evaluate', '--truth', '/tmp/local-truth.json']);
+  assert.equal(parsed.command, 'evaluate');
+  assert.equal(parsed.truth, '/tmp/local-truth.json');
+});
+
+test('CLI evaluation emits aggregate metrics without labelled item names', () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'forkit-census-evaluate-'));
+  const truthPath = path.join(directory, 'truth.json');
+  const sentinel = 'PRIVATE_TESTER_LABEL_DO_NOT_EMIT';
+  fs.writeFileSync(truthPath, JSON.stringify({
+    schema_version: '1.0',
+    expected: {
+      agent_signatures: [sentinel],
+      tool_names: [sentinel],
+      online_runtime_names: [sentinel],
+      model_keys: [sentinel],
+      mcp_clients: [sentinel],
+    },
+  }));
+  try {
+    const result = runCli(['evaluate', '--truth', truthPath]);
+    assert.equal(result.status, 0, result.stderr);
+    const evaluation = JSON.parse(result.stdout);
+    assert.equal(evaluation.evaluation, 'macos-local-labelled-device');
+    assert.equal(evaluation.uploaded, false);
+    assert.equal(evaluation.field_accuracy_claim_allowed, false);
+    assert.doesNotMatch(result.stdout, new RegExp(sentinel));
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('CLI evaluation requires an explicit truth file', () => {
+  const result = runCli(['evaluate']);
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /requires --truth/i);
 });
 
 test('CLI help states the non-writing privacy boundary', () => {

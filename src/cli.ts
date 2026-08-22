@@ -6,9 +6,10 @@ import { runDoctor } from './doctor';
 import { formatCensusReport, formatDoctorReport } from './format';
 import { PRODUCT_VERSION } from './version';
 import { buildAnonymousCensusContribution } from './sharing';
+import { evaluateMacosFieldTruthFile } from './evaluate';
 
 interface ParsedOptions {
-  command: 'help' | 'version' | 'scan' | 'doctor';
+  command: 'help' | 'version' | 'scan' | 'doctor' | 'evaluate';
   json: boolean;
   output: string | null;
   includeRuntimes: boolean;
@@ -22,6 +23,7 @@ interface ParsedOptions {
   guess: number | null;
   anonymousPayload: boolean;
   shareConsent: boolean;
+  truth: string | null;
 }
 
 const HELP = `Forkit Census
@@ -32,6 +34,7 @@ Usage:
   forkit-census scan [options]
   forkit-census report [options]
   forkit-census doctor [--json]
+  forkit-census evaluate --truth /path/to/local-truth.json
   forkit-census --version
 
 Options:
@@ -43,6 +46,7 @@ Options:
   --consent-share        Required with --anonymous-payload (separate consent)
   --output <file>        Save the selected human or JSON report
   --model-dir <path>     Inspect an explicit model directory; repeatable
+  --truth <file>         Evaluate locally against manually labelled macOS truth
   --no-runtimes          Skip local runtime API discovery
   --no-model-files       Skip filesystem model metadata discovery
   --no-agents            Skip local process metadata discovery
@@ -70,12 +74,14 @@ export function parseArgs(args: string[]): ParsedOptions {
   let guess: number | null = null;
   let anonymousPayload = false;
   let shareConsent = false;
+  let truth: string | null = null;
   const modelDirs: string[] = [];
 
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index]!;
     if (arg === 'scan' || arg === 'report') command = 'scan';
     else if (arg === 'doctor') command = 'doctor';
+    else if (arg === 'evaluate') command = 'evaluate';
     else if (arg === '--version' || arg === '-V' || arg === 'version') command = 'version';
     else if (arg === '--help' || arg === '-h' || arg === 'help') command = 'help';
     else if (arg === '--json') json = true;
@@ -101,6 +107,10 @@ export function parseArgs(args: string[]): ParsedOptions {
       output = args[index + 1] ?? null;
       if (!output) throw new Error('--output requires a file path.');
       index += 1;
+    } else if (arg === '--truth') {
+      truth = args[index + 1] ?? null;
+      if (!truth) throw new Error('--truth requires a file path.');
+      index += 1;
     } else if (arg === '--model-dir') {
       const directory = args[index + 1];
       if (!directory) throw new Error('--model-dir requires a directory path.');
@@ -125,6 +135,7 @@ export function parseArgs(args: string[]): ParsedOptions {
     guess,
     anonymousPayload,
     shareConsent,
+    truth,
   };
 }
 
@@ -179,6 +190,15 @@ export async function main(args = process.argv.slice(2)): Promise<number> {
       : formatDoctorReport(report);
     await emit(rendered, options.output);
     return report.ok ? 0 : 1;
+  }
+  if (options.command === 'evaluate') {
+    if (!options.truth) {
+      process.stderr.write('evaluate requires --truth with a local labelled macOS truth file.\n');
+      return 2;
+    }
+    const evaluation = await evaluateMacosFieldTruthFile(options.truth);
+    await emit(`${JSON.stringify(evaluation, null, 2)}\n`, options.output);
+    return 0;
   }
 
   const report = await runCensus({

@@ -46,6 +46,15 @@ Run:
 npm run evaluate:macos -- /absolute/path/to/local-truth.json
 ```
 
+Testers using the packed or installed CLI run the equivalent public command:
+
+```bash
+forkit-census evaluate --truth /absolute/path/to/local-truth.json
+```
+
+The result contains aggregate counts and metrics only. It does not contain the
+truth-file item names and is not uploaded.
+
 The evaluator emits aggregate counts and per-surface precision/recall locally.
 It does not emit item names, raw commands, full paths, credentials, or upload
 anything. Truth files must not be committed because model names can be private.

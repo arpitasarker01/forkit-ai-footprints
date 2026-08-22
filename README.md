@@ -44,6 +44,17 @@ npx -y forkit-census@latest
 
 ## Commands
 
+Run a local scan, verify the installation, or score one manually labelled Mac:
+
+```bash
+forkit-census scan
+forkit-census doctor
+forkit-census evaluate --truth /absolute/path/to/local-truth.json
+```
+
+`evaluate` always runs locally and emits aggregate counts and metrics only. It
+does not upload the truth file or include its item names in the output.
+
 ```bash
 forkit-census
 forkit-census scan

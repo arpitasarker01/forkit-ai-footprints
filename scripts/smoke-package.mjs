@@ -60,6 +60,7 @@ try {
     "const api = require('forkit-census');",
     "assert.equal(typeof api.runCensus, 'function');",
     "assert.equal(typeof api.detectAgentProducts, 'function');",
+    "assert.equal(typeof api.evaluateMacosFieldTruth, 'function');",
     "api.runCensus({ includeRuntimes: false, includeFilesystem: false, includeAgents: false, includeTools: false, includeMcp: false })",
     "  .then((report) => {",
     "    assert.equal(report.schema_version, '1.1');",
@@ -75,6 +76,25 @@ try {
   const report = JSON.parse(output);
   if (report.schema_version !== '1.1' || report.privacy?.external_requests_made !== 0 || report.privacy?.backend_contacted !== false) {
     throw new Error('Installed Census privacy contract failed.');
+  }
+  const truthPath = path.join(work, 'local-truth.json');
+  const sentinel = 'PRIVATE_TESTER_LABEL_DO_NOT_EMIT';
+  fs.writeFileSync(truthPath, JSON.stringify({
+    schema_version: '1.0',
+    expected: {
+      agent_signatures: [sentinel],
+      tool_names: [sentinel],
+      online_runtime_names: [sentinel],
+      model_keys: [sentinel],
+      mcp_clients: [sentinel],
+    },
+  }));
+  const evaluationOutput = capture('npx', [
+    'forkit-census', 'evaluate', '--truth', truthPath,
+  ], { cwd: install, env: environment });
+  const evaluation = JSON.parse(evaluationOutput);
+  if (evaluation.uploaded !== false || evaluation.field_accuracy_claim_allowed !== false || evaluationOutput.includes(sentinel)) {
+    throw new Error('Installed Census field-evaluation privacy contract failed.');
   }
   if (fs.existsSync(path.join(home, '.forkit-connect')) || fs.existsSync(path.join(home, '.forkit-census'))) {
     throw new Error('Installed Census wrote persistent local state.');

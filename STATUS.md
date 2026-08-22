@@ -28,6 +28,7 @@ Status: macOS accuracy hardening in progress; release classification `future/inv
 - loopback-only endpoint enforcement;
 - doctor command;
 - local unit and isolated package-smoke tooling;
+- packaged local macOS field evaluator that emits aggregate metrics only;
 - macOS-only hosted CI definition and real-device validation command.
 
 ## Intentionally absent
@@ -45,14 +46,15 @@ Status: macOS accuracy hardening in progress; release classification `future/inv
 
 ## Validation state
 
-Current local validation for the macOS hardening branch on macOS/arm64 with
-Node 24:
+Current local validation for the macOS hardening branch on macOS/arm64:
 
 - `npm ci`: pass; zero reported vulnerabilities;
-- `npm test`: 36/36 pass;
+- `npm test`: 41/41 pass on Node 20, 22, and 24;
 - curated agent detector benchmark: 58/58 cases pass (26 positive, 32 negative,
   zero false positives, zero false negatives, zero wrong classifications);
 - `npm run smoke:package`: pass;
+- packaged `forkit-census evaluate --truth ...`: pass; aggregate-only result,
+  no labelled item names, no upload, and no accuracy-claim authorization;
 - `forkit-census doctor --json`: pass;
 - repeated real-device unified Census with stable item sets: pass;
 - real-device loopback guard: 12 loopback requests across two scans, zero
