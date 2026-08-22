@@ -1,0 +1,47 @@
+{
+  "name": "forkit-census",
+  "version": "0.1.0",
+  "description": "Metadata-only local AI runtime, model, and agent inventory",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/arpitasarker01/forkit-census.git"
+  },
+  "homepage": "https://github.com/arpitasarker01/forkit-census#readme",
+  "bugs": {
+    "url": "https://github.com/arpitasarker01/forkit-census/issues"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "engines": {
+    "node": "20.x || 22.x || 24.x"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "STATUS.md",
+    "PRIVACY.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true });\"",
+    "build": "npm run clean && tsc -p tsconfig.json && node ./scripts/prepare-dist.mjs",
+    "dev": "tsc -w -p tsconfig.json",
+    "test": "npm run build && node ./scripts/run-tests.mjs",
+    "prepack": "npm run build && node ./scripts/prune-dist.mjs",
+    "smoke:package": "node ./scripts/smoke-package.mjs"
+  },
+  "bin": {
+    "forkit-census": "dist/cli.js"
+  },
+  "dependencies": {
+    "ps-list": "^9.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -1,0 +1,47 @@
+# Privacy Boundary
+
+Forkit Census is metadata-only by design.
+
+## Allowed local reads
+
+- local operating-system and Node version metadata;
+- process name and command metadata held only long enough to classify a known
+  agent signature and calculate a one-way evidence hash;
+- directory entries and file metadata for supported model extensions;
+- loopback runtime API responses from explicitly supported local endpoints.
+
+## Prohibited collection
+
+Census must not retain or emit:
+
+- raw process commands;
+- process IDs;
+- model weights or file contents;
+- full filesystem paths;
+- prompts, responses, terminal logs, or source-code content;
+- credentials, cookies, tokens, API keys, or passwords;
+- hostname, username, email, or Forkit.dev account identity.
+
+## Network boundary
+
+Census may call HTTP(S) endpoints only when the hostname is one of:
+
+- `localhost`
+- `127.0.0.1`
+- `::1`
+
+Remote endpoints and endpoints containing embedded credentials are rejected.
+Census contains no Forkit.dev login, registry-write, passport-publish,
+Runtime_C2-write, billing, telemetry-upload, or deployment client.
+
+## Filesystem identity
+
+Filesystem model identity is derived from metadata such as relative location,
+name, size, and modification time. The absolute path participates only inside a
+local one-way root fingerprint helper and is not included in a Census Report.
+Model bytes are never read for hashing.
+
+## Review rule
+
+Runtime, model, and agent findings are inventory suggestions. They must not be
+used as automatic evidence of ownership, safety, provenance, or passport status.

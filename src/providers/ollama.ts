@@ -1,0 +1,108 @@
+import { parseLoopbackEndpoint, type SafeEndpoint } from '../endpoints';
+import { sha256 } from '../hash';
+import type { RuntimeProvider, RuntimeScanResult } from '../types';
+import {
+  createModel,
+  createRuntime,
+  fetchJson,
+  readArray,
+  readNumber,
+  readRecord,
+  readString,
+} from './base';
+
+function parseSha256(value: string | null): string | null {
+  if (!value) return null;
+  const match = /^sha256:([0-9a-f]{64})$/i.exec(value);
+  return match?.[1]?.toLowerCase() ?? null;
+}
+
+export class OllamaProvider implements RuntimeProvider {
+  readonly name = 'ollama' as const;
+  private readonly endpoint: SafeEndpoint;
+
+  constructor(
+    endpoint = 'http://localhost:11434',
+    private readonly fetchImpl: typeof fetch = fetch,
+  ) {
+    const safeEndpoint = parseLoopbackEndpoint(endpoint);
+    if (!safeEndpoint) throw new Error('Ollama endpoint must be loopback HTTP(S).');
+    this.endpoint = safeEndpoint;
+  }
+
+  async scan(observedAt: string): Promise<RuntimeScanResult> {
+    const tags = await fetchJson(
+      `${this.endpoint.url}/api/tags`,
+      { method: 'GET' },
+      this.fetchImpl,
+    );
+    if (!tags.ok) {
+      return {
+        runtime: createRuntime({
+          name: this.name,
+          endpoint: this.endpoint.display,
+          status: 'unavailable',
+          modelCount: 0,
+          observedAt,
+          errorCode: tags.error,
+        }),
+        models: [],
+        warnings: [],
+      };
+    }
+
+    const body = readRecord(tags.body);
+    const entries = readArray(body?.models);
+    const models = await Promise.all(entries.map(async (entryValue) => {
+      const entry = readRecord(entryValue);
+      const name = readString(entry?.name) ?? readString(entry?.model);
+      if (!name) return null;
+      const manifestDigest = parseSha256(readString(entry?.digest));
+      const detailsResult = await fetchJson(
+        `${this.endpoint.url}/api/show`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ model: name, verbose: false }),
+        },
+        this.fetchImpl,
+        4000,
+      );
+      const detailsBody = readRecord(detailsResult.body);
+      const layers = readArray(detailsBody?.layers);
+      const modelLayer = layers
+        .map((layer) => readRecord(layer))
+        .find((layer) => readString(layer?.mediaType) === 'application/vnd.ollama.image.model');
+      const weightsDigest = parseSha256(readString(modelLayer?.digest));
+      const details = readRecord(detailsBody?.details);
+      const contentIdentity = weightsDigest ?? manifestDigest;
+      const identity = contentIdentity ?? sha256(`ollama:${name}`);
+      return createModel({
+        name,
+        runtime: this.name,
+        identityKind: contentIdentity ? 'content-sha256' : 'provider-id',
+        identity,
+        source: 'runtime-api',
+        confidence: contentIdentity ? 'high' : 'medium',
+        sizeBytes: readNumber(entry?.size),
+        modifiedAt: readString(entry?.modified_at),
+        quantization: readString(details?.quantization_level),
+        architecture: readString(details?.family),
+        parameterSize: readString(details?.parameter_size),
+      });
+    }));
+
+    const detectedModels = models.filter((model) => model !== null);
+    return {
+      runtime: createRuntime({
+        name: this.name,
+        endpoint: this.endpoint.display,
+        status: 'available',
+        modelCount: detectedModels.length,
+        observedAt,
+      }),
+      models: detectedModels,
+      warnings: [],
+    };
+  }
+}
