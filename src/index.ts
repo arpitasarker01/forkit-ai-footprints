@@ -1,4 +1,5 @@
 export { detectAgentProducts, listSystemProcesses } from './agents';
+export { aggregateMacosFieldEvaluationDirectory, aggregateMacosFieldEvaluations } from './aggregate';
 export { runCensus } from './census';
 export { buildAnonymousCensusContribution } from './sharing';
 export { detectAiTools } from './tools';
@@ -7,6 +8,6 @@ export { runDoctor } from './doctor';
 export { parseLoopbackEndpoint, parseLoopbackEndpointList } from './endpoints';
 export { scanFilesystemModels } from './filesystem';
 export { formatCensusReport, formatDoctorReport } from './format';
-export { evaluateMacosFieldTruth, evaluateMacosFieldTruthFile } from './evaluate';
+export { detectMacosMajorVersion, evaluateMacosFieldTruth, evaluateMacosFieldTruthFile } from './evaluate';
 export * from './providers';
 export type * from './types';

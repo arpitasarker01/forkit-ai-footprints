@@ -61,6 +61,7 @@ try {
     "assert.equal(typeof api.runCensus, 'function');",
     "assert.equal(typeof api.detectAgentProducts, 'function');",
     "assert.equal(typeof api.evaluateMacosFieldTruth, 'function');",
+    "assert.equal(typeof api.aggregateMacosFieldEvaluations, 'function');",
     "api.runCensus({ includeRuntimes: false, includeFilesystem: false, includeAgents: false, includeTools: false, includeMcp: false })",
     "  .then((report) => {",
     "    assert.equal(report.schema_version, '1.1');",
@@ -95,6 +96,16 @@ try {
   const evaluation = JSON.parse(evaluationOutput);
   if (evaluation.uploaded !== false || evaluation.field_accuracy_claim_allowed !== false || evaluationOutput.includes(sentinel)) {
     throw new Error('Installed Census field-evaluation privacy contract failed.');
+  }
+  const resultsDirectory = path.join(work, 'macos-field-results');
+  fs.mkdirSync(resultsDirectory);
+  fs.writeFileSync(path.join(resultsDirectory, 'result-1.json'), evaluationOutput);
+  const aggregateOutput = capture('npx', [
+    'forkit-census', 'aggregate', '--results', resultsDirectory,
+  ], { cwd: install, env: environment });
+  const aggregate = JSON.parse(aggregateOutput);
+  if (aggregate.evaluation_count !== 1 || aggregate.uploaded !== false || aggregate.field_accuracy_claim_allowed !== false) {
+    throw new Error('Installed Census field-aggregation contract failed.');
   }
   if (fs.existsSync(path.join(home, '.forkit-connect')) || fs.existsSync(path.join(home, '.forkit-census'))) {
     throw new Error('Installed Census wrote persistent local state.');

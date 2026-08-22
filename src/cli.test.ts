@@ -60,6 +60,12 @@ test('argument parser accepts a local macOS truth file for evaluation', () => {
   assert.equal(parsed.truth, '/tmp/local-truth.json');
 });
 
+test('argument parser accepts a local evaluation-results directory for aggregation', () => {
+  const parsed = parseArgs(['aggregate', '--results', '/tmp/results']);
+  assert.equal(parsed.command, 'aggregate');
+  assert.equal(parsed.results, '/tmp/results');
+});
+
 test('CLI evaluation emits aggregate metrics without labelled item names', () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'forkit-census-evaluate-'));
   const truthPath = path.join(directory, 'truth.json');
@@ -91,6 +97,12 @@ test('CLI evaluation requires an explicit truth file', () => {
   const result = runCli(['evaluate']);
   assert.equal(result.status, 2);
   assert.match(result.stderr, /requires --truth/i);
+});
+
+test('CLI aggregation requires an explicit results directory', () => {
+  const result = runCli(['aggregate']);
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /requires --results/i);
 });
 
 test('CLI help states the non-writing privacy boundary', () => {

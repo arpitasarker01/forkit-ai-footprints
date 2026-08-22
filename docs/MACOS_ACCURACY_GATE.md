@@ -55,6 +55,20 @@ forkit-census evaluate --truth /absolute/path/to/local-truth.json
 The result contains aggregate counts and metrics only. It does not contain the
 truth-file item names and is not uploaded.
 
+Each tester reviews the result and may then explicitly share that result file,
+but never the truth file. The coordinator aggregates a directory of reviewed
+results locally:
+
+```bash
+forkit-census aggregate --results /absolute/path/to/macos-field-results
+```
+
+The aggregate reports CPU, macOS-major, and Node-major coverage plus Wilson 95%
+confidence intervals. It cannot enable an accuracy claim automatically. The
+coordinator must separately verify one submission per independently labelled
+Mac because the privacy-preserving output contains no persistent device ID.
+Different Census versions must not be pooled.
+
 The evaluator emits aggregate counts and per-surface precision/recall locally.
 It does not emit item names, raw commands, full paths, credentials, or upload
 anything. Truth files must not be committed because model names can be private.

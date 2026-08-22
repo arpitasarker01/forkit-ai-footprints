@@ -5,7 +5,7 @@ import type { CensusReport } from './types';
 
 const report = {
   product_version: '0.1.0',
-  system: { platform: 'darwin' },
+  system: { platform: 'darwin', architecture: 'arm64', node_major: 22 },
   agents: [{ signature: 'codex' }],
   tools: [{ name: 'Codex' }, { name: 'Cursor' }],
   runtimes: [{ name: 'ollama', evidence_status: 'online' }],
@@ -23,7 +23,13 @@ test('macOS field evaluation emits only aggregate metrics and never authorizes a
       model_keys: ['ollama:example:latest'],
       mcp_clients: ['Codex'],
     },
-  }, report);
+  }, report, 26);
+  assert.deepEqual(result.environment, {
+    platform: 'darwin',
+    architecture: 'arm64',
+    macos_major: 26,
+    node_major: 22,
+  });
   assert.equal(result.metrics.agents.precision, 1);
   assert.equal(result.metrics.tools.false_positive, 1);
   assert.equal(result.metrics.tools.precision, 0.5);
@@ -34,6 +40,5 @@ test('macOS field evaluation emits only aggregate metrics and never authorizes a
 });
 
 test('macOS field evaluation rejects malformed truth files', () => {
-  assert.throws(() => evaluateMacosFieldTruth({ schema_version: '1.0', expected: {} }, report), /must contain non-empty strings/);
+  assert.throws(() => evaluateMacosFieldTruth({ schema_version: '1.0', expected: {} }, report, 26), /must contain non-empty strings/);
 });
-

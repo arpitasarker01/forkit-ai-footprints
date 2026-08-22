@@ -50,6 +50,7 @@ Run a local scan, verify the installation, or score one manually labelled Mac:
 forkit-census scan
 forkit-census doctor
 forkit-census evaluate --truth /absolute/path/to/local-truth.json
+forkit-census aggregate --results /absolute/path/to/evaluation-results
 ```
 
 `evaluate` always runs locally and emits aggregate counts and metrics only. It
@@ -72,6 +73,10 @@ valid when a surface is not installed or running:
 ```
 
 Keep truth files local; model names and installed-tool labels may be private.
+The evaluation result adds only macOS major version, CPU architecture, Node
+major, and aggregate counts. A coordinator can combine explicitly shared result
+files with `aggregate`; this remains local and always keeps automatic accuracy
+claims disabled. See [`docs/MACOS_TESTER_GUIDE.md`](./docs/MACOS_TESTER_GUIDE.md).
 
 ```bash
 forkit-census

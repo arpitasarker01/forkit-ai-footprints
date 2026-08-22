@@ -31,6 +31,9 @@
     "README.md",
     "STATUS.md",
     "PRIVACY.md",
+    "docs/MACOS_TESTER_GUIDE.md",
+    "docs/MACOS_ACCURACY_GATE.md",
+    "examples/macos-truth.template.json",
     "LICENSE"
   ],
   "scripts": {

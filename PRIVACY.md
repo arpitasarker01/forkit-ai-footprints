@@ -11,6 +11,8 @@ Forkit Census is metadata-only by design.
 - directory entries and file metadata for supported model extensions;
 - loopback runtime API responses from explicitly supported local endpoints.
 - known AI-tool installation/configuration path existence;
+- macOS major version, CPU architecture, and Node major in aggregate field-test
+  results;
 - up to 1 MiB from a known MCP JSON/TOML configuration file solely to count
   server entries.
 

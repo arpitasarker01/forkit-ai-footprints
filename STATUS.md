@@ -29,6 +29,8 @@ Status: macOS accuracy hardening in progress; release classification `future/inv
 - doctor command;
 - local unit and isolated package-smoke tooling;
 - packaged local macOS field evaluator that emits aggregate metrics only;
+- offline multi-result aggregation with coverage strata and Wilson 95%
+  confidence intervals;
 - macOS-only hosted CI definition and real-device validation command.
 
 ## Intentionally absent
@@ -49,7 +51,7 @@ Status: macOS accuracy hardening in progress; release classification `future/inv
 Current local validation for the macOS hardening branch on macOS/arm64:
 
 - `npm ci`: pass; zero reported vulnerabilities;
-- `npm test`: 41/41 pass on Node 20, 22, and 24;
+- `npm test`: 45/45 pass on Node 20, 22, and 24;
 - curated agent detector benchmark: 58/58 cases pass (26 positive, 32 negative,
   zero false positives, zero false negatives, zero wrong classifications);
 - `npm run smoke:package`: pass;

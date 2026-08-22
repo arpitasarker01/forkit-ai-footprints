@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { runCensus } from './census';
 import type { CensusReport } from './types';
 
@@ -28,6 +29,12 @@ export interface MacosFieldEvaluation {
   evaluation: 'macos-local-labelled-device';
   schema_version: '1.0';
   product_version: string;
+  environment: {
+    platform: 'darwin';
+    architecture: string;
+    macos_major: number | null;
+    node_major: number;
+  };
   metrics: {
     agents: SurfaceMetrics;
     tools: SurfaceMetrics;
@@ -37,6 +44,18 @@ export interface MacosFieldEvaluation {
   };
   uploaded: false;
   field_accuracy_claim_allowed: false;
+}
+
+export function detectMacosMajorVersion(): number | null {
+  if (process.platform !== 'darwin') return null;
+  const result = spawnSync('/usr/bin/sw_vers', ['-productVersion'], {
+    encoding: 'utf8',
+    shell: false,
+    timeout: 2_000,
+  });
+  if (result.status !== 0) return null;
+  const major = Number.parseInt(result.stdout.trim().split('.')[0] ?? '', 10);
+  return Number.isInteger(major) && major > 0 ? major : null;
 }
 
 function stringSet(value: unknown, label: string): Set<string> {
@@ -84,13 +103,23 @@ function parseTruth(value: unknown): MacosFieldTruth {
   };
 }
 
-export function evaluateMacosFieldTruth(truthInput: unknown, report: CensusReport): MacosFieldEvaluation {
+export function evaluateMacosFieldTruth(
+  truthInput: unknown,
+  report: CensusReport,
+  macosMajor = detectMacosMajorVersion(),
+): MacosFieldEvaluation {
   if (report.system.platform !== 'darwin') throw new Error('macOS field evaluation requires a macOS Census Report.');
   const truth = parseTruth(truthInput);
   return {
     evaluation: 'macos-local-labelled-device',
     schema_version: truth.schema_version,
     product_version: report.product_version,
+    environment: {
+      platform: 'darwin',
+      architecture: report.system.architecture,
+      macos_major: macosMajor,
+      node_major: report.system.node_major,
+    },
     metrics: {
       agents: score(report.agents.map((item) => item.signature), truth.expected.agent_signatures),
       tools: score(report.tools.map((item) => item.name), truth.expected.tool_names),
@@ -112,4 +141,3 @@ export async function evaluateMacosFieldTruthFile(filePath: string): Promise<Mac
   const truth = JSON.parse(content) as unknown;
   return evaluateMacosFieldTruth(truth, await runCensus());
 }
-
