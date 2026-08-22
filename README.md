@@ -100,6 +100,13 @@ Guess → Actual experience. `Scan again` calls a random-token-protected local
 endpoint and returns aggregate display fields only. The guess remains in the
 browser page and is never sent to the local server or Forkit.dev.
 
+After revealing the result, `Create share card` renders a 1200×630 PNG entirely
+in the browser. The card turns Guess → Discovered into a visual story and uses
+only four aggregate fields: model records, active runtimes, active agents, and
+the model-storage bucket. It can be downloaded or passed to the operating
+system share sheet after an explicit click; no model names or scan records are
+placed in the image or uploaded by AI Footprints.
+
 ```bash
 forkit-ai-footprints serve
 forkit-ai-footprints scan

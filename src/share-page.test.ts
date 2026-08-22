@@ -40,7 +40,11 @@ test('share snapshot contains aggregate facts without item-level records', async
   assert.match(html, /Forkit AI Footprints/);
   assert.match(html, /Guess\.<br>Then know\./);
   assert.match(html, /Reveal actual/);
-  assert.match(html, /Share result/);
+  assert.match(html, /Create share card/);
+  assert.match(html, /canvas id="share-canvas" width="1200" height="630"/);
+  assert.match(html, /Download PNG/);
+  assert.match(html, /Share image/);
+  assert.match(html, /Created entirely on this device from aggregate counts/);
   assert.match(html, /navigator\.share/);
   assert.match(html, /stays on this device/i);
   assert.match(html, /No global numbers are fabricated/i);
@@ -48,6 +52,7 @@ test('share snapshot contains aggregate facts without item-level records', async
   assert.doesNotMatch(html, new RegExp(sentinel));
   assert.doesNotMatch(html, /https?:\/\//i);
   assert.doesNotMatch(html, /<script[^>]+src=/i);
+  assert.doesNotMatch(html, /<img\b/i);
 });
 
 test('share page states the compact result limitations', async () => {

@@ -79,3 +79,10 @@ limitations, not item names, paths, commands, endpoints, configuration values,
 account identity, or the local Census ID. It loads no external assets and makes
 no automatic network requests. Its copy/share controls act only after a user
 click and use aggregate text.
+
+The interactive `serve` page can also render a 1200×630 discovery card locally
+with browser Canvas. It includes the user's browser-only numeric guess plus
+aggregate model-record, active-runtime, active-agent, and storage-bucket values.
+The image has no item names, paths, account identifiers, or external assets.
+Downloading it or opening the operating system share sheet requires a separate
+user click; AI Footprints does not receive the image.

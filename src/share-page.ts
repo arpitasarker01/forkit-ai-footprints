@@ -103,6 +103,7 @@ export function renderCensusSharePage(report: CensusReport, options: AiFootprint
     * { box-sizing:border-box; }
     html { background:var(--bg); }
     body { margin:0; min-width:320px; color:var(--ink); background:radial-gradient(circle at 0 0,rgba(244,147,85,.18),transparent 29rem),radial-gradient(circle at 100% 0,rgba(0,129,144,.15),transparent 31rem),var(--bg); font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; -webkit-font-smoothing:antialiased; }
+    body.dialog-open { overflow:hidden; }
     button,input { font:inherit; }
     [hidden] { display:none !important; }
     .shell { width:min(1040px,calc(100% - 40px)); margin:0 auto; padding:26px 0 34px; }
@@ -148,9 +149,20 @@ export function renderCensusSharePage(report: CensusReport, options: AiFootprint
     .install p { margin:0; color:var(--muted); font-size:10px; line-height:1.45; }
     .command { position:relative; padding:13px 48px 13px 15px; border-radius:13px; color:#f8f5ed; background:#292824; font:11px/1.65 ui-monospace,SFMono-Regular,Menlo,monospace; white-space:pre-wrap; }
     .copy-install { position:absolute; top:9px; right:9px; min-height:29px; padding:0 9px; border:1px solid rgba(255,255,255,.2); border-radius:8px; color:#fff; background:rgba(255,255,255,.08); font-size:10px; cursor:pointer; }
+    .share-dialog { width:min(760px,calc(100% - 28px)); max-height:calc(100vh - 28px); margin:auto; padding:0; border:1px solid rgba(255,255,255,.75); border-radius:26px; color:var(--ink); background:#fffefa; box-shadow:0 32px 100px rgba(28,36,34,.28); overflow:auto; }
+    .share-dialog::backdrop { background:rgba(25,31,30,.52); backdrop-filter:blur(9px); }
+    .share-studio { padding:22px; }
+    .share-head { display:flex; align-items:start; justify-content:space-between; gap:18px; margin-bottom:16px; }
+    .share-head h2 { margin:5px 0 0; font-size:24px; letter-spacing:-.04em; }
+    .icon-button { width:36px; height:36px; border:1px solid var(--line); border-radius:11px; color:var(--ink); background:#f3ede3; cursor:pointer; font-size:19px; }
+    .canvas-shell { padding:8px; border:1px solid var(--line); border-radius:18px; background:#ece7dd; }
+    #share-canvas { display:block; width:100%; height:auto; border-radius:12px; background:#f5f0e6; }
+    .share-actions { display:flex; gap:10px; margin-top:16px; }
+    .share-actions .button { flex:1; }
+    .share-note { margin:12px 0 0; color:var(--muted); font-size:10px; line-height:1.5; text-align:center; }
     footer { display:flex; justify-content:space-between; gap:20px; padding:15px 3px 0; color:var(--muted); font-size:9px; line-height:1.5; }
     @media (max-width:760px) { .nav{margin-bottom:38px}.hero{grid-template-columns:1fr;align-items:start}.metrics{grid-template-columns:1fr}.metric{min-height:130px}.global,.install{grid-template-columns:1fr} }
-    @media (max-width:440px) { .shell{width:calc(100% - 24px);padding-top:16px}.private{font-size:0}h1{font-size:58px}.guess-row{grid-template-columns:1fr}.actions{flex-direction:column}.pulse-grid{grid-template-columns:1fr}footer{flex-direction:column} }
+    @media (max-width:440px) { .shell{width:calc(100% - 24px);padding-top:16px}.private{font-size:0}h1{font-size:58px}.guess-row{grid-template-columns:1fr}.actions,.share-actions{flex-direction:column}.pulse-grid{grid-template-columns:1fr}footer{flex-direction:column}.share-studio{padding:15px} }
   </style>
 </head>
 <body>
@@ -165,7 +177,7 @@ export function renderCensusSharePage(report: CensusReport, options: AiFootprint
         <div class="label">Your guess</div><h2 class="guess-title">How many local AI models?</h2>
         <div class="guess-row"><input class="guess-input" id="guess-input" type="number" inputmode="numeric" min="0" max="100000" step="1" placeholder="e.g. 5" aria-label="Guessed local AI model count"><button class="button" id="reveal-button" type="button">Reveal actual</button></div>
         <p class="guess-result" id="guess-result">Your guess never leaves this page.</p>
-        <div class="actions" id="result-actions" hidden><button class="button" id="share-button" type="button">Share result</button>${rescan ? '<button class="button secondary" id="scan-button" type="button">Scan again</button>' : ''}</div>
+        <div class="actions" id="result-actions" hidden><button class="button" id="share-button" type="button">Create share card</button>${rescan ? '<button class="button secondary" id="scan-button" type="button">Scan again</button>' : ''}</div>
         <div class="status" id="action-status" role="status" aria-live="polite"></div>
       </aside>
     </section>
@@ -185,11 +197,21 @@ forkit-ai-footprints serve<button class="copy-install" id="copy-install" type="b
     </section>
     <footer><span>Scan stays in memory · <span id="scan-date">${escapeHtml(snapshot.generated_date)}</span> · ${escapeHtml(snapshot.architecture_label)}</span><span>No weights, prompts, commands, config values, or account data</span></footer>
   </main>
+  <dialog class="share-dialog" id="share-dialog" aria-labelledby="share-title">
+    <div class="share-studio">
+      <div class="share-head"><div><div class="label">Your discovery card</div><h2 id="share-title">AI hiding in plain sight.</h2></div><button class="icon-button" id="close-share" type="button" aria-label="Close share card">×</button></div>
+      <div class="canvas-shell"><canvas id="share-canvas" width="1200" height="630" aria-label="Generated Forkit AI Footprints discovery card"></canvas></div>
+      <div class="share-actions"><button class="button" id="share-image" type="button">Share image</button><button class="button secondary" id="download-image" type="button">Download PNG</button><button class="button secondary" id="copy-share" type="button">Copy caption</button></div>
+      <p class="share-note">Created entirely on this device from aggregate counts. No item names or scan data are uploaded.</p>
+    </div>
+  </dialog>
   <script>
     let currentSnapshot = ${safeScriptJson(snapshot)};
     const rescanConfig = ${safeScriptJson(rescan ?? null)};
     const status = document.getElementById('action-status');
     const guessInput = document.getElementById('guess-input');
+    const shareDialog = document.getElementById('share-dialog');
+    const shareCanvas = document.getElementById('share-canvas');
     let revealed = false;
     function plural(value, singular, pluralValue) { return value === 1 ? singular : (pluralValue || singular + 's'); }
     function currentGuess() { const value = Number(guessInput.value); return Number.isSafeInteger(value) && value >= 0 ? value : null; }
@@ -198,6 +220,39 @@ forkit-ai-footprints serve<button class="copy-install" id="copy-install" type="b
       const prefix = guess === null ? '' : 'I guessed ' + guess + '. ';
       return prefix + 'Forkit AI Footprints found ' + currentSnapshot.model_record_count + ' local AI model ' + plural(currentSnapshot.model_record_count, 'record') + ', ' + currentSnapshot.online_runtime_count + ' active ' + plural(currentSnapshot.online_runtime_count, 'runtime') + ', and ' + currentSnapshot.active_agent_product_count + ' active AI agent ' + plural(currentSnapshot.active_agent_product_count, 'product') + ' on my Mac. ' + currentSnapshot.storage_bucket + ' model storage. Metadata only; nothing uploaded.';
     }
+    function roundedRect(context, x, y, width, height, radius) {
+      const r = Math.min(radius, width / 2, height / 2);
+      context.beginPath(); context.moveTo(x + r, y); context.arcTo(x + width, y, x + width, y + height, r); context.arcTo(x + width, y + height, x, y + height, r); context.arcTo(x, y + height, x, y, r); context.arcTo(x, y, x + width, y, r); context.closePath();
+    }
+    function drawShareCard() {
+      const context = shareCanvas.getContext('2d');
+      const guess = currentGuess();
+      const actual = currentSnapshot.model_record_count;
+      const difference = guess === null ? null : actual - guess;
+      context.clearRect(0, 0, 1200, 630);
+      const background = context.createLinearGradient(0, 0, 1200, 630); background.addColorStop(0, '#f8eee1'); background.addColorStop(.48, '#f5f0e6'); background.addColorStop(1, '#d8ecec'); context.fillStyle = background; context.fillRect(0, 0, 1200, 630);
+      const glowA = context.createRadialGradient(110, 90, 5, 110, 90, 270); glowA.addColorStop(0, 'rgba(244,147,85,.34)'); glowA.addColorStop(1, 'rgba(244,147,85,0)'); context.fillStyle = glowA; context.fillRect(0, 0, 430, 400);
+      const glowB = context.createRadialGradient(1040, 90, 5, 1040, 90, 320); glowB.addColorStop(0, 'rgba(0,129,144,.24)'); glowB.addColorStop(1, 'rgba(0,129,144,0)'); context.fillStyle = glowB; context.fillRect(700, 0, 500, 440);
+      context.save(); context.translate(925, 310); context.strokeStyle = 'rgba(0,129,144,.15)'; context.lineWidth = 2;
+      for (let ring = 1; ring <= 3; ring += 1) { context.beginPath(); context.arc(0, 0, ring * 76, 0, Math.PI * 2); context.stroke(); }
+      const nodeCount = Math.max(3, Math.min(18, actual + currentSnapshot.online_runtime_count + currentSnapshot.active_agent_product_count));
+      for (let index = 0; index < nodeCount; index += 1) { const angle = (Math.PI * 2 * index / nodeCount) - Math.PI / 2; const radius = 76 + (index % 3) * 76; const x = Math.cos(angle) * radius; const y = Math.sin(angle) * radius; context.beginPath(); context.arc(x, y, index % 3 === 0 ? 11 : 7, 0, Math.PI * 2); context.fillStyle = index % 3 === 0 ? '#f49355' : '#008190'; context.fill(); }
+      context.beginPath(); context.arc(0, 0, 53, 0, Math.PI * 2); context.fillStyle = '#fffefa'; context.fill(); context.strokeStyle = 'rgba(45,43,39,.10)'; context.stroke(); context.fillStyle = '#292824'; context.font = '800 33px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'; context.textAlign = 'center'; context.fillText(String(actual), 0, 12); context.restore();
+      context.textAlign = 'left'; context.fillStyle = '#008190'; context.font = '800 19px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'; context.fillText('FORKIT AI FOOTPRINTS  ·  PRIVATE LOCAL DISCOVERY', 64, 61);
+      context.fillStyle = '#292824'; context.font = '800 58px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'; context.fillText('I thought I knew', 64, 145); context.fillText('my AI stack.', 64, 207);
+      context.fillStyle = '#6d6961'; context.font = '600 22px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'; context.fillText('Then my Mac revealed what was hiding in plain sight.', 64, 249);
+      roundedRect(context, 64, 285, 510, 137, 25); context.fillStyle = 'rgba(255,254,250,.76)'; context.fill(); context.strokeStyle = 'rgba(45,43,39,.10)'; context.stroke();
+      context.fillStyle = '#6d6961'; context.font = '800 16px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'; context.fillText('MY GUESS', 91, 320); context.fillText('DISCOVERED', 322, 320);
+      context.fillStyle = '#292824'; context.font = '800 68px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'; context.fillText(String(guess), 91, 387); context.fillStyle = '#008190'; context.fillText('→  ' + actual, 235, 387);
+      context.fillStyle = difference === 0 ? '#2d987b' : '#a9582d'; context.font = '750 16px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'; context.fillText(difference === 0 ? 'Exactly right.' : Math.abs(difference) + (difference > 0 ? ' more than I expected.' : ' fewer than I expected.'), 91, 410);
+      const cards = [[String(actual), 'MODEL RECORDS'], [String(currentSnapshot.online_runtime_count), 'ACTIVE RUNTIME' + (currentSnapshot.online_runtime_count === 1 ? '' : 'S')], [String(currentSnapshot.active_agent_product_count), 'ACTIVE AI AGENT' + (currentSnapshot.active_agent_product_count === 1 ? '' : 'S')], [currentSnapshot.storage_bucket, 'MODEL STORAGE']];
+      cards.forEach((card, index) => { const x = 64 + index * 263; roundedRect(context, x, 453, 244, 91, 19); context.fillStyle = index % 2 === 0 ? 'rgba(255,254,250,.78)' : 'rgba(220,236,239,.72)'; context.fill(); context.strokeStyle = 'rgba(45,43,39,.10)'; context.stroke(); context.fillStyle = '#292824'; context.font = '800 29px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'; context.fillText(card[0], x + 18, 493); context.fillStyle = '#6d6961'; context.font = '800 12px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'; context.fillText(card[1], x + 18, 522); });
+      context.fillStyle = '#292824'; context.font = '800 15px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'; context.fillText(actual > 0 ? 'LOCAL AI EXPLORER' : 'AI CURIOUS', 64, 588);
+      context.fillStyle = '#6d6961'; context.font = '600 14px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'; context.fillText('Metadata only  ·  Nothing uploaded  ·  Model records are discoveries, not proof of ownership', 290, 588);
+    }
+    function canvasBlob() { return new Promise((resolve) => shareCanvas.toBlob(resolve, 'image/png')); }
+    async function openShareStudio() { drawShareCard(); document.body.classList.add('dialog-open'); shareDialog.showModal(); }
+    function closeShareStudio() { shareDialog.close(); document.body.classList.remove('dialog-open'); }
     function renderActual() {
       revealed = true;
       document.getElementById('model-value').textContent = String(currentSnapshot.model_record_count);
@@ -226,11 +281,12 @@ forkit-ai-footprints serve<button class="copy-install" id="copy-install" type="b
     }
     document.getElementById('reveal-button').addEventListener('click', compareGuess);
     guessInput.addEventListener('keydown', (event) => { if (event.key === 'Enter') compareGuess(); });
-    document.getElementById('share-button').addEventListener('click', async () => {
-      const text = shareText();
-      if (navigator.share) { try { await navigator.share({ title:'My AI Footprint · Forkit', text }); status.textContent='Shared privately through your device.'; return; } catch (error) { if (error && error.name === 'AbortError') return; } }
-      await copyText(text); status.textContent='Result copied — no private item names included.';
-    });
+    document.getElementById('share-button').addEventListener('click', openShareStudio);
+    document.getElementById('close-share').addEventListener('click', closeShareStudio);
+    shareDialog.addEventListener('click', (event) => { if (event.target === shareDialog) closeShareStudio(); });
+    document.getElementById('download-image').addEventListener('click', async () => { const blob = await canvasBlob(); if (!blob) return; const link = document.createElement('a'); link.download='my-forkit-ai-footprint.png'; link.href=URL.createObjectURL(blob); link.click(); setTimeout(() => URL.revokeObjectURL(link.href), 1000); document.getElementById('download-image').textContent='Downloaded'; });
+    document.getElementById('share-image').addEventListener('click', async () => { const blob = await canvasBlob(); if (!blob) return; const file = new File([blob], 'my-forkit-ai-footprint.png', { type:'image/png' }); if (navigator.share && (!navigator.canShare || navigator.canShare({ files:[file] }))) { try { await navigator.share({ title:'My AI Footprint · Forkit', text:shareText(), files:[file] }); return; } catch (error) { if (error && error.name === 'AbortError') return; } } await copyText(shareText()); document.getElementById('share-image').textContent='Caption copied'; });
+    document.getElementById('copy-share').addEventListener('click', async () => { await copyText(shareText()); document.getElementById('copy-share').textContent='Caption copied'; });
     if (rescanConfig) document.getElementById('scan-button').addEventListener('click', async () => {
       const button = document.getElementById('scan-button'); button.disabled = true; button.textContent = 'Scanning…'; status.textContent = 'Reading local metadata again…';
       try {

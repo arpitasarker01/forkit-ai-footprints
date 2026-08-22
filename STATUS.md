@@ -3,7 +3,7 @@
 Public product name: **Forkit AI Footprints**. Prepared package and executable:
 `forkit-ai-footprints`. Temporary compatibility binary: `forkit-census`.
 
-Last updated: 2026-08-22
+Last updated: 2026-08-23
 
 Version: `0.1.0`
 
@@ -37,6 +37,8 @@ Status: macOS accuracy hardening in progress; release classification `future/inv
   confidence intervals;
 - self-contained aggregate-only local HTML share page with explicit copy/native
   share controls and no automatic network activity;
+- browser-generated 1200×630 Guess → Discovered PNG with local download and
+  native share actions, aggregate fields only, and no external assets;
 - macOS-only hosted CI definition and real-device validation command.
 - separately labelled controlled-compatibility CI for macOS 14, 15, and 26 on
   Apple Silicon plus macOS 15 on Intel; these runs are not field evidence.
@@ -59,7 +61,8 @@ Status: macOS accuracy hardening in progress; release classification `future/inv
 Current local validation for the macOS hardening branch on macOS/arm64:
 
 - `npm ci`: pass; zero reported vulnerabilities;
-- `npm test`: 49/49 pass on Node 20, 22, and 24;
+- `npm test`: 53/53 pass locally; hosted Node 20, 22, and 24 validation is
+  required for the new share-card commit;
 - curated agent detector benchmark: 58/58 cases pass (26 positive, 32 negative,
   zero false positives, zero false negatives, zero wrong classifications);
 - `npm run smoke:package`: pass;
@@ -69,6 +72,8 @@ Current local validation for the macOS hardening branch on macOS/arm64:
 - repeated real-device unified Census with stable item sets: pass;
 - real-device loopback guard: 12 loopback requests across two scans, zero
   external requests;
+- real-browser Guess → Discovered, local rescan, caption copy, and 1200×630 PNG
+  download: pass on the same Apple Silicon Mac;
 - privacy scan of the real report: no home-directory, Windows-user-path,
   API-key-prefix, API-key-flag, or session-token leak found.
 
