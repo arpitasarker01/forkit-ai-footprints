@@ -39,7 +39,10 @@ test('one-page app puts truthful activity before footprint and comparison', asyn
   assert.match(html, /NOT RUNNING/);
   assert.match(html, /Guess, then reveal/);
   assert.match(html, /Optional global comparison/);
-  assert.match(html, /Share aggregates &amp; see my rank/);
+  assert.match(html, /Where do you stand globally\?/);
+  assert.match(html, /Compare your observed AI activity with other participating Forkit observations/);
+  assert.match(html, /See my global position/);
+  assert.match(html, /Share aggregates &amp; compare/);
   assert.match(html, /Keep everything local/);
   assert.match(html, /Technical details/);
   assert.match(html, /Studio Test Mac/);
@@ -53,7 +56,7 @@ test('one-page app puts truthful activity before footprint and comparison', asyn
   assert.doesNotThrow(() => new Function(inlineScript));
 });
 
-test('interactive detail names never enter share words or share canvas data', async () => {
+test('share output excludes private context even when supported tool names are allowed', async () => {
   const report = await emptyReport();
   const sentinel = 'PRIVATE_APP_AND_CHAT_DO_NOT_SHARE';
   report.agents = [{
@@ -72,9 +75,23 @@ test('interactive detail names never enter share words or share canvas data', as
   assert.match(html, new RegExp(sentinel));
   const shareFunction = html.slice(html.indexOf('function shareWords'), html.indexOf('function draw'));
   const drawFunction = html.slice(html.indexOf('function draw'), html.indexOf("$('guess-form')"));
-  assert.doesNotMatch(shareFunction, /local_details|products|context|\.name/);
-  assert.doesNotMatch(drawFunction, /local_details|products|context|\.name/);
+  assert.doesNotMatch(shareFunction, /local_details|context|chat|workspace|device_label/);
+  assert.doesNotMatch(drawFunction, /local_details|context|chat|workspace|device_label/);
   assert.doesNotMatch(shareFunction, new RegExp(sentinel));
+});
+
+test('comparison never renders a fabricated percentile or worldwide-user claim', async () => {
+  const html = renderCensusSharePage(await emptyReport(), {
+    rescan: {
+      endpoint: '/api/scan', monitor_start_endpoint: '/api/monitor/start', monitor_stop_endpoint: '/api/monitor/stop',
+      monitor_stream_endpoint: '/api/monitor/stream', monitor_clear_endpoint: '/api/monitor/clear', contribution_preview_endpoint: '/api/contribution/preview', session_token: 'c'.repeat(48),
+    },
+  });
+  assert.doesNotMatch(html, /Top \d+%/i);
+  assert.doesNotMatch(html, /AI users worldwide/i);
+  assert.match(html, /Global transport remains disabled/);
+  const clickHandler = html.slice(html.indexOf("$('review-payload').addEventListener('click'"));
+  assert.match(clickHandler, /config\.contribution_preview_endpoint/);
 });
 
 test('saved aggregate page is self-contained and exposes no item names', async () => {

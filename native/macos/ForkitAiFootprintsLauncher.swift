@@ -81,6 +81,7 @@ private final class FootprintsAppDelegate: NSObject, NSApplicationDelegate, NSWi
     private var window: NSWindow?
     private var webView: WKWebView?
     private var statusItem: NSStatusItem?
+    private var headerLine: NSMenuItem?
     private var statusLine: NSMenuItem?
     private var monitorAction: NSMenuItem?
     private var statusTimer: Timer?
@@ -98,16 +99,33 @@ private final class FootprintsAppDelegate: NSObject, NSApplicationDelegate, NSWi
 
     private func setupStatusItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        item.button?.image = NSImage(systemSymbolName: "waveform.path.ecg", accessibilityDescription: "Forkit AI Footprints")
+        item.autosaveName = "ForkitAI FootprintStatusItem"
+        item.isVisible = true
+        if let image = NSImage(systemSymbolName: "waveform.path.ecg", accessibilityDescription: "Forkit AI Footprint") {
+            image.isTemplate = true
+            item.button?.image = image.withSymbolConfiguration(.init(pointSize: 15, weight: .semibold)) ?? image
+            item.button?.imagePosition = .imageOnly
+        } else {
+            item.button?.title = "F"
+            item.button?.font = .systemFont(ofSize: 13, weight: .bold)
+        }
+        item.button?.toolTip = "Forkit AI Footprint"
         let menu = NSMenu()
-        let status = NSMenuItem(title: "Starting…", action: nil, keyEquivalent: "")
+        let header = NSMenuItem(title: "Forkit AI Footprint", action: nil, keyEquivalent: "")
+        header.isEnabled = false; menu.addItem(header)
+        let status = NSMenuItem(title: "○ Stopped", action: nil, keyEquivalent: "")
         status.isEnabled = false; menu.addItem(status); menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Show AI Footprint", action: #selector(showFootprint), keyEquivalent: "o"))
+        menu.addItem(NSMenuItem(title: "Open AI Footprint", action: #selector(showFootprint), keyEquivalent: "o"))
         let toggle = NSMenuItem(title: "Start Monitoring", action: #selector(toggleMonitoring), keyEquivalent: "m")
         menu.addItem(toggle); menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Quit Forkit AI Footprints…", action: #selector(requestQuit), keyEquivalent: "q"))
+        menu.addItem(NSMenuItem(title: "Quit Forkit", action: #selector(requestQuit), keyEquivalent: "q"))
         for menuItem in menu.items { menuItem.target = self }
-        item.menu = menu; statusItem = item; statusLine = status; monitorAction = toggle
+        item.menu = menu; statusItem = item; headerLine = header; statusLine = status; monitorAction = toggle
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self, weak item] in
+            guard let self, let item else { return }
+            let imageReady = item.button?.image != nil || !(item.button?.title.isEmpty ?? true)
+            NSLog("Forkit status item retained=%@ visible=%@ image=%@ menu=%@", self.statusItem === item ? "yes" : "no", item.isVisible ? "yes" : "no", imageReady ? "yes" : "no", item.menu?.items.map(\.title).joined(separator: " | ") ?? "missing")
+        }
     }
 
     private func startNodeService() throws {
@@ -151,26 +169,30 @@ private final class FootprintsAppDelegate: NSObject, NSApplicationDelegate, NSWi
 
     private func beginStatusPolling() {
         refreshStatus()
-        statusTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in Task { @MainActor in self?.refreshStatus() } }
+        let timer = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in Task { @MainActor in self?.refreshStatus() } }
+        statusTimer = timer
+        RunLoop.main.add(timer, forMode: .common)
     }
 
     private func post(_ path: String, completion: @escaping ([String: Any]?) -> Void) {
         guard let base = serverURL, let url = URL(string: path, relativeTo: base) else { completion(nil); return }
         var request = URLRequest(url: url); request.httpMethod = "POST"; request.setValue(nativeToken, forHTTPHeaderField: "x-forkit-footprints-native")
         URLSession.shared.dataTask(with: request) { data, _, _ in
-            let value = data.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
+            let value: [String: Any]?
+            if let data, let decoded = try? JSONSerialization.jsonObject(with: data) as? [String: Any] { value = decoded }
+            else { value = nil }
             DispatchQueue.main.async { completion(value) }
         }.resume()
     }
 
     private func refreshStatus() {
         post("/api/native/status") { [weak self] value in
-            guard let self, let value else { self?.statusLine?.title = "Service unavailable"; return }
+            guard let self, let value else { self?.statusLine?.title = "○ Service unavailable"; return }
             self.latestStatus = value
             let monitoring = value["lifecycle"] as? String == "monitoring"
             let products = value["products"] as? [[String: Any]] ?? []
             let working = products.filter { $0["state"] as? String == "working-now" }.count
-            self.statusLine?.title = monitoring ? (working > 0 ? "Monitoring · \(working) working" : "Monitoring · idle") : "Monitoring stopped"
+            self.statusLine?.title = monitoring ? (working > 0 ? "● Monitoring · \(working) working" : "● Monitoring") : "○ Stopped"
             self.monitorAction?.title = monitoring ? "Stop Monitoring" : "Start Monitoring"
         }
     }
@@ -193,7 +215,7 @@ private final class FootprintsAppDelegate: NSObject, NSApplicationDelegate, NSWi
         let defaults = UserDefaults.standard
         if !defaults.bool(forKey: "ForkitFootprintsCloseNoticeHidden") {
             let alert = NSAlert(); alert.messageText = "Forkit is still available in the menu bar"
-            alert.informativeText = "Closing this window does not stop monitoring. Reopen the same session from the Forkit icon in the menu bar."
+            alert.informativeText = "Closing this window does not stop monitoring. Reopen the same session from the Forkit icon in the menu bar. If the menu bar is hidden in full screen, move the pointer to the top edge first."
             alert.addButton(withTitle: "Got it"); alert.showsSuppressionButton = true; alert.suppressionButton?.title = "Don’t show again"
             alert.runModal()
             if alert.suppressionButton?.state == .on { defaults.set(true, forKey: "ForkitFootprintsCloseNoticeHidden") }
@@ -262,22 +284,27 @@ private final class FootprintsAppDelegate: NSObject, NSApplicationDelegate, NSWi
 
 @MainActor private var retainedAppDelegate: FootprintsAppDelegate?
 
+private func runAppAttestAndExit(_ arguments: [String]) async {
+    do { try await runAppAttestCommand(arguments); exit(0) }
+    catch LauncherError.appAttestUnavailable { emit(["ok": false, "code": "APP_ATTEST_UNAVAILABLE", "network_request_made": false]); exit(2) }
+    catch LauncherError.invalidHash { emit(["ok": false, "code": "INVALID_APP_ATTEST_INPUT", "network_request_made": false]); exit(2) }
+    catch LauncherError.keyMissing { emit(["ok": false, "code": "APP_ATTEST_KEY_MISSING", "network_request_made": false]); exit(2) }
+    catch { emit(["ok": false, "code": "APP_ATTEST_OPERATION_FAILED", "network_request_made": false]); exit(1) }
+}
+
 @main
 private struct ForkitAiFootprintsLauncher {
-    static func main() async {
+    @MainActor static func main() {
         let arguments = Array(CommandLine.arguments.dropFirst())
-        do {
-            if arguments.first == "--app-attest" { try await runAppAttestCommand(Array(arguments.dropFirst())); return }
-            await MainActor.run {
-                let application = NSApplication.shared
-                let delegate = FootprintsAppDelegate(arguments: arguments)
-                application.delegate = delegate
-                retainedAppDelegate = delegate
-                application.run()
-            }
-        } catch LauncherError.appAttestUnavailable { emit(["ok": false, "code": "APP_ATTEST_UNAVAILABLE", "network_request_made": false]); exit(2) }
-        catch LauncherError.invalidHash { emit(["ok": false, "code": "INVALID_APP_ATTEST_INPUT", "network_request_made": false]); exit(2) }
-        catch LauncherError.keyMissing { emit(["ok": false, "code": "APP_ATTEST_KEY_MISSING", "network_request_made": false]); exit(2) }
-        catch { emit(["ok": false, "code": "APP_ATTEST_OPERATION_FAILED", "network_request_made": false]); exit(1) }
+        if arguments.first == "--app-attest" {
+            Task { await runAppAttestAndExit(Array(arguments.dropFirst())) }
+            RunLoop.main.run()
+            return
+        }
+        let application = NSApplication.shared
+        let delegate = FootprintsAppDelegate(arguments: arguments)
+        application.delegate = delegate
+        retainedAppDelegate = delegate
+        application.run()
     }
 }

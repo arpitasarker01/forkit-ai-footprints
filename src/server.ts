@@ -9,6 +9,7 @@ import { ActivityMonitor, type MonitorSnapshot } from './monitor';
 import { createDefaultProviders } from './providers';
 import { classifyLoadedRuntimeProcesses, loadedRuntimeSignatures } from './runtime-activity';
 import { buildAnonymousAiFootprintPreview } from './sharing';
+import { buildLocalInsights } from './insights';
 import type { CensusReport } from './types';
 
 export interface AiFootprintsServerOptions {
@@ -103,6 +104,16 @@ export async function startAiFootprintsServer(options: AiFootprintsServerOptions
     streams.clear();
   }
 
+  function browserSnapshot(snapshot: MonitorSnapshot = monitor.snapshot()): MonitorSnapshot & { insights: string[] } {
+    return {
+      ...snapshot,
+      insights: buildLocalInsights(snapshot, {
+        model_record_count: currentReport.summary.model_count,
+        confirmed_running_model_count: currentReport.summary.confirmed_running_model_count,
+      }).map((insight) => insight.text),
+    };
+  }
+
   const server = http.createServer(async (request, response) => {
     const host = request.headers.host ?? '';
     if (!origin || host !== new URL(origin).host) {
@@ -136,7 +147,7 @@ export async function startAiFootprintsServer(options: AiFootprintsServerOptions
         ...securityHeaders('application/x-ndjson; charset=utf-8'),
         'content-security-policy': "default-src 'none'",
       });
-      const send = () => response.write(`${JSON.stringify(monitor.snapshot())}\n`);
+      const send = () => response.write(`${JSON.stringify(browserSnapshot())}\n`);
       send();
       const timer = setInterval(send, 750);
       timer.unref();
@@ -170,7 +181,10 @@ export async function startAiFootprintsServer(options: AiFootprintsServerOptions
     const startPath = pathname === '/api/monitor/start' || pathname === '/api/native/start';
     if (request.method === 'POST' && startPath) {
       if (!(browserControl || nativeControl)) { sendJson(response, 403, { error: 'LOCAL_SESSION_REQUIRED' }); return; }
-      try { sendJson(response, 200, await monitor.start()); }
+      try {
+        const snapshot = await monitor.start();
+        sendJson(response, 200, nativeControl ? snapshot : browserSnapshot(snapshot));
+      }
       catch { sendJson(response, 500, { error: 'MONITOR_START_FAILED' }); }
       return;
     }
@@ -178,13 +192,14 @@ export async function startAiFootprintsServer(options: AiFootprintsServerOptions
     const stopPath = pathname === '/api/monitor/stop' || pathname === '/api/native/stop';
     if (request.method === 'POST' && stopPath) {
       if (!(browserControl || nativeControl)) { sendJson(response, 403, { error: 'LOCAL_SESSION_REQUIRED' }); return; }
-      sendJson(response, 200, monitor.stop());
+      const snapshot = monitor.stop();
+      sendJson(response, 200, nativeControl ? snapshot : browserSnapshot(snapshot));
       return;
     }
 
     if (request.method === 'POST' && pathname === '/api/monitor/clear') {
       if (!browserControl) { sendJson(response, 403, { error: 'LOCAL_SESSION_REQUIRED' }); return; }
-      sendJson(response, 200, monitor.clearHistory());
+      sendJson(response, 200, browserSnapshot(monitor.clearHistory()));
       return;
     }
 

@@ -121,7 +121,9 @@ and run only after a user click.
 `serve` binds only to `127.0.0.1`, keeps the report and monitor in memory, and
 opens the AI activity → Guess → Reveal → Share experience. `Scan again` calls a random-token-protected local
 endpoint. The protected local page can name detected runtimes, models, AI apps,
-and tools; saved/shareable and anonymous/global artifacts remain aggregate-only.
+and tools. The explicitly created local share image may include the supported
+active tool product name; saved HTML and anonymous/global payloads remain
+aggregate-only.
 The guess remains in the browser page and is never sent to the local server or
 Forkit.dev. Start/Stop controls monitoring explicitly; browser/window closure
 does not stop it, while native Quit stops the monitor and loopback service.
@@ -146,10 +148,12 @@ or background. The result does not measure GPU, energy, tokens, cost, disk I/O,
 or per-process network usage.
 
 After revealing the result, `Create share card` renders a 1200×630 PNG entirely
-in the browser. Its result-based line and cards use only model-record count,
-recognized model storage, observed duration, and activity ratio. It can be downloaded or passed to the operating
-system share sheet after an explicit click; no model names or scan records are
-placed in the image or uploaded by AI Footprints.
+in the browser. Its result-based line and cards use measured local insights,
+model-record count, recognized model storage, activity ratio, and the supported
+active tool product name. It can be downloaded or passed to the operating
+system share sheet after an explicit click; no model names, chat/workspace
+context, paths, device identity, or scan records are placed in the image or
+uploaded by AI Footprints.
 
 ```bash
 forkit-ai-footprints serve

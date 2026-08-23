@@ -17,8 +17,9 @@ Forkit AI Footprints (`forkit-ai-footprints`) is metadata-only by design.
 - loopback runtime API responses from explicitly supported local endpoints.
 - known AI-tool installation/configuration path existence;
 - local runtime, model, AI-app, and AI-tool display names in the interactive
-  loopback UI only; these names are excluded from saved/shareable artifacts and
-  anonymous/global payloads;
+  loopback UI; an explicitly created local share image may include only the
+  supported active tool product name, while model names and all item names are
+  excluded from saved HTML and anonymous/global payloads;
 - optional chat/workspace labels supplied explicitly by a cooperating app for
   local display only; absent cooperation, the fields remain empty;
 - macOS major version, CPU architecture, and Node major in aggregate field-test
@@ -141,8 +142,9 @@ click and use aggregate text.
 
 The interactive `serve` page can also render a 1200×630 discovery card locally
 with browser Canvas. It includes model-record count, recognized storage,
-observed duration, and activity ratio. Its result-based line is derived only
-from these aggregates. The image has no item names, paths, process counts,
-account identifiers, workspace/chat titles, or external assets.
+activity ratio, and the supported active tool product name. Its result line is
+derived only from measured local insights. The image has no model names, paths,
+process counts, device/account identifiers, workspace/chat titles, or external
+assets.
 Downloading it or opening the operating system share sheet requires a separate
 user click; AI Footprints does not receive the image.

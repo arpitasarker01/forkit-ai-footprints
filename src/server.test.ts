@@ -42,7 +42,9 @@ test('local server owns one monitor independently of browser streams', async () 
     const stream = await fetch(`${service.url}api/monitor/stream`, { method: 'POST', headers, signal: controller.signal });
     const reader = stream.body!.getReader();
     const first = await reader.read();
-    assert.equal(JSON.parse(new TextDecoder().decode(first.value).trim()).lifecycle, 'monitoring');
+    const streamed = JSON.parse(new TextDecoder().decode(first.value).trim()) as { lifecycle: string; insights: string[] };
+    assert.equal(streamed.lifecycle, 'monitoring');
+    assert.deepEqual(streamed.insights, []);
     controller.abort();
     await new Promise((resolve) => setTimeout(resolve, 20));
     assert.equal(service.monitor.snapshot().lifecycle, 'monitoring');

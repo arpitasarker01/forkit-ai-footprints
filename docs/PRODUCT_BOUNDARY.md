@@ -17,8 +17,9 @@ with `forkit-census` retained temporarily as a developer compatibility alias.
 - generate an explicitly saved, self-contained aggregate-only local HTML share
   page with no automatic network requests;
 - run a token-protected UI bound only to `127.0.0.1`, keep the current report in
-  memory, and show local runtime, model, AI-app, and AI-tool names without
-  exposing them in saved/shareable or anonymous/global artifacts;
+  memory, and show local runtime, model, AI-app, and AI-tool names; an explicitly
+  created local share image may include the supported active tool product name,
+  while saved HTML and anonymous/global artifacts remain aggregate-only;
 - keep an owner-only local device journal containing the Mac display name, first
   scan time, last scan time, and scan count; never add the device name to a saved
   share page or anonymous/global payload;
@@ -28,6 +29,8 @@ with `forkit-census` retained temporarily as a developer compatibility alias.
 - keep that monitor owned by the local service so it survives window/browser
   closure until the user explicitly stops or quits;
 - compare a browser-local numeric guess with the discovered model-record count;
+- derive one to three deterministic local insights from valid measured time and
+  keep explicit Stop/restart sessions separate for longest-block calculations;
 - show clearly labelled supported-process CPU/memory context and separately
   measured Forkit CPU/RAM/history overhead without task attribution;
 - expose a resource-evidence manifest that marks unsupported exclusive task

@@ -18,12 +18,17 @@ pushed, deployed, signed, notarized, or production-promoted.
   hysteresis, and sleep-gap exclusion.
 - Clear states: **Working now**, **Open / idle**, **Not running**, and **Stopped**.
   Process presence alone never becomes working activity.
+- One to three deterministic insights from valid measured time: activity share,
+  longest continuous active block, supported-tool workflow, mostly-idle state,
+  and available-but-unused local models. Stop/restart boundaries cannot inflate
+  the longest block.
 - The monitor is owned by the local service, not a browser tab. Closing the
   window does not end a session; stopping preserves the summary; clearing is a
   separate explicit action.
-- A native AppKit/WebKit window and menu-bar controller with Show, Start/Stop,
-  and Quit actions. Quit stops the service and has a process-exit fallback so
-  the bundled Node service cannot remain orphaned.
+- A native AppKit/WebKit window and retained menu-bar controller with Open,
+  Start/Stop, and Quit actions. Closing hides the window without quitting; Quit
+  stops the service and has a process-exit fallback so the bundled Node service
+  cannot remain orphaned.
 - Local-only optional chat/workspace display when a cooperating app explicitly
   supplies those values. No inference from window titles, folders, prompts, or
   commands is attempted.
@@ -64,6 +69,11 @@ pushed, deployed, signed, notarized, or production-promoted.
 - During the measured session, Forkit overhead was **1.3% median CPU**, **3.3%
   p95 CPU**, about **53.3 MB current RAM**, **117.1 MB maximum RAM**, and **627
   bytes** of bounded serialized history at the final payload sample.
+- The final bundled-app lifecycle run observed **61.4 seconds** of valid time and
+  **60.1 seconds** AI-active (ratio **0.979**), producing: “Codex was working
+  during 98% of your observation.”, “Your longest continuous AI-active period
+  was 59s.”, and “5 local models are available, but none ran during this
+  observation.”
 
 ## Validation completed locally
 
@@ -73,8 +83,10 @@ pushed, deployed, signed, notarized, or production-promoted.
 - Isolated packed-package installation/import/CLI smoke.
 - Native Swift compilation, bundled CLI/version smoke, bundled official Node
   checksum, App Attest capability probe, and unsigned `.app`/`.pkg` build.
-- Real native 1120×786 window creation, monitor start, service ownership, and
-  stopped-state clean quit on this Mac.
+- Real native 1120×786 window creation, visible-on-reveal menu-bar item, menu
+  Start, window close with continued monitoring, reopen with the same timeline,
+  Stop, restart, and monitoring-state Quit with zero remaining Forkit process or
+  loopback listener on this Mac.
 - Real-browser QA for the local monitor, Guess → Reveal, correct GB/GiB labels,
   share-card dialog, and the one-page Forkit.dev installation/global-state page.
 - Forkit.dev production website build and registry AI Footprints route tests.

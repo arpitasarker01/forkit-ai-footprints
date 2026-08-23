@@ -28,6 +28,7 @@ export interface ActivityTimelineSegment {
   ended_at: string;
   state: 'working-now' | 'open-idle' | 'not-running';
   product_signatures: string[];
+  observation_id?: number;
 }
 
 export interface MonitorOverhead {
@@ -139,6 +140,7 @@ export class ActivityMonitor {
   private startedAt: number | null = null;
   private stoppedAt: number | null = null;
   private previousAt: number | null = null;
+  private observationId = 0;
   private previousCpuTimes = new Map<number, number>();
   private observedMs = 0;
   private activeMs = 0;
@@ -165,6 +167,7 @@ export class ActivityMonitor {
     if (this.lifecycle === 'monitoring') return this.snapshot();
     const now = this.now();
     this.lifecycle = 'monitoring';
+    this.observationId += 1;
     this.startedAt = now;
     this.stoppedAt = null;
     this.previousAt = null;
@@ -278,8 +281,8 @@ export class ActivityMonitor {
     const signatures = (working.length > 0 ? working : running).map((product) => product.signature).sort();
     const at = new Date(now).toISOString();
     const latest = this.timeline.at(-1);
-    if (latest && latest.state === state && latest.product_signatures.join('|') === signatures.join('|')) latest.ended_at = at;
-    else this.timeline.push({ started_at: at, ended_at: at, state, product_signatures: signatures });
+    if (latest && latest.observation_id === this.observationId && latest.state === state && latest.product_signatures.join('|') === signatures.join('|')) latest.ended_at = at;
+    else this.timeline.push({ started_at: at, ended_at: at, state, product_signatures: signatures, observation_id: this.observationId });
     if (this.timeline.length > this.historyLimit) this.timeline.splice(0, this.timeline.length - this.historyLimit);
   }
 

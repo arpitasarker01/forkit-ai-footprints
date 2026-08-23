@@ -6,6 +6,8 @@ export { ActivityMonitor } from './monitor';
 export type * from './monitor';
 export { buildCensusShareSnapshot, renderCensusSharePage } from './share-page';
 export type { AiFootprintPageOptions } from './share-page';
+export { buildLocalInsights } from './insights';
+export type { LocalInsight, LocalInsightFootprint, LocalInsightKind } from './insights';
 export { startAiFootprintsServer } from './server';
 export type { AiFootprintsServer, AiFootprintsServerOptions } from './server';
 export { detectAiTools } from './tools';
