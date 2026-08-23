@@ -3,6 +3,9 @@ import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { runCensus } from './census';
 import { buildCensusShareSnapshot, renderCensusSharePage } from './share-page';
+import { recordLocalScan, type LocalDeviceJournal } from './local-device';
+import { macosResourceEvidenceManifest } from './resource-evidence';
+import { createDefaultProviders } from './providers';
 import type { CensusReport } from './types';
 
 export interface AiFootprintsServerOptions {
@@ -10,6 +13,7 @@ export interface AiFootprintsServerOptions {
   port?: number;
   scan?: () => Promise<CensusReport>;
   observeSample?: () => Promise<CensusReport>;
+  recordScan?: (generatedAt: string) => Promise<LocalDeviceJournal>;
 }
 
 export interface AiFootprintsServer {
@@ -32,6 +36,11 @@ interface ObservationState {
   samples: ObservationSample[];
   timer: NodeJS.Timeout | null;
   sampling: boolean;
+}
+
+interface LiveStreamState {
+  timer: NodeJS.Timeout;
+  response: http.ServerResponse;
 }
 
 function average(values: Array<number | null>): number | null {
@@ -61,15 +70,22 @@ export async function startAiFootprintsServer(options: AiFootprintsServerOptions
   const hostname = options.hostname ?? '127.0.0.1';
   const port = options.port ?? 47811;
   const scan = options.scan ?? (() => runCensus());
+  const liveProviders = createDefaultProviders();
   const observeSample = options.observeSample ?? (() => runCensus({
     includeFilesystem: false,
     includeTools: false,
     includeMcp: false,
+    providers: liveProviders,
   }));
+  const recordScan = options.recordScan ?? ((generatedAt: string) => recordLocalScan({ now: () => new Date(generatedAt) }));
   const sessionToken = crypto.randomBytes(24).toString('hex');
   let currentReport = await scan();
+  let localDevice = await recordScan(currentReport.generated_at);
+  currentReport.privacy.local_state_written = true;
+  currentReport.privacy.local_state_scope = 'device-journal-only';
   let scanning = false;
   let observation: ObservationState | null = null;
+  const liveStreams = new Set<LiveStreamState>();
   let origin = '';
 
   async function takeObservationSample(state: ObservationState): Promise<void> {
@@ -104,14 +120,65 @@ export async function startAiFootprintsServer(options: AiFootprintsServerOptions
     const pathname = new URL(request.url ?? '/', origin).pathname;
     if (request.method === 'GET' && (pathname === '/' || pathname === '/index.html')) {
       sendText(response, 200, 'text/html; charset=utf-8', renderCensusSharePage(currentReport, {
+        localDeviceLabel: localDevice.device_label,
         rescan: {
           endpoint: '/api/scan',
+          live_endpoint: '/api/live',
           stop_endpoint: '/api/stop',
           observe_start_endpoint: '/api/observe/start',
           observe_stop_endpoint: '/api/observe/stop',
           session_token: sessionToken,
         },
       }));
+      return;
+    }
+
+    if (request.method === 'POST' && pathname === '/api/live') {
+      if (!authorized(request)) {
+        sendText(response, 403, 'application/json; charset=utf-8', JSON.stringify({ error: 'LOCAL_SESSION_REQUIRED' }));
+        return;
+      }
+      response.writeHead(200, {
+        'cache-control': 'no-store',
+        'content-type': 'application/x-ndjson; charset=utf-8',
+        'referrer-policy': 'no-referrer',
+        'x-content-type-options': 'nosniff',
+      });
+      let sampling = false;
+      let closed = false;
+      const sample = async () => {
+        if (sampling || closed) return;
+        sampling = true;
+        const startedAt = Date.now();
+        try {
+          const report = await observeSample();
+          response.write(`${JSON.stringify({
+            observed_at: report.generated_at,
+            online_runtime_count: report.summary.available_runtime_count,
+            confirmed_running_model_count: report.summary.confirmed_running_model_count,
+            active_agent_product_count: report.summary.agent_product_count,
+            active_agent_process_count: report.summary.agent_process_count,
+            agent_cpu_percent: report.summary.agent_cpu_percent,
+            agent_memory_percent: report.summary.agent_memory_percent,
+            scan_latency_ms: Date.now() - startedAt,
+            measurement: 'bounded-near-real-time-loopback',
+            external_requests_made: 0,
+          })}\n`);
+        } catch {
+          response.write(`${JSON.stringify({ error: 'LIVE_SAMPLE_UNAVAILABLE' })}\n`);
+        } finally {
+          sampling = false;
+        }
+      };
+      await sample();
+      const timer = setInterval(() => { void sample(); }, 500);
+      const stream = { timer, response };
+      liveStreams.add(stream);
+      request.on('close', () => {
+        closed = true;
+        clearInterval(timer);
+        liveStreams.delete(stream);
+      });
       return;
     }
 
@@ -127,6 +194,9 @@ export async function startAiFootprintsServer(options: AiFootprintsServerOptions
       scanning = true;
       try {
         currentReport = await scan();
+        localDevice = await recordScan(currentReport.generated_at);
+        currentReport.privacy.local_state_written = true;
+        currentReport.privacy.local_state_scope = 'device-journal-only';
         sendText(response, 200, 'application/json; charset=utf-8', JSON.stringify(buildCensusShareSnapshot(currentReport)));
       } catch {
         sendText(response, 500, 'application/json; charset=utf-8', JSON.stringify({ error: 'LOCAL_SCAN_FAILED' }));
@@ -184,6 +254,7 @@ export async function startAiFootprintsServer(options: AiFootprintsServerOptions
         max_agent_processes: Math.max(0, ...state.samples.map((sample) => sample.agentProcesses)),
         max_loaded_models: Math.max(0, ...state.samples.map((sample) => sample.loadedModels)),
         external_requests_made: 0,
+        evidence_manifest: macosResourceEvidenceManifest(),
         limitation: 'Measures detected agent processes during this window; shared-process background activity can be included.',
       }));
       return;
@@ -195,6 +266,11 @@ export async function startAiFootprintsServer(options: AiFootprintsServerOptions
         return;
       }
       if (observation?.timer) clearInterval(observation.timer);
+      for (const stream of liveStreams) {
+        clearInterval(stream.timer);
+        stream.response.end();
+      }
+      liveStreams.clear();
       observation = null;
       sendText(response, 200, 'application/json; charset=utf-8', JSON.stringify({ stopped: true }));
       setImmediate(() => server.close());
@@ -221,6 +297,11 @@ export async function startAiFootprintsServer(options: AiFootprintsServerOptions
     close: () => new Promise<void>((resolve, reject) => {
       if (!server.listening) { resolve(); return; }
       if (observation?.timer) clearInterval(observation.timer);
+      for (const stream of liveStreams) {
+        clearInterval(stream.timer);
+        stream.response.end();
+      }
+      liveStreams.clear();
       observation = null;
       server.close((error) => error ? reject(error) : resolve());
     }),

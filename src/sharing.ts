@@ -29,6 +29,7 @@ export function buildAnonymousCensusContribution(
   consent: boolean,
 ): AnonymousCensusContribution {
   if (!consent) throw new Error('ANONYMOUS_CENSUS_CONSENT_REQUIRED');
+  if (!report.summary.storage_complete) throw new Error('ANONYMOUS_CENSUS_STORAGE_INCOMPLETE');
   const detectorTypes = new Set<string>();
   if (report.runtimes.some((runtime) => runtime.evidence_status === 'online')) detectorTypes.add('runtime-api');
   if (report.models.some((model) => model.source === 'filesystem')) detectorTypes.add('filesystem-metadata');

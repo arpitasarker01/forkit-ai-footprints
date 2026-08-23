@@ -13,6 +13,7 @@ function runCli(args: string[]) {
     env: {
       ...process.env,
       FORKIT_CENSUS_DISABLE_DEFAULT_RUNTIMES: '1',
+      FORKIT_AI_FOOTPRINTS_DISABLE_JOURNAL: '1',
     },
   });
   return result;
@@ -42,6 +43,7 @@ test('CLI emits a valid empty metadata-only JSON census', () => {
     backend_contacted: false,
     account_read: false,
     local_state_written: false,
+    local_state_scope: 'none',
   });
 });
 

@@ -62,6 +62,22 @@ test('Ollama inventory remains useful when api/ps is unavailable', async () => {
   assert.equal(result.warnings[0]?.code, 'ollama_running_state_unavailable');
 });
 
+test('Ollama reuses immutable digest details during near-real-time scans', async () => {
+  let showCalls = 0;
+  const digest = 'b'.repeat(64);
+  const fetchImpl: typeof fetch = async (input) => {
+    const url = String(input);
+    if (url.endsWith('/api/tags')) return new Response(JSON.stringify({ models: [{ name: 'model-a', digest: `sha256:${digest}` }] }));
+    if (url.endsWith('/api/ps')) return new Response(JSON.stringify({ models: [] }));
+    showCalls += 1;
+    return new Response(JSON.stringify({ details: { family: 'llama' } }));
+  };
+  const provider = new OllamaProvider('http://localhost:11434', fetchImpl);
+  await provider.scan('2026-08-23T00:00:00.000Z');
+  await provider.scan('2026-08-23T00:00:01.000Z');
+  assert.equal(showCalls, 1);
+});
+
 test('LM Studio census uses provider identity without retaining model paths', async () => {
   const fetchImpl: typeof fetch = async () => new Response(JSON.stringify({
     data: [{

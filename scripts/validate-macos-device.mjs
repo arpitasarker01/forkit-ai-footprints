@@ -49,6 +49,7 @@ for (const report of [first, second]) {
     backend_contacted: false,
     account_read: false,
     local_state_written: false,
+    local_state_scope: 'none',
   });
   assertNoProhibitedKeys(report);
   const serialized = JSON.stringify(report);

@@ -10,6 +10,7 @@ import { evaluateMacosFieldTruthFile } from './evaluate';
 import { aggregateMacosFieldEvaluationDirectory } from './aggregate';
 import { renderCensusSharePage } from './share-page';
 import { startAiFootprintsServer } from './server';
+import { recordLocalScan } from './local-device';
 
 interface ParsedOptions {
   command: 'help' | 'version' | 'scan' | 'doctor' | 'evaluate' | 'aggregate' | 'share-page' | 'serve';
@@ -263,6 +264,11 @@ export async function main(args = process.argv.slice(2)): Promise<number> {
       guess: options.guess,
       ...(options.modelDirs.length > 0 ? { filesystemRoots: options.modelDirs } : {}),
     });
+    if (process.env.FORKIT_AI_FOOTPRINTS_DISABLE_JOURNAL !== '1') {
+      await recordLocalScan({ now: () => new Date(report.generated_at) });
+      report.privacy.local_state_written = true;
+      report.privacy.local_state_scope = 'device-journal-only';
+    }
     await fs.writeFile(options.output, renderCensusSharePage(report), { encoding: 'utf8', flag: 'w' });
     process.stdout.write('Local aggregate share page written. No data was uploaded.\n');
     return 0;
@@ -277,6 +283,11 @@ export async function main(args = process.argv.slice(2)): Promise<number> {
     guess: options.guess,
     ...(options.modelDirs.length > 0 ? { filesystemRoots: options.modelDirs } : {}),
   });
+  if (process.env.FORKIT_AI_FOOTPRINTS_DISABLE_JOURNAL !== '1') {
+    await recordLocalScan({ now: () => new Date(report.generated_at) });
+    report.privacy.local_state_written = true;
+    report.privacy.local_state_scope = 'device-journal-only';
+  }
   let rendered: string;
   if (options.anonymousPayload && options.shareConsent) {
     const contribution = buildAnonymousCensusContribution(report, true);

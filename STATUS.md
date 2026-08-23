@@ -13,6 +13,10 @@ Status: macOS accuracy hardening in progress; release classification `future/inv
 
 - independent package and `forkit-ai-footprints` executable;
 - token-protected `127.0.0.1` local UI with Guess → Actual and Scan again;
+- owner-only local Mac device journal with first/last scan time and scan count,
+  excluded from reports, saved share pages, and contribution payloads;
+- protected 500 ms bounded near-real-time aggregate runtime/agent stream for the
+  local UI, with measured scan latency and no zero-delay claim;
 - focused Discover, Observe, and Evolution views;
 - optional browser-local history capped at 12 aggregate snapshots, with
   deterministic AI Curious → AI Orchestrator chapters and a clear-history action;
@@ -33,7 +37,8 @@ Status: macOS accuracy hardening in progress; release classification `future/inv
   agent processes, with no per-process details retained in the report;
 - human and JSON reports;
 - passive AI-tool and MCP configuration detection;
-- exact recognized model-file bytes, guess comparison, verbose and native clipboard modes;
+- deduplicated exact recognized logical model-file bytes, scan-completeness
+  evidence, guess comparison, verbose and native clipboard modes;
 - user-started task observation with in-memory average/peak detected-agent CPU
   and memory samples, duration, sample count, and explicit shared-process limits;
 - a separately consented aggregate-only contribution preview with no uploader;
@@ -73,14 +78,17 @@ Status: macOS accuracy hardening in progress; release classification `future/inv
 - production promotion.
 - per-prompt attribution, GPU use, energy, tokens, cost, disk I/O, or network
   attribution; the current task window does not claim these measurements.
+- zero-delay runtime detection; the local stream is bounded near-real-time and
+  includes provider response and scheduling latency.
 
 ## Validation state
 
 Current local validation for the macOS hardening branch on macOS/arm64:
 
 - `npm ci`: pass; zero reported vulnerabilities;
-- `npm test`: 52/52 pass locally; hosted Node 20, 22, and 24 validation passes
-  for implementation commit `b482ccd`;
+- `npm test`: 59/59 pass locally after the measurement-foundation changes;
+  hosted validation still refers to the previous pushed implementation because
+  the new work is intentionally local and unpushed;
 - curated agent detector benchmark: 58/58 cases pass (26 positive, 32 negative,
   zero false positives, zero false negatives, zero wrong classifications);
 - `npm run smoke:package`: pass;
@@ -90,14 +98,21 @@ Current local validation for the macOS hardening branch on macOS/arm64:
 - repeated real-device unified Census with stable item sets: pass;
 - real-device loopback guard: 12 loopback requests across two scans, zero
   external requests;
-- real-device resource snapshot: 4 model records, 0 loaded models, exactly
-  2,595,045,761 recognized model-file bytes, 1 active agent product across 14 processes; CPU and
+- real-device resource snapshot: 5 model records, 0 loaded models, exactly
+  2,600,071,742 recognized logical bytes across 12 unique files with complete
+  supported-root coverage, 1 active agent product across 13 processes; CPU and
   memory percentages are explicitly point-in-time;
+- real-device protected live stream: three samples completed in 122–147 ms with
+  one responding runtime, zero external requests, and a 500 ms maximum schedule
+  interval; this is bounded near-real-time, not zero delay;
 - real-browser user-timed observation: 7 local samples over 5.8 seconds with
   average/peak detected-agent CPU and peak memory rendered into the share card;
   this validates the flow, not exclusive attribution to one prompt;
 - native app bundle launch and bundled-runtime CLI smoke: pass; package remains
   unsigned and non-distributable;
+- Developer ID preflight: correctly blocked because full Xcode, Developer ID
+  Application/Installer identities, a notarytool profile, and App Attest
+  environment selection are absent on this Mac;
 - real-browser Guess → Discovered, local rescan, caption copy, and 1200×630 PNG
   download: pass on the same Apple Silicon Mac;
 - hosted package smoke and controlled macOS 14/15/26 Apple Silicon plus macOS
@@ -145,6 +160,8 @@ Historical hosted GitHub Actions validation for handoff-completion commit `b5ae9
   making any field-accuracy claim;
 - validate Intel Mac separately before adding it to the support claim;
 - keep npm publication and production promotion as separate approvals.
+- install full Xcode, Developer ID Application and Installer certificates, and
+  a notarytool keychain profile before the signed-distribution gate can run.
 
 The npm name `forkit-ai-footprints` returned `E404` on 2026-08-22 and therefore appears
 unpublished. Availability is not ownership and must be rechecked immediately

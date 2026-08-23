@@ -140,7 +140,12 @@ export async function runCensus(options: CensusOptions = {}): Promise<CensusRepo
     includeTools ? detectAiTools({ homeDir, env, platform, agents }) : Promise.resolve([]),
     includeMcp ? detectMcpConfigs({ homeDir, cwd: path.resolve(cwd), env, platform }) : Promise.resolve([]),
   ]);
-  const storageBytes = models.reduce((total, model) => total + Number(model.size_bytes ?? 0), 0);
+  const storage = filesystemResult?.storage ?? {
+    logical_bytes: 0,
+    recognized_file_count: 0,
+    complete: true,
+    measurement: 'recognized-logical-file-bytes' as const,
+  };
   const guessed = options.guess === undefined || options.guess === null
     ? null
     : Math.max(0, Math.floor(options.guess));
@@ -167,6 +172,7 @@ export async function runCensus(options: CensusOptions = {}): Promise<CensusRepo
       backend_contacted: false,
       account_read: false,
       local_state_written: false,
+      local_state_scope: 'none',
     },
     summary: {
       runtime_count: runtimes.length,
@@ -183,7 +189,10 @@ export async function runCensus(options: CensusOptions = {}): Promise<CensusRepo
       tool_count: tools.length,
       mcp_config_count: mcpConfigs.length,
       confirmed_running_model_count: models.filter((model) => model.evidence_status === 'confirmed-running').length,
-      storage_bytes: storageBytes,
+      storage_bytes: storage.logical_bytes,
+      storage_file_count: storage.recognized_file_count,
+      storage_complete: storage.complete,
+      storage_measurement: storage.measurement,
       warning_count: warnings.length,
     },
     runtimes,

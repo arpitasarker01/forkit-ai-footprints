@@ -66,7 +66,7 @@ try {
     "assert.equal(typeof api.renderCensusSharePage, 'function');",
     "api.runCensus({ includeRuntimes: false, includeFilesystem: false, includeAgents: false, includeTools: false, includeMcp: false })",
     "  .then((report) => {",
-    "    assert.equal(report.schema_version, '1.2');",
+    "    assert.equal(report.schema_version, '1.3');",
     "    assert.equal(report.privacy.external_requests_made, 0);",
     "    assert.equal(report.privacy.local_state_written, false);",
     "  })",
@@ -77,7 +77,7 @@ try {
     'forkit-ai-footprints', 'scan', '--json', '--no-runtimes', '--no-model-files', '--no-agents', '--no-tools', '--no-mcp',
   ], { cwd: install, env: environment });
   const report = JSON.parse(output);
-  if (report.schema_version !== '1.2' || report.privacy?.external_requests_made !== 0 || report.privacy?.backend_contacted !== false) {
+  if (report.schema_version !== '1.3' || report.privacy?.external_requests_made !== 0 || report.privacy?.backend_contacted !== false || report.privacy?.local_state_scope !== 'device-journal-only') {
     throw new Error('Installed Census privacy contract failed.');
   }
   const truthPath = path.join(work, 'local-truth.json');
@@ -118,8 +118,12 @@ try {
   if (!sharePage.includes('Forkit AI Footprints') || /https?:\/\//i.test(sharePage)) {
     throw new Error('Installed Census aggregate share-page contract failed.');
   }
+  const journalPath = path.join(home, 'Library', 'Application Support', 'Forkit AI Footprints', 'device-journal.json');
+  if (!fs.existsSync(journalPath) || (fs.statSync(journalPath).mode & 0o777) !== 0o600) {
+    throw new Error('Installed AI Footprints did not keep its declared owner-only device journal.');
+  }
   if (fs.existsSync(path.join(home, '.forkit-connect')) || fs.existsSync(path.join(home, '.forkit-census'))) {
-    throw new Error('Installed Census wrote persistent local state.');
+    throw new Error('Installed AI Footprints wrote undeclared persistent local state.');
   }
   fs.rmSync(tarball, { force: true });
   process.stdout.write('Forkit AI Footprints package smoke passed.\n');

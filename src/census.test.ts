@@ -46,6 +46,9 @@ test('unified census includes runtimes, models, and product-level agents', async
   assert.equal(report.summary.agent_process_count, 2);
   assert.equal(report.summary.agent_cpu_percent, 1.3);
   assert.equal(report.summary.agent_memory_percent, 0.4);
+  assert.equal(report.summary.storage_bytes, 0);
+  assert.equal(report.summary.storage_complete, true);
+  assert.equal(report.summary.storage_measurement, 'recognized-logical-file-bytes');
   assert.equal(report.agents[0]?.instance_count, 2);
   assert.equal(report.privacy.remote_endpoints_allowed, false);
 });

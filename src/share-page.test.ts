@@ -26,6 +26,9 @@ test('share snapshot contains aggregate facts without item-level records', async
     mcp_config_count: 1,
     confirmed_running_model_count: 0,
     storage_bytes: 2_595_045_761,
+    storage_file_count: 4,
+    storage_complete: true,
+    storage_measurement: 'recognized-logical-file-bytes',
     warning_count: 2,
   };
   report.models = [{ name: sentinel }] as unknown as typeof report.models;
@@ -37,6 +40,7 @@ test('share snapshot contains aggregate facts without item-level records', async
   assert.equal(snapshot.architecture_label, 'Apple Silicon');
   assert.equal(snapshot.model_storage_display, '2.42 GB');
   assert.equal(snapshot.model_storage_bytes, 2_595_045_761);
+  assert.equal(snapshot.model_storage_complete, true);
   assert.equal(snapshot.active_agent_process_count, 13);
   assert.equal(snapshot.agent_cpu_percent, 3.2);
 
@@ -66,8 +70,23 @@ test('share snapshot contains aggregate facts without item-level records', async
   assert.doesNotMatch(html, /Global AI Pulse/i);
   assert.doesNotMatch(html, new RegExp(sentinel));
   assert.doesNotMatch(html, /https?:\/\//i);
+  assert.doesNotMatch(html, /Studio Test Mac/);
   assert.doesNotMatch(html, /<script[^>]+src=/i);
   assert.doesNotMatch(html, /<img\b/i);
+});
+
+test('interactive local page can show a device label without adding it to aggregate snapshots', async () => {
+  const report = await runCensus({
+    includeRuntimes: false,
+    includeFilesystem: false,
+    includeAgents: false,
+    includeTools: false,
+    includeMcp: false,
+  });
+  const snapshot = buildCensusShareSnapshot(report);
+  const html = renderCensusSharePage(report, { localDeviceLabel: 'Studio Test Mac' });
+  assert.match(html, /Studio Test Mac/);
+  assert.equal(JSON.stringify(snapshot).includes('Studio Test Mac'), false);
 });
 
 test('share page states the compact result limitations', async () => {
@@ -95,6 +114,7 @@ test('local rescan control requires a relative endpoint and random session token
   const html = renderCensusSharePage(report, {
     rescan: {
       endpoint: '/api/scan',
+      live_endpoint: '/api/live',
       stop_endpoint: '/api/stop',
       observe_start_endpoint: '/api/observe/start',
       observe_stop_endpoint: '/api/observe/stop',
@@ -110,6 +130,7 @@ test('local rescan control requires a relative endpoint and random session token
   assert.throws(() => renderCensusSharePage(report, {
     rescan: {
       endpoint: 'https://example.com/scan',
+      live_endpoint: '/api/live',
       stop_endpoint: '/api/stop',
       observe_start_endpoint: '/api/observe/start',
       observe_stop_endpoint: '/api/observe/stop',

@@ -29,3 +29,15 @@ test('anonymous contribution requires separate consent and contains only aggrega
   assert.equal(payload.model_storage_bytes, 0);
   assert.equal(JSON.stringify(payload).includes('guess'), false);
 });
+
+test('anonymous contribution refuses an incomplete storage ledger', async () => {
+  const report = await runCensus({
+    includeRuntimes: false,
+    includeFilesystem: false,
+    includeAgents: false,
+    includeTools: false,
+    includeMcp: false,
+  });
+  report.summary.storage_complete = false;
+  assert.throws(() => buildAnonymousCensusContribution(report, true), /STORAGE_INCOMPLETE/);
+});

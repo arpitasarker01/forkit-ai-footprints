@@ -44,6 +44,46 @@ test('filesystem census ignores small and unsupported files', async () => {
 
 test('macOS default roots include current Jan llama.cpp and MLX model stores', () => {
   const roots = getDefaultModelRoots();
+  assert.equal(roots.some((root) => root.endsWith(path.join('.ollama', 'models'))), true);
   assert.equal(roots.some((root) => root.endsWith(path.join('Jan', 'data', 'llamacpp', 'models'))), true);
   assert.equal(roots.some((root) => root.endsWith(path.join('Jan', 'data', 'mlx', 'models'))), true);
+});
+
+test('Ollama content-addressed files contribute exact storage without creating a fake model record', async () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'forkit-census-ollama-'));
+  const root = path.join(home, '.ollama', 'models');
+  const blobs = path.join(root, 'blobs');
+  const manifests = path.join(root, 'manifests', 'registry.ollama.ai', 'library', 'tiny');
+  fs.mkdirSync(blobs, { recursive: true });
+  fs.mkdirSync(manifests, { recursive: true });
+  fs.writeFileSync(path.join(blobs, `sha256-${'a'.repeat(64)}`), Buffer.alloc(40));
+  fs.writeFileSync(path.join(manifests, 'latest'), Buffer.alloc(7));
+  try {
+    const result = await scanFilesystemModels('2026-08-23T00:00:00.000Z', { roots: [root] });
+    assert.equal(result.models.length, 0);
+    assert.equal(result.storage?.logical_bytes, 47);
+    assert.equal(result.storage?.recognized_file_count, 2);
+    assert.equal(result.storage?.complete, true);
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test('storage ledger counts one physical file once across hard links and overlapping roots', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'forkit-census-storage-'));
+  const nested = path.join(root, 'models');
+  fs.mkdirSync(nested);
+  const original = path.join(nested, 'weights.safetensors');
+  fs.writeFileSync(original, Buffer.alloc(32));
+  fs.linkSync(original, path.join(nested, 'weights-copy.safetensors'));
+  try {
+    const result = await scanFilesystemModels('2026-08-23T00:00:00.000Z', {
+      roots: [root, nested],
+    });
+    assert.equal(result.storage?.logical_bytes, 32);
+    assert.equal(result.storage?.recognized_file_count, 1);
+    assert.equal(result.storage?.complete, true);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
 });

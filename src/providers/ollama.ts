@@ -20,6 +20,7 @@ function parseSha256(value: string | null): string | null {
 export class OllamaProvider implements RuntimeProvider {
   readonly name = 'ollama' as const;
   private readonly endpoint: SafeEndpoint;
+  private readonly detailsCache = new Map<string, unknown>();
 
   constructor(
     endpoint = 'http://localhost:11434',
@@ -64,17 +65,25 @@ export class OllamaProvider implements RuntimeProvider {
       const name = readString(entry?.name) ?? readString(entry?.model);
       if (!name) return null;
       const manifestDigest = parseSha256(readString(entry?.digest));
-      const detailsResult = await fetchJson(
-        `${this.endpoint.url}/api/show`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ model: name, verbose: false }),
-        },
-        this.fetchImpl,
-        4000,
-      );
-      const detailsBody = readRecord(detailsResult.body);
+      const cacheKey = manifestDigest ?? name.toLowerCase();
+      let detailsValue = this.detailsCache.get(cacheKey);
+      if (detailsValue === undefined) {
+        const detailsResult = await fetchJson(
+          `${this.endpoint.url}/api/show`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ model: name, verbose: false }),
+          },
+          this.fetchImpl,
+          4000,
+        );
+        if (detailsResult.ok) {
+          detailsValue = detailsResult.body;
+          this.detailsCache.set(cacheKey, detailsValue);
+        }
+      }
+      const detailsBody = readRecord(detailsValue);
       const layers = readArray(detailsBody?.layers);
       const modelLayer = layers
         .map((layer) => readRecord(layer))

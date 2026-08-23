@@ -91,11 +91,14 @@ export interface CensusSummary {
   mcp_config_count: number;
   confirmed_running_model_count: number;
   storage_bytes: number;
+  storage_file_count: number;
+  storage_complete: boolean;
+  storage_measurement: 'recognized-logical-file-bytes';
   warning_count: number;
 }
 
 export interface CensusReport {
-  schema_version: '1.2';
+  schema_version: '1.3';
   product: 'forkit-ai-footprints';
   product_version: string;
   census_id: string;
@@ -115,7 +118,8 @@ export interface CensusReport {
     external_requests_made: 0;
     backend_contacted: false;
     account_read: false;
-    local_state_written: false;
+    local_state_written: boolean;
+    local_state_scope: 'none' | 'device-journal-only';
   };
   summary: CensusSummary;
   runtimes: CensusRuntime[];
@@ -135,6 +139,12 @@ export interface RuntimeScanResult {
   runtime: CensusRuntime;
   models: CensusModel[];
   warnings: CensusWarning[];
+  storage?: {
+    logical_bytes: number;
+    recognized_file_count: number;
+    complete: boolean;
+    measurement: 'recognized-logical-file-bytes';
+  };
 }
 
 export interface RuntimeProvider {

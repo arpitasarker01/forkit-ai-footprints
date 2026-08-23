@@ -29,6 +29,7 @@ account, or a Terminal command. Developers can build the local candidate with:
 
 ```bash
 npm ci
+npm run preflight:macos:release
 npm run build:macos:installer
 ```
 
@@ -115,7 +116,15 @@ endpoint and returns aggregate display fields only. The guess remains in the
 browser page and is never sent to the local server or Forkit.dev. `Close local
 scan` shuts down the token-protected loopback service.
 
-The revealed resource view reports recognized model-file bytes and supported
+The local app also keeps an owner-only device journal containing the sanitized
+Mac display name, first/last scan timestamps, and scan count. This lets the Mac
+identify its own history without placing the device name in a report, saved
+share page, image, anonymous preview, or website payload. The activity view uses
+a token-protected local stream sampled at most every 500 ms and displays the
+actual scan latency; it is near-real-time, not zero delay.
+
+The revealed resource view reports deduplicated recognized logical model-file
+bytes and supported
 runtime loaded-model evidence. For active agent products it aggregates process
 count plus point-in-time CPU and memory percentages. Those percentages are a
 snapshot, not energy, token, cost, or lifetime usage.
@@ -190,7 +199,8 @@ all-disabled core scan makes zero external requests and writes no local state.
 - passively configured or active Claude Code, Codex, Cursor, Windsurf, Gemini
   CLI, GitHub Copilot, OpenCode, and OpenClaw surfaces;
 - aggregate server counts from known MCP client configuration files;
-- exact recognized model-file bytes and optional guess comparison;
+- exact recognized logical model-file bytes when supported-root coverage is
+  complete, plus explicit completeness evidence and optional guess comparison;
 - confidence labels and review warnings;
 - platform, architecture, and Node major version.
 
@@ -201,7 +211,9 @@ all-disabled core scan makes zero external requests and writes no local state.
 - raw process commands;
 - full model paths in reports;
 - credentials, tokens, API keys, or passwords;
-- hostname, username, email address, or account identity.
+- device name or hostname in reports, saved/shareable artifacts, anonymous
+  previews, or website payloads; username, email address, and account identity
+  are never collected.
 
 AI Footprints only connects to loopback HTTP(S) endpoints. Remote hosts and URLs with
 embedded credentials are rejected.
@@ -247,6 +259,7 @@ npm test
 npm run benchmark:agents
 npm run validate:macos
 npm run smoke:package
+npm run preflight:macos:release
 ```
 
 The active GitHub Actions matrix covers Node 20, 22, and 24 on macOS, plus an
@@ -263,6 +276,10 @@ check, not a field-accuracy sample.
 The multi-device protocol, local truth-file format, and quantitative public
 release thresholds are defined in
 [`docs/MACOS_ACCURACY_GATE.md`](./docs/MACOS_ACCURACY_GATE.md).
+
+Storage, runtime-freshness, resource-attribution, and Developer ID truth
+boundaries are defined in
+[`docs/MACOS_MEASUREMENT_FOUNDATION.md`](./docs/MACOS_MEASUREMENT_FOUNDATION.md).
 
 ## Accuracy boundary
 

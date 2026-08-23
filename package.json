@@ -44,6 +44,7 @@
     "benchmark:agents": "npm run build && node ./scripts/benchmark-agents.mjs",
     "validate:macos": "npm run build && node ./scripts/validate-macos-device.mjs",
     "validate:app-attest": "node ./scripts/validate-app-attest-helper.mjs",
+    "preflight:macos:release": "node ./scripts/preflight-macos-release.mjs",
     "evaluate:macos": "npm run build && node ./scripts/evaluate-macos-field.mjs",
     "prepack": "npm run build && node ./scripts/prune-dist.mjs",
     "smoke:package": "node ./scripts/smoke-package.mjs",

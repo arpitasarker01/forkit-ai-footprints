@@ -12,11 +12,14 @@ export interface CensusShareSnapshot {
   confirmed_running_model_count: number;
   model_storage_bytes: number;
   model_storage_display: string;
+  model_storage_complete: boolean;
+  model_storage_measurement: 'recognized-logical-file-bytes';
   external_request_count: 0;
 }
 
 export interface LocalRescanOptions {
   endpoint: string;
+  live_endpoint: string;
   stop_endpoint: string;
   observe_start_endpoint: string;
   observe_stop_endpoint: string;
@@ -25,6 +28,7 @@ export interface LocalRescanOptions {
 
 export interface AiFootprintPageOptions {
   rescan?: LocalRescanOptions;
+  localDeviceLabel?: string;
 }
 
 function escapeHtml(value: string | number): string {
@@ -55,6 +59,7 @@ function formatStorage(bytes: number): string {
 
 function validateRescanOptions(rescan: LocalRescanOptions): void {
   if (!rescan.endpoint.startsWith('/') || rescan.endpoint.startsWith('//')
+    || !rescan.live_endpoint.startsWith('/') || rescan.live_endpoint.startsWith('//')
     || !rescan.stop_endpoint.startsWith('/') || rescan.stop_endpoint.startsWith('//')
     || !rescan.observe_start_endpoint.startsWith('/') || rescan.observe_start_endpoint.startsWith('//')
     || !rescan.observe_stop_endpoint.startsWith('/') || rescan.observe_stop_endpoint.startsWith('//')
@@ -84,6 +89,8 @@ export function buildCensusShareSnapshot(report: CensusReport): CensusShareSnaps
     confirmed_running_model_count: report.summary.confirmed_running_model_count,
     model_storage_bytes: report.summary.storage_bytes,
     model_storage_display: formatStorage(report.summary.storage_bytes),
+    model_storage_complete: report.summary.storage_complete,
+    model_storage_measurement: report.summary.storage_measurement,
     external_request_count: report.privacy.external_requests_made,
   };
 }
@@ -210,8 +217,8 @@ export function renderCensusSharePage(report: CensusReport, options: AiFootprint
     </section>
     <section class="metrics" aria-label="Local AI footprint" aria-live="polite">
       <article class="metric"><div class="label">Model records</div><div class="value" id="model-value">?</div><div class="note">Metadata evidence, not ownership.</div></article>
-      <article class="metric"><div class="label">Model activity now</div><div class="value combo"><span id="runtime-value">?</span> runtime<br><span id="loaded-model-value">?</span> loaded model</div><div class="note">Loopback response and runtime loaded-state evidence.</div></article>
-      <article class="metric"><div class="label">Model disk use</div><div class="value combo" id="storage-value">?</div><div class="note" id="storage-note">Exact recognized file total; model bytes are never read.</div></article>
+      <article class="metric"><div class="label">Model activity now</div><div class="value combo"><span id="runtime-value">?</span> runtime<br><span id="loaded-model-value">?</span> loaded model</div><div class="note" id="live-note">Loopback response and runtime loaded-state evidence.</div></article>
+      <article class="metric"><div class="label">Model disk use</div><div class="value combo" id="storage-value">?</div><div class="note" id="storage-note">Exact recognized logical-file total when coverage is complete; model bytes are never read.</div></article>
       <article class="metric"><div class="label">Agent activity now</div><div class="value combo"><span id="agent-value">?</span> product<br><span id="agent-process-value">?</span> processes</div><div class="note" id="agent-resource-value">Point-in-time CPU and memory snapshot.</div></article>
     </section>
     </section>
@@ -222,7 +229,7 @@ export function renderCensusSharePage(report: CensusReport, options: AiFootprint
         <div class="history-card"><div class="label">Private evolution</div><h2>Remember only what changed.</h2><p>Optional history stores aggregate counts in this browser on this Mac. No names, paths, guess, or task details.</p><p class="observer-result" id="history-result">Reveal your footprint, then choose whether to save a baseline.</p><div class="history-actions"><button class="button" id="history-button" type="button">Save private baseline</button><button class="button secondary" id="evolution-share-button" type="button" hidden>Share this chapter</button><button class="button secondary" id="clear-history-button" type="button" hidden>Clear history</button></div></div>
       </div>
     </section>
-    <footer><span>Scan stays in memory · <span id="scan-date">${escapeHtml(snapshot.generated_date)}</span> · ${escapeHtml(snapshot.architecture_label)}</span><span>No weights, prompts, commands, config values, or account data</span></footer>
+    <footer><span>Scan stays in memory · ${options.localDeviceLabel ? `${escapeHtml(options.localDeviceLabel)} · ` : ''}<span id="scan-date">${escapeHtml(snapshot.generated_date)}</span> · ${escapeHtml(snapshot.architecture_label)}</span><span>No weights, prompts, commands, config values, or account data</span></footer>
   </main>
   <dialog class="share-dialog" id="share-dialog" aria-labelledby="share-title">
     <div class="share-studio">
@@ -365,12 +372,35 @@ export function renderCensusSharePage(report: CensusReport, options: AiFootprint
       document.getElementById('agent-value').textContent = String(currentSnapshot.active_agent_product_count);
       document.getElementById('agent-process-value').textContent = String(currentSnapshot.active_agent_process_count);
       document.getElementById('storage-value').textContent = currentSnapshot.model_storage_display;
-      document.getElementById('storage-note').textContent = currentSnapshot.model_storage_bytes.toLocaleString() + ' recognized bytes · no model contents read.';
+      document.getElementById('storage-note').textContent = currentSnapshot.model_storage_bytes.toLocaleString() + ' recognized logical bytes · ' + (currentSnapshot.model_storage_complete ? 'complete supported-root scan' : 'incomplete scan') + ' · no model contents read.';
       document.getElementById('agent-resource-value').textContent = agentResourceText() + ' · point in time.';
       document.getElementById('scan-date').textContent = currentSnapshot.generated_date;
       document.getElementById('summary').innerHTML = '<strong>' + inspiration().title + '</strong><br>' + currentSnapshot.model_record_count + ' model ' + plural(currentSnapshot.model_record_count, 'record') + ' · ' + currentSnapshot.confirmed_running_model_count + ' loaded · ' + currentSnapshot.active_agent_product_count + ' active ' + plural(currentSnapshot.active_agent_product_count, 'agent') + ' · ' + currentSnapshot.model_storage_display + ' on disk.';
       document.getElementById('result-actions').hidden = false;
       renderEvolution();
+    }
+    async function startLiveFeed() {
+      if (!rescanConfig) return;
+      try {
+        const response = await fetch(rescanConfig.live_endpoint, { method:'POST', headers:{ 'accept':'application/x-ndjson', 'x-forkit-footprints-session':rescanConfig.session_token } });
+        if (!response.ok || !response.body) throw new Error('LIVE_UNAVAILABLE');
+        const reader = response.body.getReader(); const decoder = new TextDecoder(); let pending = '';
+        while (true) {
+          const chunk = await reader.read(); if (chunk.done) break; pending += decoder.decode(chunk.value, { stream:true });
+          const lines = pending.split('\n'); pending = lines.pop() || '';
+          for (const line of lines) {
+            if (!line) continue; const live = JSON.parse(line);
+            currentSnapshot.online_runtime_count = live.online_runtime_count;
+            currentSnapshot.confirmed_running_model_count = live.confirmed_running_model_count;
+            currentSnapshot.active_agent_product_count = live.active_agent_product_count;
+            currentSnapshot.active_agent_process_count = live.active_agent_process_count;
+            currentSnapshot.agent_cpu_percent = live.agent_cpu_percent;
+            currentSnapshot.agent_memory_percent = live.agent_memory_percent;
+            if (revealed) renderActual();
+            document.getElementById('live-note').textContent = 'Near-real-time local evidence · ' + live.scan_latency_ms + ' ms scan · no external network.';
+          }
+        }
+      } catch { document.getElementById('live-note').textContent = 'Live view unavailable; Scan again remains available.'; }
     }
     function compareGuess() {
       const guess = currentGuess();
@@ -455,6 +485,7 @@ export function renderCensusSharePage(report: CensusReport, options: AiFootprint
         document.body.innerHTML = '<main class="shell"><section class="guess-card"><div class="label">Forkit AI Footprints</div><h1 style="font-size:48px;line-height:1;margin-top:18px">Local scan closed.</h1><p class="summary">The private service has stopped. You can close this tab.</p></section></main>';
       } catch { button.disabled = false; button.textContent = 'Close local scan'; status.textContent = 'The local service is still running.'; }
     });
+    if (rescanConfig) void startLiveFeed();
   </script>
 </body>
 </html>`;
