@@ -18,14 +18,14 @@ test('high activity produces measured, deterministic personal insights', () => {
   assert.deepEqual(buildLocalInsights(snapshot(), { model_record_count: 5, confirmed_running_model_count: 0 }), [
     { kind: 'activity-share', text: 'Codex was working during 82% of your observation.' },
     { kind: 'longest-block', text: 'Your longest continuous AI-active period was 8m 12s.' },
-    { kind: 'local-models-unused', text: '5 local models are available, but none ran during this observation.' },
+    { kind: 'local-models-unused', text: '5 local models are ready for a future session.' },
   ]);
 });
 
-test('low activity is described as mostly idle without invented praise', () => {
+test('light activity is described plainly without invented praise', () => {
   const result = buildLocalInsights(snapshot({ activity_ratio: 0.08, active_seconds: 48, timeline: [] }), { model_record_count: 0, confirmed_running_model_count: 0 });
   assert.deepEqual(result, [
-    { kind: 'mostly-idle', text: 'Your supported AI tools were mostly idle during this observation.' },
+    { kind: 'mostly-idle', text: 'This observation captured a light AI activity pattern.' },
     { kind: 'workflow', text: 'All observed AI activity came from Codex.' },
   ]);
 });
@@ -48,7 +48,7 @@ test('German insights use the same deterministic measurements', () => {
   assert.deepEqual(result, [
     { kind: 'activity-share', text: 'Codex arbeitete während 82 % Ihrer Beobachtung.' },
     { kind: 'longest-block', text: 'Ihr längster durchgehender KI-aktiver Zeitraum dauerte 8 Min 12 Sek.' },
-    { kind: 'local-models-unused', text: '5 lokale Modelle sind verfügbar, wurden während dieser Beobachtung aber nicht ausgeführt.' },
+    { kind: 'local-models-unused', text: '5 lokale Modelle sind für eine zukünftige Sitzung bereit.' },
   ]);
 });
 
