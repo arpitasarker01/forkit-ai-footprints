@@ -72,8 +72,8 @@ Status: macOS accuracy hardening in progress; release classification `future/inv
 Current local validation for the macOS hardening branch on macOS/arm64:
 
 - `npm ci`: pass; zero reported vulnerabilities;
-- `npm test`: 52/52 pass locally; hosted Node 20, 22, and 24 validation is
-  required for the new share-card commit;
+- `npm test`: 52/52 pass locally; hosted Node 20, 22, and 24 validation passes
+  for implementation commit `b482ccd`;
 - curated agent detector benchmark: 58/58 cases pass (26 positive, 32 negative,
   zero false positives, zero false negatives, zero wrong classifications);
 - `npm run smoke:package`: pass;
@@ -93,6 +93,8 @@ Current local validation for the macOS hardening branch on macOS/arm64:
   unsigned and non-distributable;
 - real-browser Guess → Discovered, local rescan, caption copy, and 1200×630 PNG
   download: pass on the same Apple Silicon Mac;
+- hosted package smoke and controlled macOS 14/15/26 Apple Silicon plus macOS
+  15 Intel compatibility checks: 8/8 pass for implementation commit `b482ccd`;
 - privacy scan of the real report: no home-directory, Windows-user-path,
   API-key-prefix, API-key-flag, or session-token leak found.
 
