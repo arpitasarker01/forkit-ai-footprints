@@ -30,7 +30,9 @@ Status: macOS accuracy hardening in progress; release classification `future/inv
   agent processes, with no per-process details retained in the report;
 - human and JSON reports;
 - passive AI-tool and MCP configuration detection;
-- storage buckets, guess comparison, verbose and native clipboard modes;
+- exact recognized model-file bytes, guess comparison, verbose and native clipboard modes;
+- user-started task observation with in-memory average/peak detected-agent CPU
+  and memory samples, duration, sample count, and explicit shared-process limits;
 - a separately consented aggregate-only contribution preview with no uploader;
 - loopback-only endpoint enforcement;
 - doctor command;
@@ -62,6 +64,8 @@ Status: macOS accuracy hardening in progress; release classification `future/inv
 - raw command/path output;
 - npm publication;
 - production promotion.
+- per-prompt attribution, GPU use, energy, tokens, cost, disk I/O, or network
+  attribution; the current task window does not claim these measurements.
 
 ## Validation state
 
@@ -79,9 +83,12 @@ Current local validation for the macOS hardening branch on macOS/arm64:
 - repeated real-device unified Census with stable item sets: pass;
 - real-device loopback guard: 12 loopback requests across two scans, zero
   external requests;
-- real-device resource snapshot: 4 model records, 0 loaded models, 2.42 GB of
-  recognized model files, 1 active agent product across 13 processes; CPU and
+- real-device resource snapshot: 4 model records, 0 loaded models, exactly
+  2,595,045,761 recognized model-file bytes, 1 active agent product across 14 processes; CPU and
   memory percentages are explicitly point-in-time;
+- real-browser user-timed observation: 7 local samples over 5.8 seconds with
+  average/peak detected-agent CPU and peak memory rendered into the share card;
+  this validates the flow, not exclusive attribution to one prompt;
 - native app bundle launch and bundled-runtime CLI smoke: pass; package remains
   unsigned and non-distributable;
 - real-browser Guess → Discovered, local rescan, caption copy, and 1200×630 PNG

@@ -75,17 +75,6 @@ function buildCensusId(
   return stableId('census', evidence);
 }
 
-function storageBucket(bytes: number): string {
-  const gib = bytes / (1024 ** 3);
-  if (gib === 0) return '0 GB';
-  if (gib < 1) return '<1 GB';
-  if (gib < 10) return '1-10 GB';
-  if (gib < 50) return '10-50 GB';
-  if (gib < 100) return '50-100 GB';
-  if (gib < 500) return '100-500 GB';
-  return '500+ GB';
-}
-
 export async function runCensus(options: CensusOptions = {}): Promise<CensusReport> {
   const generatedAt = (options.now ?? (() => new Date()))().toISOString();
   const includeRuntimes = options.includeRuntimes !== false;
@@ -195,7 +184,6 @@ export async function runCensus(options: CensusOptions = {}): Promise<CensusRepo
       mcp_config_count: mcpConfigs.length,
       confirmed_running_model_count: models.filter((model) => model.evidence_status === 'confirmed-running').length,
       storage_bytes: storageBytes,
-      storage_bucket: storageBucket(storageBytes),
       warning_count: warnings.length,
     },
     runtimes,

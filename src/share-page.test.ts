@@ -26,7 +26,6 @@ test('share snapshot contains aggregate facts without item-level records', async
     mcp_config_count: 1,
     confirmed_running_model_count: 0,
     storage_bytes: 2_595_045_761,
-    storage_bucket: '1-10 GB',
     warning_count: 2,
   };
   report.models = [{ name: sentinel }] as unknown as typeof report.models;
@@ -36,8 +35,8 @@ test('share snapshot contains aggregate facts without item-level records', async
   assert.equal(snapshot.model_record_count, 4);
   assert.equal(snapshot.online_runtime_count, 1);
   assert.equal(snapshot.architecture_label, 'Apple Silicon');
-  assert.equal(snapshot.storage_bucket, '1–10 GB');
   assert.equal(snapshot.model_storage_display, '2.42 GB');
+  assert.equal(snapshot.model_storage_bytes, 2_595_045_761);
   assert.equal(snapshot.active_agent_process_count, 13);
   assert.equal(snapshot.agent_cpu_percent, 3.2);
 
@@ -87,12 +86,26 @@ test('local rescan control requires a relative endpoint and random session token
     includeMcp: false,
   });
   const html = renderCensusSharePage(report, {
-    rescan: { endpoint: '/api/scan', stop_endpoint: '/api/stop', session_token: 'a'.repeat(48) },
+    rescan: {
+      endpoint: '/api/scan',
+      stop_endpoint: '/api/stop',
+      observe_start_endpoint: '/api/observe/start',
+      observe_stop_endpoint: '/api/observe/stop',
+      session_token: 'a'.repeat(48),
+    },
   });
   assert.match(html, /Scan again/);
   assert.match(html, /Close local scan/);
+  assert.match(html, /Observe one AI task/);
+  assert.match(html, /Stop & measure/);
   assert.match(html, /x-forkit-footprints-session/);
   assert.throws(() => renderCensusSharePage(report, {
-    rescan: { endpoint: 'https://example.com/scan', stop_endpoint: '/api/stop', session_token: 'weak' },
+    rescan: {
+      endpoint: 'https://example.com/scan',
+      stop_endpoint: '/api/stop',
+      observe_start_endpoint: '/api/observe/start',
+      observe_stop_endpoint: '/api/observe/stop',
+      session_token: 'weak',
+    },
   }), /INVALID_LOCAL_RESCAN_OPTIONS/);
 });

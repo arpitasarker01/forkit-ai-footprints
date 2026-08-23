@@ -10,14 +10,16 @@ export interface CensusShareSnapshot {
   agent_cpu_percent: number | null;
   agent_memory_percent: number | null;
   confirmed_running_model_count: number;
+  model_storage_bytes: number;
   model_storage_display: string;
-  storage_bucket: string;
   external_request_count: 0;
 }
 
 export interface LocalRescanOptions {
   endpoint: string;
   stop_endpoint: string;
+  observe_start_endpoint: string;
+  observe_stop_endpoint: string;
   session_token: string;
 }
 
@@ -39,15 +41,23 @@ function safeScriptJson(value: unknown): string {
 }
 
 function formatStorage(bytes: number): string {
-  if (bytes <= 0) return '0 GB';
-  const gib = bytes / (1024 ** 3);
-  if (gib < 0.1) return `${Math.max(1, Math.round(bytes / (1024 ** 2)))} MB`;
-  return `${gib < 10 ? gib.toFixed(2) : gib.toFixed(1)} GB`;
+  if (bytes <= 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
+  let value = bytes;
+  let unit = 0;
+  while (unit < units.length - 1 && value >= 1024) {
+    value /= 1024;
+    unit += 1;
+  }
+  const digits = value < 10 && unit > 1 ? 2 : value < 100 ? 1 : 0;
+  return `${value.toFixed(digits)} ${units[unit]}`;
 }
 
 function validateRescanOptions(rescan: LocalRescanOptions): void {
   if (!rescan.endpoint.startsWith('/') || rescan.endpoint.startsWith('//')
     || !rescan.stop_endpoint.startsWith('/') || rescan.stop_endpoint.startsWith('//')
+    || !rescan.observe_start_endpoint.startsWith('/') || rescan.observe_start_endpoint.startsWith('//')
+    || !rescan.observe_stop_endpoint.startsWith('/') || rescan.observe_stop_endpoint.startsWith('//')
     || !/^[a-f0-9]{48}$/.test(rescan.session_token)) {
     throw new Error('INVALID_LOCAL_RESCAN_OPTIONS');
   }
@@ -72,8 +82,8 @@ export function buildCensusShareSnapshot(report: CensusReport): CensusShareSnaps
     agent_cpu_percent: report.summary.agent_cpu_percent,
     agent_memory_percent: report.summary.agent_memory_percent,
     confirmed_running_model_count: report.summary.confirmed_running_model_count,
+    model_storage_bytes: report.summary.storage_bytes,
     model_storage_display: formatStorage(report.summary.storage_bytes),
-    storage_bucket: report.summary.storage_bucket.replace('-', '–'),
     external_request_count: report.privacy.external_requests_made,
   };
 }
@@ -134,6 +144,11 @@ export function renderCensusSharePage(report: CensusReport, options: AiFootprint
     .value { margin:17px 0 7px; font-size:46px; line-height:.92; font-weight:780; letter-spacing:-.055em; }
     .value.combo { font-size:27px; line-height:1.08; }
     .note { color:var(--muted); font-size:11px; line-height:1.45; }
+    .observer { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:20px; align-items:center; margin-top:13px; padding:20px 22px; border:1px solid var(--line); border-radius:22px; background:rgba(255,254,250,.74); box-shadow:var(--shadow); }
+    .observer h2 { margin:6px 0 5px; font-size:22px; letter-spacing:-.04em; }
+    .observer p { margin:0; max-width:700px; color:var(--muted); font-size:11px; line-height:1.5; }
+    .observer-actions { display:flex; align-items:center; gap:10px; }
+    .observer-result { margin-top:7px !important; color:var(--teal) !important; font-weight:720; }
     .share-dialog { width:min(760px,calc(100% - 28px)); max-height:calc(100vh - 28px); margin:auto; padding:0; border:1px solid rgba(255,255,255,.75); border-radius:26px; color:var(--ink); background:#fffefa; box-shadow:0 32px 100px rgba(28,36,34,.28); overflow:auto; }
     .share-dialog::backdrop { background:rgba(25,31,30,.52); backdrop-filter:blur(9px); }
     .share-studio { padding:22px; }
@@ -147,7 +162,7 @@ export function renderCensusSharePage(report: CensusReport, options: AiFootprint
     .share-note { margin:12px 0 0; color:var(--muted); font-size:10px; line-height:1.5; text-align:center; }
     footer { display:flex; justify-content:space-between; gap:20px; padding:15px 3px 0; color:var(--muted); font-size:9px; line-height:1.5; }
     @media (max-width:900px) { .metrics{grid-template-columns:repeat(2,1fr)} }
-    @media (max-width:760px) { .measures{grid-template-columns:1fr;margin-bottom:30px}.hero{grid-template-columns:1fr;align-items:start}.metrics{grid-template-columns:1fr}.metric{min-height:130px} }
+    @media (max-width:760px) { .measures{grid-template-columns:1fr;margin-bottom:30px}.hero{grid-template-columns:1fr;align-items:start}.metrics{grid-template-columns:1fr}.metric{min-height:130px}.observer{grid-template-columns:1fr}.observer-actions{align-items:stretch}.observer-actions .button{flex:1} }
     @media (max-width:440px) { .shell{width:calc(100% - 24px);padding-top:16px}.private{font-size:0}h1{font-size:58px}.guess-row{grid-template-columns:1fr}.actions,.share-actions{flex-direction:column}footer{flex-direction:column}.share-studio{padding:15px} }
   </style>
 </head>
@@ -178,6 +193,7 @@ export function renderCensusSharePage(report: CensusReport, options: AiFootprint
       <article class="metric"><div class="label">Model disk use</div><div class="value combo" id="storage-value">?</div><div class="note" id="storage-note">Exact recognized file total; model bytes are never read.</div></article>
       <article class="metric"><div class="label">Agent activity now</div><div class="value combo"><span id="agent-value">?</span> product<br><span id="agent-process-value">?</span> processes</div><div class="note" id="agent-resource-value">Point-in-time CPU and memory snapshot.</div></article>
     </section>
+    ${rescan ? '<section class="observer" id="observer" hidden><div><div class="label">Optional task measurement</div><h2>Observe one AI task</h2><p>Start, perform one task, then stop. Forkit samples strongly detected agent processes in memory and reports the window average and peak. Shared-process background activity may be included.</p><p class="observer-result" id="observer-result">Not started.</p></div><div class="observer-actions"><button class="button" id="observe-button" type="button">Start observation</button></div></section>' : ''}
     <footer><span>Scan stays in memory · <span id="scan-date">${escapeHtml(snapshot.generated_date)}</span> · ${escapeHtml(snapshot.architecture_label)}</span><span>No weights, prompts, commands, config values, or account data</span></footer>
   </main>
   <dialog class="share-dialog" id="share-dialog" aria-labelledby="share-title">
@@ -196,12 +212,16 @@ export function renderCensusSharePage(report: CensusReport, options: AiFootprint
     const shareDialog = document.getElementById('share-dialog');
     const shareCanvas = document.getElementById('share-canvas');
     let revealed = false;
+    let observing = false;
+    let observationResult = null;
     function plural(value, singular, pluralValue) { return value === 1 ? singular : (pluralValue || singular + 's'); }
     function currentGuess() { const value = Number(guessInput.value); return Number.isSafeInteger(value) && value >= 0 ? value : null; }
     function agentResourceText() {
+      if (observationResult) return observationResult.duration_seconds.toFixed(1) + 's task window · ' + metricValue(observationResult.average_cpu_percent) + ' avg CPU · ' + metricValue(observationResult.peak_cpu_percent) + ' peak CPU · ' + metricValue(observationResult.peak_memory_percent) + ' peak memory';
       if (currentSnapshot.agent_cpu_percent === null || currentSnapshot.agent_memory_percent === null) return 'Agent CPU and memory snapshot unavailable';
       return currentSnapshot.agent_cpu_percent.toFixed(1) + '% CPU · ' + currentSnapshot.agent_memory_percent.toFixed(1) + '% memory';
     }
+    function metricValue(value) { return value === null ? 'unavailable' : value.toFixed(1) + '%'; }
     function inspiration() {
       const models = currentSnapshot.model_record_count;
       if (models === 0) return { line1:'A clear Mac.', line2:'A deliberate start.', title:'Every AI journey starts somewhere.' };
@@ -212,7 +232,7 @@ export function renderCensusSharePage(report: CensusReport, options: AiFootprint
     function shareText() {
       const guess = currentGuess();
       const prefix = guess === null ? '' : 'I guessed ' + guess + '. ';
-      return inspiration().title + ' ' + prefix + 'Forkit AI Footprints found ' + currentSnapshot.model_record_count + ' local model ' + plural(currentSnapshot.model_record_count, 'record') + ', ' + currentSnapshot.confirmed_running_model_count + ' loaded, ' + currentSnapshot.online_runtime_count + ' responding ' + plural(currentSnapshot.online_runtime_count, 'runtime') + ', and ' + currentSnapshot.active_agent_product_count + ' active AI agent ' + plural(currentSnapshot.active_agent_product_count, 'product') + ' across ' + currentSnapshot.active_agent_process_count + ' ' + plural(currentSnapshot.active_agent_process_count, 'process', 'processes') + '. Recognized model files use ' + currentSnapshot.model_storage_display + '. ' + agentResourceText() + ' at scan time. Metadata only; nothing uploaded.';
+      return inspiration().title + ' ' + prefix + 'Forkit AI Footprints found ' + currentSnapshot.model_record_count + ' local model ' + plural(currentSnapshot.model_record_count, 'record') + ', ' + currentSnapshot.confirmed_running_model_count + ' loaded, ' + currentSnapshot.online_runtime_count + ' responding ' + plural(currentSnapshot.online_runtime_count, 'runtime') + ', and ' + currentSnapshot.active_agent_product_count + ' active AI agent ' + plural(currentSnapshot.active_agent_product_count, 'product') + ' across ' + currentSnapshot.active_agent_process_count + ' ' + plural(currentSnapshot.active_agent_process_count, 'process', 'processes') + '. Recognized model files use ' + currentSnapshot.model_storage_display + '. ' + agentResourceText() + (observationResult ? ' during my observed task window.' : ' at scan time.') + ' Metadata only; nothing uploaded.';
     }
     function roundedRect(context, x, y, width, height, radius) {
       const r = Math.min(radius, width / 2, height / 2);
@@ -256,11 +276,12 @@ export function renderCensusSharePage(report: CensusReport, options: AiFootprint
       document.getElementById('agent-value').textContent = String(currentSnapshot.active_agent_product_count);
       document.getElementById('agent-process-value').textContent = String(currentSnapshot.active_agent_process_count);
       document.getElementById('storage-value').textContent = currentSnapshot.model_storage_display;
-      document.getElementById('storage-note').textContent = currentSnapshot.storage_bucket + ' privacy band · recognized model files only.';
+      document.getElementById('storage-note').textContent = currentSnapshot.model_storage_bytes.toLocaleString() + ' recognized bytes · no model contents read.';
       document.getElementById('agent-resource-value').textContent = agentResourceText() + ' · point in time.';
       document.getElementById('scan-date').textContent = currentSnapshot.generated_date;
       document.getElementById('summary').innerHTML = '<strong>' + inspiration().title + '</strong><br>' + currentSnapshot.model_record_count + ' model ' + plural(currentSnapshot.model_record_count, 'record') + ' · ' + currentSnapshot.confirmed_running_model_count + ' loaded · ' + currentSnapshot.active_agent_product_count + ' active ' + plural(currentSnapshot.active_agent_product_count, 'agent') + ' · ' + currentSnapshot.model_storage_display + ' on disk.';
       document.getElementById('result-actions').hidden = false;
+      if (rescanConfig) document.getElementById('observer').hidden = false;
     }
     function compareGuess() {
       const guess = currentGuess();
@@ -294,6 +315,31 @@ export function renderCensusSharePage(report: CensusReport, options: AiFootprint
         currentSnapshot = await response.json(); renderActual(); compareGuess(); status.textContent = 'Fresh local scan complete. Nothing was uploaded.';
       } catch { status.textContent = 'Scan could not complete. Your previous local result is unchanged.'; }
       finally { button.disabled = false; button.textContent = 'Scan again'; }
+    });
+    if (rescanConfig) document.getElementById('observe-button').addEventListener('click', async () => {
+      const button = document.getElementById('observe-button');
+      button.disabled = true;
+      const endpoint = observing ? rescanConfig.observe_stop_endpoint : rescanConfig.observe_start_endpoint;
+      try {
+        const response = await fetch(endpoint, { method:'POST', headers:{ 'accept':'application/json', 'x-forkit-footprints-session':rescanConfig.session_token } });
+        if (!response.ok) throw new Error('OBSERVATION_FAILED');
+        if (!observing) {
+          observing = true;
+          observationResult = null;
+          button.textContent = 'Stop & measure';
+          document.getElementById('observer-result').textContent = 'Observing now. Perform one AI task, then stop.';
+          status.textContent = 'Task observation stays in memory on this Mac.';
+        } else {
+          observing = false;
+          observationResult = await response.json();
+          button.textContent = 'Observe another task';
+          document.getElementById('observer-result').textContent = agentResourceText() + ' · ' + observationResult.sample_count + ' samples.';
+          document.getElementById('agent-resource-value').textContent = agentResourceText();
+          status.textContent = 'Task window measured locally. Shared-process background activity may be included.';
+        }
+      } catch {
+        status.textContent = 'Task observation could not complete. No result was saved.';
+      } finally { button.disabled = false; }
     });
     if (rescanConfig) document.getElementById('stop-button').addEventListener('click', async () => {
       const button = document.getElementById('stop-button'); button.disabled = true; button.textContent = 'Closing…';

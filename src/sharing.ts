@@ -1,7 +1,7 @@
 import type { CensusReport } from './types';
 
 export interface AnonymousCensusContribution {
-  schema_version: '1.1';
+  schema_version: '1.2';
   system: {
     platform: NodeJS.Platform;
     architecture: string;
@@ -15,8 +15,7 @@ export interface AnonymousCensusContribution {
     ai_tools: number;
     mcp_configs: number;
   };
-  storage_bucket: string;
-  guess: number | null;
+  model_storage_bytes: number;
   detector_types: string[];
   versions: {
     census: string;
@@ -39,7 +38,7 @@ export function buildAnonymousCensusContribution(
   }
   if (report.mcp_configs.length > 0) detectorTypes.add('mcp-config-count');
   return {
-    schema_version: '1.1',
+    schema_version: '1.2',
     system: {
       platform: report.system.platform,
       architecture: report.system.architecture,
@@ -53,8 +52,7 @@ export function buildAnonymousCensusContribution(
       ai_tools: report.summary.tool_count,
       mcp_configs: report.summary.mcp_config_count,
     },
-    storage_bucket: report.summary.storage_bucket,
-    guess: report.guess.provided,
+    model_storage_bytes: report.summary.storage_bytes,
     detector_types: [...detectorTypes].sort(),
     versions: {
       census: report.product_version,

@@ -17,6 +17,13 @@ test('local server exposes aggregate HTML and token-gated metadata-only rescans'
         includeMcp: false,
       });
     },
+    observeSample: async () => runCensus({
+      includeRuntimes: false,
+      includeFilesystem: false,
+      includeAgents: false,
+      includeTools: false,
+      includeMcp: false,
+    }),
   });
   try {
     const pageResponse = await fetch(service.url);
@@ -24,6 +31,7 @@ test('local server exposes aggregate HTML and token-gated metadata-only rescans'
     assert.equal(pageResponse.status, 200);
     assert.match(html, /The scan is complete\. Guess before the local facts are revealed\./);
     assert.match(html, /Scan again/);
+    assert.match(html, /Observe one AI task/);
     assert.doesNotMatch(html, /https:\/\//i);
 
     const rejected = await fetch(`${service.url}api/scan`, { method: 'POST' });
@@ -40,6 +48,23 @@ test('local server exposes aggregate HTML and token-gated metadata-only rescans'
     assert.equal(accepted.status, 200);
     assert.equal(snapshot.external_request_count, 0);
     assert.equal(scanCount, 2);
+
+    const observationHeaders = {
+      origin: service.url.slice(0, -1),
+      'x-forkit-footprints-session': service.sessionToken,
+    };
+    const observationStarted = await fetch(`${service.url}api/observe/start`, {
+      method: 'POST', headers: observationHeaders,
+    });
+    assert.equal(observationStarted.status, 202);
+    const observationStopped = await fetch(`${service.url}api/observe/stop`, {
+      method: 'POST', headers: observationHeaders,
+    });
+    const observation = await observationStopped.json() as Record<string, unknown>;
+    assert.equal(observationStopped.status, 200);
+    assert.equal(observation.measurement, 'user-timed-detected-agent-window');
+    assert.equal(observation.external_requests_made, 0);
+    assert.ok(Number(observation.sample_count) >= 1);
 
     const stopped = await fetch(`${service.url}api/stop`, {
       method: 'POST',

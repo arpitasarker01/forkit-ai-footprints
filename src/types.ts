@@ -91,7 +91,6 @@ export interface CensusSummary {
   mcp_config_count: number;
   confirmed_running_model_count: number;
   storage_bytes: number;
-  storage_bucket: string;
   warning_count: number;
 }
 

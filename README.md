@@ -17,10 +17,15 @@ current release claim.
 
 ## Install on macOS
 
-The intended public path is a Developer ID-signed and Apple-notarized `.pkg`
-that installs **Forkit AI Footprints.app** with its own checksummed Node runtime.
-Public users will not need Node, npm, Homebrew, or a Terminal command. The local
-installer candidate can be built with:
+The public experience is deliberately three steps:
+
+1. Download **Forkit AI Footprints for Mac**.
+2. Open the verified installer.
+3. Open the app and discover your footprint.
+
+The Developer ID-signed and Apple-notarized installer includes its own
+checksummed Node runtime. Public users will not need Node, npm, Homebrew, an
+account, or a Terminal command. Developers can build the local candidate with:
 
 ```bash
 npm ci
@@ -115,11 +120,19 @@ runtime loaded-model evidence. For active agent products it aggregates process
 count plus point-in-time CPU and memory percentages. Those percentages are a
 snapshot, not energy, token, cost, or lifetime usage.
 
+`Observe one AI task` is the more meaningful resource view: click Start,
+perform one task, then click Stop. It reports the observation duration, sample
+count, average and peak detected-agent CPU/memory percentages, and the maximum
+agent-process and loaded-model counts seen in that window. It stays in memory.
+If the same process performs background work, that activity can be included;
+the result is not per-prompt attribution and does not measure GPU, energy,
+tokens, cost, disk I/O, or network usage.
+
 After revealing the result, `Create share card` renders a 1200×630 PNG entirely
 in the browser. The card turns Guess → Discovered into a visual story and uses
 only aggregate fields: model records, supported loaded state, agent process
-count, recognized model-file bytes, and the point-in-time agent resource
-snapshot. It can be downloaded or passed to the operating
+count, recognized model-file bytes, and either the task observation or the
+clearly labelled point-in-time resource snapshot. It can be downloaded or passed to the operating
 system share sheet after an explicit click; no model names or scan records are
 placed in the image or uploaded by AI Footprints.
 
@@ -177,7 +190,7 @@ all-disabled core scan makes zero external requests and writes no local state.
 - passively configured or active Claude Code, Codex, Cursor, Windsurf, Gemini
   CLI, GitHub Copilot, OpenCode, and OpenClaw surfaces;
 - aggregate server counts from known MCP client configuration files;
-- a best-effort model-storage bucket and optional guess comparison;
+- exact recognized model-file bytes and optional guess comparison;
 - confidence labels and review warnings;
 - platform, architecture, and Node major version.
 

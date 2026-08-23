@@ -19,6 +19,9 @@ with `forkit-census` retained temporarily as a developer compatibility alias.
 - run a token-protected UI bound only to `127.0.0.1`, keep the current report in
   memory, and return only aggregate display fields when the user selects Scan again;
 - compare a browser-local numeric guess with the discovered model-record count;
+- measure a user-started and user-stopped task window using only aggregate
+  samples from strongly detected agent processes; disclose that shared-process
+  background work may be included;
 - diagnose local AI Footprints readiness;
 - prepare a consent-gated, aggregate-only anonymous contribution preview without
   transmitting it;
@@ -36,7 +39,7 @@ support claim until separately validated and promoted.
 - billing, plans, workspaces, or account state;
 - telemetry or Global AI Footprints upload;
 - remote endpoint inspection;
-- native desktop/mobile packaging;
+- mobile packaging;
 - npm publication or production deployment.
 
 ## Promotion gate
