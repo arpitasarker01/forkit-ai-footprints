@@ -133,6 +133,10 @@ Historical hosted GitHub Actions validation for handoff-completion commit `b5ae9
   approved package/promotion sequence, removing the temporary duplicated core;
 - approve a Global AI Footprints schema, privacy policy, endpoint, retention policy,
   and comparison response before adding any uploader;
+- implement native App Attest for macOS 27+ before any global uploader; local
+  results on macOS 26 and earlier must not affect the verified global pulse;
+- keep every new verified installation quarantined until the Forkit risk service
+  clears it; unverified, quarantined, and revoked rows must contribute zero;
 - choose the experimental distribution and support policy;
 - obtain a separately labelled, consented multi-device macOS evaluation before
   making any field-accuracy claim;

@@ -81,7 +81,10 @@ confirmed-running count, active agent product/process counts, exact recognized
 model-file bytes, detector types, and version numbers. It excludes the guess and the
 local Census ID and all item-level records. The CLI still has no uploader. A
 separate Forkit.dev aggregate endpoint candidate exists with contribution writes
-disabled by default; enabling it remains a founder/security release gate.
+disabled by default. That candidate now fails closed without Apple App Attest
+verification and excludes quarantined or revoked installations from the public
+pulse. The CLI still contains no proof enrollment or upload transport. Enabling
+either remains a founder/security release gate.
 
 ## Local share page
 
