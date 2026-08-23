@@ -54,12 +54,16 @@ function configuredRootsFromEnvironment(): string[] {
 export function getDefaultModelRoots(): string[] {
   const home = os.homedir();
   const janData = path.join(home, 'Library', 'Application Support', 'Jan', 'data');
+  const xdgHuggingFaceHub = process.env.XDG_CACHE_HOME
+    ? path.join(process.env.XDG_CACHE_HOME, 'huggingface', 'hub')
+    : '';
   const candidates = [
     ...configuredRootsFromEnvironment(),
     path.join(home, '.cache', 'huggingface', 'hub'),
     path.join(home, '.ollama', 'models'),
     process.env.HF_HOME ? path.join(process.env.HF_HOME, 'hub') : '',
     process.env.HF_HUB_CACHE ?? '',
+    xdgHuggingFaceHub,
     path.join(home, '.cache', 'lm-studio', 'models'),
     path.join(home, '.lmstudio', 'models'),
     path.join(janData, 'llamacpp', 'models'),
@@ -69,6 +73,8 @@ export function getDefaultModelRoots(): string[] {
     path.join(home, 'ai', 'models'),
     path.join(home, '.cache', 'mlx-models'),
   ];
+  // HF_XET_CACHE is intentionally excluded: it is a transport chunk cache,
+  // not a model inventory, and counting it would duplicate model storage.
   return [...new Set(candidates.filter(Boolean).map((entry) => path.resolve(entry)))];
 }
 

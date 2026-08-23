@@ -1,7 +1,9 @@
 export { detectAgentProducts, listSystemProcesses } from './agents';
 export { aggregateMacosFieldEvaluationDirectory, aggregateMacosFieldEvaluations } from './aggregate';
 export { runCensus } from './census';
-export { buildAnonymousCensusContribution } from './sharing';
+export { authorizeAnonymousAiFootprintContribution, buildAnonymousAiFootprintPreview, MINIMUM_COMPARISON_SECONDS } from './sharing';
+export { ActivityMonitor } from './monitor';
+export type * from './monitor';
 export { buildCensusShareSnapshot, renderCensusSharePage } from './share-page';
 export type { AiFootprintPageOptions } from './share-page';
 export { startAiFootprintsServer } from './server';

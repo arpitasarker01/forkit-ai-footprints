@@ -2,117 +2,110 @@ import crypto from 'node:crypto';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { runCensus } from './census';
-import { buildCensusShareSnapshot, renderCensusSharePage } from './share-page';
+import { classifyAgentProcessTrees } from './agents';
+import { buildLocalScanView, renderCensusSharePage } from './share-page';
 import { recordLocalScan, type LocalDeviceJournal } from './local-device';
-import { macosResourceEvidenceManifest } from './resource-evidence';
+import { ActivityMonitor, type MonitorSnapshot } from './monitor';
 import { createDefaultProviders } from './providers';
+import { classifyLoadedRuntimeProcesses, loadedRuntimeSignatures } from './runtime-activity';
+import { buildAnonymousAiFootprintPreview } from './sharing';
 import type { CensusReport } from './types';
 
 export interface AiFootprintsServerOptions {
   hostname?: '127.0.0.1';
   port?: number;
   scan?: () => Promise<CensusReport>;
-  observeSample?: () => Promise<CensusReport>;
   recordScan?: (generatedAt: string) => Promise<LocalDeviceJournal>;
+  monitor?: ActivityMonitor;
+  nativeToken?: string | null;
 }
 
 export interface AiFootprintsServer {
   server: http.Server;
   url: string;
   sessionToken: string;
+  monitor: ActivityMonitor;
   close: () => Promise<void>;
 }
 
-interface ObservationSample {
-  cpuPercent: number | null;
-  memoryPercent: number | null;
-  agentProducts: number;
-  agentProcesses: number;
-  loadedModels: number;
-}
-
-interface ObservationState {
-  startedAt: number;
-  samples: ObservationSample[];
-  timer: NodeJS.Timeout | null;
-  sampling: boolean;
-}
-
-interface LiveStreamState {
+interface MonitorStream {
   timer: NodeJS.Timeout;
   response: http.ServerResponse;
 }
 
-function average(values: Array<number | null>): number | null {
-  const measured = values.filter((value): value is number => value !== null);
-  if (measured.length === 0) return null;
-  return Math.round((measured.reduce((total, value) => total + value, 0) / measured.length) * 10) / 10;
-}
-
-function peak(values: Array<number | null>): number | null {
-  const measured = values.filter((value): value is number => value !== null);
-  return measured.length === 0 ? null : Math.round(Math.max(...measured) * 10) / 10;
-}
-
-function sendText(response: http.ServerResponse, status: number, contentType: string, body: string): void {
-  response.writeHead(status, {
+function securityHeaders(contentType: string): Record<string, string> {
+  return {
     'cache-control': 'no-store',
-    'content-security-policy': "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+    'content-security-policy': "default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'",
     'content-type': contentType,
     'referrer-policy': 'no-referrer',
     'x-content-type-options': 'nosniff',
-    'x-frame-options': 'DENY',
-  });
+    'x-frame-options': 'SAMEORIGIN',
+  };
+}
+
+function sendText(response: http.ServerResponse, status: number, contentType: string, body: string): void {
+  response.writeHead(status, securityHeaders(contentType));
   response.end(body);
+}
+
+function sendJson(response: http.ServerResponse, status: number, value: unknown): void {
+  sendText(response, status, 'application/json; charset=utf-8', JSON.stringify(value));
 }
 
 export async function startAiFootprintsServer(options: AiFootprintsServerOptions = {}): Promise<AiFootprintsServer> {
   const hostname = options.hostname ?? '127.0.0.1';
-  const port = options.port ?? 47811;
+  const requestedPort = options.port ?? 47811;
   const scan = options.scan ?? (() => runCensus());
-  const liveProviders = createDefaultProviders();
-  const observeSample = options.observeSample ?? (() => runCensus({
-    includeFilesystem: false,
-    includeTools: false,
-    includeMcp: false,
-    providers: liveProviders,
-  }));
   const recordScan = options.recordScan ?? ((generatedAt: string) => recordLocalScan({ now: () => new Date(generatedAt) }));
   const sessionToken = crypto.randomBytes(24).toString('hex');
+  const nativeToken = options.nativeToken ?? process.env.FORKIT_AI_FOOTPRINTS_NATIVE_TOKEN ?? null;
+  const runtimeProviders = createDefaultProviders();
+  let loadedRuntimeCache = new Set<string>();
+  let loadedRuntimeCacheAt = 0;
+  const monitor = options.monitor ?? new ActivityMonitor({
+    classifyProcesses: async (entries) => {
+      const now = Date.now();
+      if (now - loadedRuntimeCacheAt >= 3000) {
+        loadedRuntimeCache = await loadedRuntimeSignatures(runtimeProviders, new Date(now).toISOString());
+        loadedRuntimeCacheAt = now;
+      }
+      return [
+        ...classifyAgentProcessTrees(entries, process.pid),
+        ...classifyLoadedRuntimeProcesses(entries, loadedRuntimeCache, process.pid),
+      ];
+    },
+  });
   let currentReport = await scan();
   let localDevice = await recordScan(currentReport.generated_at);
   currentReport.privacy.local_state_written = true;
   currentReport.privacy.local_state_scope = 'device-journal-only';
   let scanning = false;
-  let observation: ObservationState | null = null;
-  const liveStreams = new Set<LiveStreamState>();
+  const streams = new Set<MonitorStream>();
   let origin = '';
+  let closing: Promise<void> | null = null;
 
-  async function takeObservationSample(state: ObservationState): Promise<void> {
-    if (state.sampling) return;
-    state.sampling = true;
-    try {
-      const report = await observeSample();
-      state.samples.push({
-        cpuPercent: report.summary.agent_cpu_percent,
-        memoryPercent: report.summary.agent_memory_percent,
-        agentProducts: report.summary.agent_product_count,
-        agentProcesses: report.summary.agent_process_count,
-        loadedModels: report.summary.confirmed_running_model_count,
-      });
-    } finally {
-      state.sampling = false;
-    }
-  }
-
-  function authorized(request: http.IncomingMessage): boolean {
+  function browserAuthorized(request: http.IncomingMessage): boolean {
     return request.headers.origin === origin
       && request.headers['x-forkit-footprints-session'] === sessionToken;
   }
 
+  function nativeAuthorized(request: http.IncomingMessage): boolean {
+    return typeof nativeToken === 'string' && nativeToken.length >= 32
+      && request.headers['x-forkit-footprints-native'] === nativeToken;
+  }
+
+  function stopStreams(): void {
+    for (const stream of streams) {
+      clearInterval(stream.timer);
+      stream.response.end();
+    }
+    streams.clear();
+  }
+
   const server = http.createServer(async (request, response) => {
     const host = request.headers.host ?? '';
-    if (host !== new URL(origin).host) {
+    if (!origin || host !== new URL(origin).host) {
       sendText(response, 421, 'text/plain; charset=utf-8', 'Invalid local host.');
       return;
     }
@@ -123,187 +116,146 @@ export async function startAiFootprintsServer(options: AiFootprintsServerOptions
         localDeviceLabel: localDevice.device_label,
         rescan: {
           endpoint: '/api/scan',
-          live_endpoint: '/api/live',
-          stop_endpoint: '/api/stop',
-          observe_start_endpoint: '/api/observe/start',
-          observe_stop_endpoint: '/api/observe/stop',
+          monitor_start_endpoint: '/api/monitor/start',
+          monitor_stop_endpoint: '/api/monitor/stop',
+          monitor_stream_endpoint: '/api/monitor/stream',
+          monitor_clear_endpoint: '/api/monitor/clear',
+          contribution_preview_endpoint: '/api/contribution/preview',
           session_token: sessionToken,
         },
       }));
       return;
     }
 
-    if (request.method === 'POST' && pathname === '/api/live') {
-      if (!authorized(request)) {
-        sendText(response, 403, 'application/json; charset=utf-8', JSON.stringify({ error: 'LOCAL_SESSION_REQUIRED' }));
-        return;
-      }
+    const browserControl = pathname.startsWith('/api/') && browserAuthorized(request);
+    const nativeControl = pathname.startsWith('/api/native/') && nativeAuthorized(request);
+
+    if (request.method === 'POST' && pathname === '/api/monitor/stream') {
+      if (!browserControl) { sendJson(response, 403, { error: 'LOCAL_SESSION_REQUIRED' }); return; }
       response.writeHead(200, {
-        'cache-control': 'no-store',
-        'content-type': 'application/x-ndjson; charset=utf-8',
-        'referrer-policy': 'no-referrer',
-        'x-content-type-options': 'nosniff',
+        ...securityHeaders('application/x-ndjson; charset=utf-8'),
+        'content-security-policy': "default-src 'none'",
       });
-      let sampling = false;
-      let closed = false;
-      const sample = async () => {
-        if (sampling || closed) return;
-        sampling = true;
-        const startedAt = Date.now();
-        try {
-          const report = await observeSample();
-          response.write(`${JSON.stringify({
-            observed_at: report.generated_at,
-            online_runtime_count: report.summary.available_runtime_count,
-            confirmed_running_model_count: report.summary.confirmed_running_model_count,
-            active_agent_product_count: report.summary.agent_product_count,
-            active_agent_process_count: report.summary.agent_process_count,
-            agent_cpu_percent: report.summary.agent_cpu_percent,
-            agent_memory_percent: report.summary.agent_memory_percent,
-            scan_latency_ms: Date.now() - startedAt,
-            measurement: 'bounded-near-real-time-loopback',
-            external_requests_made: 0,
-          })}\n`);
-        } catch {
-          response.write(`${JSON.stringify({ error: 'LIVE_SAMPLE_UNAVAILABLE' })}\n`);
-        } finally {
-          sampling = false;
-        }
-      };
-      await sample();
-      const timer = setInterval(() => { void sample(); }, 500);
+      const send = () => response.write(`${JSON.stringify(monitor.snapshot())}\n`);
+      send();
+      const timer = setInterval(send, 750);
+      timer.unref();
       const stream = { timer, response };
-      liveStreams.add(stream);
+      streams.add(stream);
       request.on('close', () => {
-        closed = true;
         clearInterval(timer);
-        liveStreams.delete(stream);
+        streams.delete(stream);
       });
       return;
     }
 
     if (request.method === 'POST' && pathname === '/api/scan') {
-      if (!authorized(request)) {
-        sendText(response, 403, 'application/json; charset=utf-8', JSON.stringify({ error: 'LOCAL_SESSION_REQUIRED' }));
-        return;
-      }
-      if (scanning) {
-        sendText(response, 409, 'application/json; charset=utf-8', JSON.stringify({ error: 'SCAN_IN_PROGRESS' }));
-        return;
-      }
+      if (!browserControl) { sendJson(response, 403, { error: 'LOCAL_SESSION_REQUIRED' }); return; }
+      if (scanning) { sendJson(response, 409, { error: 'SCAN_IN_PROGRESS' }); return; }
       scanning = true;
       try {
         currentReport = await scan();
         localDevice = await recordScan(currentReport.generated_at);
         currentReport.privacy.local_state_written = true;
         currentReport.privacy.local_state_scope = 'device-journal-only';
-        sendText(response, 200, 'application/json; charset=utf-8', JSON.stringify(buildCensusShareSnapshot(currentReport)));
+        sendJson(response, 200, buildLocalScanView(currentReport));
       } catch {
-        sendText(response, 500, 'application/json; charset=utf-8', JSON.stringify({ error: 'LOCAL_SCAN_FAILED' }));
+        sendJson(response, 500, { error: 'LOCAL_SCAN_FAILED' });
       } finally {
         scanning = false;
       }
       return;
     }
 
-    if (request.method === 'POST' && pathname === '/api/observe/start') {
-      if (!authorized(request)) {
-        sendText(response, 403, 'application/json; charset=utf-8', JSON.stringify({ error: 'LOCAL_SESSION_REQUIRED' }));
-        return;
-      }
-      if (observation) {
-        sendText(response, 409, 'application/json; charset=utf-8', JSON.stringify({ error: 'OBSERVATION_IN_PROGRESS' }));
-        return;
-      }
-      const state: ObservationState = { startedAt: Date.now(), samples: [], timer: null, sampling: false };
-      observation = state;
-      try {
-        await takeObservationSample(state);
-        state.timer = setInterval(() => { void takeObservationSample(state); }, 1000);
-        sendText(response, 202, 'application/json; charset=utf-8', JSON.stringify({ started: true }));
-      } catch {
-        observation = null;
-        sendText(response, 500, 'application/json; charset=utf-8', JSON.stringify({ error: 'OBSERVATION_START_FAILED' }));
+    const startPath = pathname === '/api/monitor/start' || pathname === '/api/native/start';
+    if (request.method === 'POST' && startPath) {
+      if (!(browserControl || nativeControl)) { sendJson(response, 403, { error: 'LOCAL_SESSION_REQUIRED' }); return; }
+      try { sendJson(response, 200, await monitor.start()); }
+      catch { sendJson(response, 500, { error: 'MONITOR_START_FAILED' }); }
+      return;
+    }
+
+    const stopPath = pathname === '/api/monitor/stop' || pathname === '/api/native/stop';
+    if (request.method === 'POST' && stopPath) {
+      if (!(browserControl || nativeControl)) { sendJson(response, 403, { error: 'LOCAL_SESSION_REQUIRED' }); return; }
+      sendJson(response, 200, monitor.stop());
+      return;
+    }
+
+    if (request.method === 'POST' && pathname === '/api/monitor/clear') {
+      if (!browserControl) { sendJson(response, 403, { error: 'LOCAL_SESSION_REQUIRED' }); return; }
+      sendJson(response, 200, monitor.clearHistory());
+      return;
+    }
+
+    if (request.method === 'POST' && pathname === '/api/contribution/preview') {
+      if (!browserControl) { sendJson(response, 403, { error: 'LOCAL_SESSION_REQUIRED' }); return; }
+      try { sendJson(response, 200, buildAnonymousAiFootprintPreview(currentReport, monitor.snapshot())); }
+      catch (error) {
+        sendJson(response, 409, { error: error instanceof Error ? error.message : 'CONTRIBUTION_PREVIEW_UNAVAILABLE' });
       }
       return;
     }
 
-    if (request.method === 'POST' && pathname === '/api/observe/stop') {
-      if (!authorized(request)) {
-        sendText(response, 403, 'application/json; charset=utf-8', JSON.stringify({ error: 'LOCAL_SESSION_REQUIRED' }));
-        return;
-      }
-      const state = observation;
-      if (!state) {
-        sendText(response, 409, 'application/json; charset=utf-8', JSON.stringify({ error: 'NO_OBSERVATION_IN_PROGRESS' }));
-        return;
-      }
-      if (state.timer) clearInterval(state.timer);
-      try { await takeObservationSample(state); } catch { /* keep completed samples */ }
-      observation = null;
-      const durationSeconds = Math.max(0.1, Math.round(((Date.now() - state.startedAt) / 1000) * 10) / 10);
-      sendText(response, 200, 'application/json; charset=utf-8', JSON.stringify({
-        measurement: 'user-timed-detected-agent-window',
-        duration_seconds: durationSeconds,
-        sample_count: state.samples.length,
-        average_cpu_percent: average(state.samples.map((sample) => sample.cpuPercent)),
-        peak_cpu_percent: peak(state.samples.map((sample) => sample.cpuPercent)),
-        average_memory_percent: average(state.samples.map((sample) => sample.memoryPercent)),
-        peak_memory_percent: peak(state.samples.map((sample) => sample.memoryPercent)),
-        max_agent_products: Math.max(0, ...state.samples.map((sample) => sample.agentProducts)),
-        max_agent_processes: Math.max(0, ...state.samples.map((sample) => sample.agentProcesses)),
-        max_loaded_models: Math.max(0, ...state.samples.map((sample) => sample.loadedModels)),
-        external_requests_made: 0,
-        evidence_manifest: macosResourceEvidenceManifest(),
-        limitation: 'Measures detected agent processes during this window; shared-process background activity can be included.',
-      }));
+    if (request.method === 'POST' && pathname === '/api/native/status') {
+      if (!nativeControl) { sendJson(response, 403, { error: 'NATIVE_CONTROL_REQUIRED' }); return; }
+      sendJson(response, 200, monitor.snapshot());
       return;
     }
 
-    if (request.method === 'POST' && pathname === '/api/stop') {
-      if (!authorized(request)) {
-        sendText(response, 403, 'application/json; charset=utf-8', JSON.stringify({ error: 'LOCAL_SESSION_REQUIRED' }));
-        return;
-      }
-      if (observation?.timer) clearInterval(observation.timer);
-      for (const stream of liveStreams) {
-        clearInterval(stream.timer);
-        stream.response.end();
-      }
-      liveStreams.clear();
-      observation = null;
-      sendText(response, 200, 'application/json; charset=utf-8', JSON.stringify({ stopped: true }));
-      setImmediate(() => server.close());
+    if (request.method === 'POST' && pathname === '/api/native/quit') {
+      if (!nativeControl) { sendJson(response, 403, { error: 'NATIVE_CONTROL_REQUIRED' }); return; }
+      const summary: MonitorSnapshot = monitor.stop();
+      sendJson(response, 200, summary);
+      setImmediate(() => { void closeService(); });
       return;
     }
 
     sendText(response, 404, 'text/plain; charset=utf-8', 'Not found.');
   });
 
-  await new Promise<void>((resolve, reject) => {
-    server.once('error', reject);
-    server.listen(port, hostname, () => {
-      server.off('error', reject);
-      resolve();
+  async function listen(port: number): Promise<void> {
+    await new Promise<void>((resolve, reject) => {
+      const onError = (error: NodeJS.ErrnoException) => {
+        server.off('listening', onListening);
+        reject(error);
+      };
+      const onListening = () => {
+        server.off('error', onError);
+        resolve();
+      };
+      server.once('error', onError);
+      server.once('listening', onListening);
+      server.listen(port, hostname);
     });
-  });
+  }
+
+  try {
+    await listen(requestedPort);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'EADDRINUSE' || requestedPort === 0) throw error;
+    await listen(0);
+  }
   const address = server.address() as AddressInfo;
   origin = `http://${hostname}:${address.port}`;
+
+  function closeService(): Promise<void> {
+    if (closing) return closing;
+    closing = new Promise<void>((resolve, reject) => {
+      monitor.stop();
+      stopStreams();
+      if (!server.listening) { resolve(); return; }
+      server.close((error) => error ? reject(error) : resolve());
+      server.closeIdleConnections();
+    });
+    return closing;
+  }
 
   return {
     server,
     url: `${origin}/`,
     sessionToken,
-    close: () => new Promise<void>((resolve, reject) => {
-      if (!server.listening) { resolve(); return; }
-      if (observation?.timer) clearInterval(observation.timer);
-      for (const stream of liveStreams) {
-        clearInterval(stream.timer);
-        stream.response.end();
-      }
-      liveStreams.clear();
-      observation = null;
-      server.close((error) => error ? reject(error) : resolve());
-    }),
+    monitor,
+    close: closeService,
   };
 }

@@ -24,23 +24,27 @@ reports, saved/shareable artifacts, and every anonymous/global schema.
 - exposes `storage_complete`; an incomplete scan must not be described as exact;
 - does not claim APFS physical block allocation, clone sharing, or compression.
 
-## Runtime freshness
+## Activity freshness and states
 
-The local page can consume a same-origin, token-protected NDJSON stream. It
-refreshes no more frequently than every 500 ms and reports the actual scan
-latency. A runtime transition becomes visible after provider response time plus
-up to one sampling interval. This is bounded near-real-time, not zero delay.
+The local service samples the macOS process tree at a one-second target interval
+and streams snapshots to a same-origin token-protected page. **Working now**
+requires two consecutive samples with a cumulative CPU-time delta of at least
+20 ms and at least 2% of the valid interval. Three negative samples return a
+present process tree to **Open / idle**. No supported process becomes **Not
+running**. Gaps longer than three sample intervals are excluded from observed
+and active duration.
 
-Provider-native events can replace polling later where a documented local event
-API exists. Polling remains necessary for providers that expose only snapshot
-endpoints.
+This is bounded near-real-time, not zero delay. A transition normally appears
+after two to three valid samples plus provider-response time. Supported local
+runtime processes enter activity classification only while a verified provider
+reports a loaded model; provider-native events may replace polling later.
 
 ## Resource evidence levels
 
 | Metric | Current evidence | Task exclusivity | Public wording |
 |---|---|---:|---|
-| CPU | OS samples for strongly detected processes over the user window | No | Detected-process CPU |
-| Memory | OS samples for strongly detected processes over the user window | No | Detected-process memory |
+| CPU | Repeated cumulative CPU-time deltas and current OS CPU for supported process trees | No | Supported AI activity / current process-tree CPU |
+| Memory | Current OS resident memory for supported process trees | No | Current process-tree memory context |
 | GPU | No supported cross-process proof source integrated | No | Unavailable |
 | Hardware | Static OS hardware metadata | Not task usage | Device capability |
 | Network traffic | No supported per-process proof source integrated | No | Unavailable |
@@ -50,6 +54,11 @@ Forkit-launched task runner could create a child-process tree, sample it from
 before launch to after exit, and attribute deltas to that controlled tree. Even
 then, shared daemon, runtime, unified-memory, and remote-provider work must be
 shown separately rather than silently assigned to the task.
+
+Forkit's own process tree is excluded from supported AI activity. Its current,
+median, and p95 CPU, current/maximum resident memory, and bounded serialized
+history bytes are shown separately as scanner overhead. These are operating-
+system process measurements, not energy or billing estimates.
 
 ## Developer ID gate
 

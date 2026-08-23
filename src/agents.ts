@@ -1,4 +1,6 @@
 import path from 'node:path';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { sha256, stableId } from './hash';
 import type { AgentKind, CensusAgent, Confidence, ProcessEntry } from './types';
 
@@ -19,6 +21,21 @@ interface AgentEvidence {
   cpuPercent: number | null;
   memoryPercent: number | null;
 }
+
+export interface ClassifiedAgentProcess {
+  pid: number;
+  ppid: number | null;
+  signature: string;
+  name: string;
+  kind: string;
+  confidence: Confidence;
+  relationship: 'direct' | 'descendant';
+  cpu_percent: number | null;
+  memory_percent: number | null;
+  cpu_time_ms: number | null;
+}
+
+const execFileAsync = promisify(execFile);
 
 const SIGNATURES: AgentSignature[] = [
   { signature: 'codex', name: 'Codex', kind: 'coding-agent', terms: ['codex'], executables: ['codex'] },
@@ -118,6 +135,110 @@ function classifyProcess(entry: ProcessEntry): AgentEvidence | null {
   return null;
 }
 
+function descendantsOf(processes: ProcessEntry[], rootPid: number): Set<number> {
+  const excluded = new Set<number>([rootPid]);
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const entry of processes) {
+      if (excluded.has(entry.pid) || entry.ppid === undefined || !excluded.has(entry.ppid)) continue;
+      excluded.add(entry.pid);
+      changed = true;
+    }
+  }
+  return excluded;
+}
+
+/**
+ * Builds private process-tree evidence for the activity monitor. PIDs and raw
+ * commands remain internal and are deliberately absent from public reports.
+ */
+export function classifyAgentProcessTrees(
+  processes: ProcessEntry[],
+  excludedRootPid: number | null = process.pid,
+): ClassifiedAgentProcess[] {
+  const excluded = excludedRootPid === null ? new Set<number>() : descendantsOf(processes, excludedRootPid);
+  const byPid = new Map(processes.map((entry) => [entry.pid, entry]));
+  const direct = new Map<number, AgentEvidence>();
+  for (const entry of processes) {
+    if (excluded.has(entry.pid)) continue;
+    const evidence = classifyProcess(entry);
+    if (evidence) direct.set(entry.pid, evidence);
+  }
+
+  const result: ClassifiedAgentProcess[] = [];
+  for (const entry of processes) {
+    if (excluded.has(entry.pid)) continue;
+    let owner = direct.get(entry.pid) ?? null;
+    let relationship: ClassifiedAgentProcess['relationship'] = 'direct';
+    if (!owner) {
+      const visited = new Set<number>();
+      let parentPid = entry.ppid;
+      for (let depth = 0; parentPid !== undefined && parentPid > 0 && depth < 24; depth += 1) {
+        if (visited.has(parentPid) || excluded.has(parentPid)) break;
+        visited.add(parentPid);
+        owner = direct.get(parentPid) ?? null;
+        if (owner) { relationship = 'descendant'; break; }
+        parentPid = byPid.get(parentPid)?.ppid;
+      }
+    }
+    if (!owner) continue;
+    result.push({
+      pid: entry.pid,
+      ppid: entry.ppid ?? null,
+      signature: owner.signature.signature,
+      name: owner.signature.name,
+      kind: owner.signature.kind,
+      confidence: owner.confidence,
+      relationship,
+      cpu_percent: Number.isFinite(entry.cpu_percent) ? Math.max(0, Number(entry.cpu_percent)) : null,
+      memory_percent: Number.isFinite(entry.memory_percent) ? Math.max(0, Number(entry.memory_percent)) : null,
+      cpu_time_ms: Number.isFinite(entry.cpu_time_ms) ? Math.max(0, Number(entry.cpu_time_ms)) : null,
+    });
+  }
+  return result.sort((left, right) => left.signature.localeCompare(right.signature) || left.pid - right.pid);
+}
+
+export function parseMacosCpuTime(value: string): number | null {
+  const match = /^(?:(\d+)-)?(?:(\d+):)?(\d+):(\d+(?:\.\d+)?)$/.exec(value.trim());
+  if (!match) return null;
+  const days = Number(match[1] ?? 0);
+  const hours = Number(match[2] ?? 0);
+  const minutes = Number(match[3] ?? 0);
+  const seconds = Number(match[4] ?? 0);
+  if (![days, hours, minutes, seconds].every(Number.isFinite)) return null;
+  return Math.round((((days * 24 + hours) * 60 + minutes) * 60 + seconds) * 1000);
+}
+
+interface MacosProcessMetrics {
+  cpuTimeMs: number;
+  rssBytes: number;
+}
+
+async function macosProcessMetrics(): Promise<Map<number, MacosProcessMetrics>> {
+  if (process.platform !== 'darwin') return new Map();
+  try {
+    const { stdout } = await execFileAsync('ps', ['-axo', 'pid=,time=,rss='], {
+      encoding: 'utf8',
+      maxBuffer: 16_000_000,
+      env: { ...process.env, LC_ALL: 'C', LANG: 'C' },
+    });
+    const result = new Map<number, MacosProcessMetrics>();
+    for (const line of stdout.split('\n')) {
+      const match = /^\s*(\d+)\s+(\S+)\s+(\d+)\s*$/.exec(line);
+      if (!match) continue;
+      const value = parseMacosCpuTime(match[2]!);
+      const rssKilobytes = Number(match[3]);
+      if (value !== null && Number.isFinite(rssKilobytes)) {
+        result.set(Number(match[1]), { cpuTimeMs: value, rssBytes: Math.max(0, rssKilobytes) * 1024 });
+      }
+    }
+    return result;
+  } catch {
+    return new Map();
+  }
+}
+
 function confidenceRank(confidence: Confidence): number {
   return confidence === 'high' ? 3 : confidence === 'medium' ? 2 : 1;
 }
@@ -170,7 +291,7 @@ export async function listSystemProcesses(): Promise<ProcessEntry[]> {
   ) => Promise<{ default: () => Promise<Array<{ pid: number; ppid: number; name: string; cmd?: string; cpu?: number; memory?: number }>> }>;
   const imported = await dynamicImport('ps-list');
   const list = imported.default;
-  const processes = await list();
+  const [processes, macosMetrics] = await Promise.all([list(), macosProcessMetrics()]);
   return processes.map((process) => ({
     pid: process.pid,
     ppid: process.ppid,
@@ -178,5 +299,9 @@ export async function listSystemProcesses(): Promise<ProcessEntry[]> {
     ...(process.cmd !== undefined ? { cmd: process.cmd } : {}),
     ...(Number.isFinite(process.cpu) ? { cpu_percent: Number(process.cpu) } : {}),
     ...(Number.isFinite(process.memory) ? { memory_percent: Number(process.memory) } : {}),
+    ...(macosMetrics.has(process.pid) ? {
+      cpu_time_ms: macosMetrics.get(process.pid)!.cpuTimeMs,
+      rss_bytes: macosMetrics.get(process.pid)!.rssBytes,
+    } : {}),
   }));
 }

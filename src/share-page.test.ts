@@ -1,140 +1,100 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { runCensus } from './census';
-import { buildCensusShareSnapshot, renderCensusSharePage } from './share-page';
+import { buildCensusShareSnapshot, buildLocalScanView, renderCensusSharePage } from './share-page';
 
-test('share snapshot contains aggregate facts without item-level records', async () => {
-  const report = await runCensus({
-    includeRuntimes: false,
-    includeFilesystem: false,
-    includeAgents: false,
-    includeTools: false,
-    includeMcp: false,
-  });
-  const sentinel = 'PRIVATE_MODEL_OR_COMMAND_DO_NOT_RENDER';
-  report.generated_at = '2026-08-22T12:00:00.000Z';
+async function emptyReport() {
+  return runCensus({ includeRuntimes: false, includeFilesystem: false, includeAgents: false, includeTools: false, includeMcp: false });
+}
+
+test('storage uses correct decimal and binary unit labels', async () => {
+  const report = await emptyReport();
   report.system = { platform: 'darwin', architecture: 'arm64', node_major: 24 };
-  report.summary = {
-    runtime_count: 4,
-    available_runtime_count: 1,
-    model_count: 4,
-    agent_product_count: 1,
-    agent_process_count: 13,
-    agent_cpu_percent: 3.2,
-    agent_memory_percent: 1.4,
-    tool_count: 4,
-    mcp_config_count: 1,
-    confirmed_running_model_count: 0,
-    storage_bytes: 2_595_045_761,
-    storage_file_count: 4,
-    storage_complete: true,
-    storage_measurement: 'recognized-logical-file-bytes',
-    warning_count: 2,
-  };
-  report.models = [{ name: sentinel }] as unknown as typeof report.models;
-  report.agents = [{ confidence: 'high', executable_names: [sentinel] }] as unknown as typeof report.agents;
-
+  report.summary.storage_bytes = 2_600_071_742;
+  report.summary.storage_file_count = 12;
   const snapshot = buildCensusShareSnapshot(report);
-  assert.equal(snapshot.model_record_count, 4);
-  assert.equal(snapshot.online_runtime_count, 1);
-  assert.equal(snapshot.architecture_label, 'Apple Silicon');
-  assert.equal(snapshot.model_storage_display, '2.42 GB');
-  assert.equal(snapshot.model_storage_bytes, 2_595_045_761);
-  assert.equal(snapshot.model_storage_complete, true);
-  assert.equal(snapshot.active_agent_process_count, 13);
-  assert.equal(snapshot.agent_cpu_percent, 3.2);
-
-  const html = renderCensusSharePage(report);
-  assert.match(html, /Forkit AI Footprints/);
-  assert.match(html, /Guess\.<br>Then know\./);
-  assert.match(html, /Reveal my footprint/);
-  assert.match(html, /How many model records are hiding on this Mac/);
-  assert.match(html, /Create share card/);
-  assert.match(html, />Discover</);
-  assert.match(html, />Observe</);
-  assert.match(html, />Evolution</);
-  assert.match(html, /Save private baseline/);
-  assert.match(html, /forkit-ai-footprints-private-history-v1/);
-  assert.match(html, /localStorage\.setItem\(HISTORY_KEY/);
-  assert.match(html, /No names, paths, guess, or task details/);
-  assert.match(html, /canvas id="share-canvas" width="1200" height="630"/);
-  assert.match(html, /Download PNG/);
-  assert.match(html, /Share image/);
-  assert.match(html, /Created entirely on this device from aggregate counts/);
-  assert.match(html, /navigator\.share/);
-  assert.match(html, /stays on this device/i);
-  assert.match(html, /point-in-time CPU and memory/i);
-  assert.match(html, /More intelligence was hiding in plain sight/);
-  assert.match(html, /model_storage_display/);
-  assert.doesNotMatch(html, /npm install/i);
-  assert.doesNotMatch(html, /Global AI Pulse/i);
-  assert.doesNotMatch(html, new RegExp(sentinel));
-  assert.doesNotMatch(html, /https?:\/\//i);
-  assert.doesNotMatch(html, /Studio Test Mac/);
-  assert.doesNotMatch(html, /<script[^>]+src=/i);
-  assert.doesNotMatch(html, /<img\b/i);
+  assert.equal(snapshot.model_storage_decimal_display, '2.60 GB');
+  assert.equal(snapshot.model_storage_binary_display, '2.42 GiB');
+  assert.equal(snapshot.model_storage_display, '2.60 GB · 2.42 GiB');
 });
 
-test('interactive local page can show a device label without adding it to aggregate snapshots', async () => {
-  const report = await runCensus({
-    includeRuntimes: false,
-    includeFilesystem: false,
-    includeAgents: false,
-    includeTools: false,
-    includeMcp: false,
-  });
-  const snapshot = buildCensusShareSnapshot(report);
-  const html = renderCensusSharePage(report, { localDeviceLabel: 'Studio Test Mac' });
-  assert.match(html, /Studio Test Mac/);
-  assert.equal(JSON.stringify(snapshot).includes('Studio Test Mac'), false);
-});
-
-test('share page states the compact result limitations', async () => {
-  const report = await runCensus({
-    includeRuntimes: false,
-    includeFilesystem: false,
-    includeAgents: false,
-    includeTools: false,
-    includeMcp: false,
-  });
-  const html = renderCensusSharePage(report);
-  assert.match(html, /metadata evidence, not ownership/i);
-  assert.match(html, /No weights, prompts, commands, config values, or account data/i);
-  assert.doesNotMatch(html, /id="scan-button"/);
-});
-
-test('local rescan control requires a relative endpoint and random session token', async () => {
-  const report = await runCensus({
-    includeRuntimes: false,
-    includeFilesystem: false,
-    includeAgents: false,
-    includeTools: false,
-    includeMcp: false,
-  });
+test('one-page app puts truthful activity before footprint and comparison', async () => {
+  const report = await emptyReport();
   const html = renderCensusSharePage(report, {
+    localDeviceLabel: 'Studio Test Mac',
     rescan: {
       endpoint: '/api/scan',
-      live_endpoint: '/api/live',
-      stop_endpoint: '/api/stop',
-      observe_start_endpoint: '/api/observe/start',
-      observe_stop_endpoint: '/api/observe/stop',
+      monitor_start_endpoint: '/api/monitor/start',
+      monitor_stop_endpoint: '/api/monitor/stop',
+      monitor_stream_endpoint: '/api/monitor/stream',
+      monitor_clear_endpoint: '/api/monitor/clear',
+      contribution_preview_endpoint: '/api/contribution/preview',
       session_token: 'a'.repeat(48),
     },
   });
-  assert.match(html, /Scan again/);
-  assert.match(html, /Close local scan/);
-  assert.match(html, /Measure one AI task/);
-  assert.match(html, /Share task/);
-  assert.match(html, /Stop & measure/);
-  assert.match(html, /x-forkit-footprints-session/);
+  assert.match(html, /AI activity now/);
+  assert.match(html, /Monitoring is off/);
+  assert.match(html, /Start Monitoring/);
+  assert.match(html, /OPEN \/ IDLE/);
+  assert.match(html, /NOT RUNNING/);
+  assert.match(html, /Guess, then reveal/);
+  assert.match(html, /Optional global comparison/);
+  assert.match(html, /Share aggregates &amp; see my rank/);
+  assert.match(html, /Keep everything local/);
+  assert.match(html, /Technical details/);
+  assert.match(html, /Studio Test Mac/);
+  assert.doesNotMatch(html, />Discover</);
+  assert.doesNotMatch(html, />Observe</);
+  assert.doesNotMatch(html, />Evolution</);
+  assert.doesNotMatch(html, /Measure one AI task/);
+  assert.doesNotMatch(html, /loaded\/online state/i);
+  const inlineScript = /<script>([\s\S]*?)<\/script>/.exec(html)?.[1];
+  assert.ok(inlineScript);
+  assert.doesNotThrow(() => new Function(inlineScript));
+});
+
+test('interactive detail names never enter share words or share canvas data', async () => {
+  const report = await emptyReport();
+  const sentinel = 'PRIVATE_APP_AND_CHAT_DO_NOT_SHARE';
+  report.agents = [{
+    agent_id: 'agent_test', name: sentinel, signature: 'private', kind: 'coding-agent', confidence: 'high',
+    instance_count: 1, executable_names: ['private'], evidence_hashes: ['hash'], detection_reason: 'exact_executable_match',
+    evidence_status: 'online', resource_snapshot: { cpu_percent: 1, memory_percent: 1, measurement: 'point-in-time-process-metadata' },
+  }];
+  const local = buildLocalScanView(report);
+  assert.equal(local.local_details.agents[0]?.name, sentinel);
+  const html = renderCensusSharePage(report, {
+    rescan: {
+      endpoint: '/api/scan', monitor_start_endpoint: '/api/monitor/start', monitor_stop_endpoint: '/api/monitor/stop',
+      monitor_stream_endpoint: '/api/monitor/stream', monitor_clear_endpoint: '/api/monitor/clear', contribution_preview_endpoint: '/api/contribution/preview', session_token: 'b'.repeat(48),
+    },
+  });
+  assert.match(html, new RegExp(sentinel));
+  const shareFunction = html.slice(html.indexOf('function shareWords'), html.indexOf('function draw'));
+  const drawFunction = html.slice(html.indexOf('function draw'), html.indexOf("$('guess-form')"));
+  assert.doesNotMatch(shareFunction, /local_details|products|context|\.name/);
+  assert.doesNotMatch(drawFunction, /local_details|products|context|\.name/);
+  assert.doesNotMatch(shareFunction, new RegExp(sentinel));
+});
+
+test('saved aggregate page is self-contained and exposes no item names', async () => {
+  const report = await emptyReport();
+  const sentinel = 'PRIVATE_MODEL_DO_NOT_RENDER';
+  report.models = [{ name: sentinel }] as unknown as typeof report.models;
+  const html = renderCensusSharePage(report);
+  assert.match(html, /Forkit AI Footprints/);
+  assert.match(html, /canvas[^>]+width="1200" height="630"/);
+  assert.doesNotMatch(html, new RegExp(sentinel));
+  assert.doesNotMatch(html, /https?:\/\//i);
+  assert.doesNotMatch(html, /[a-f0-9]{48}/);
+});
+
+test('local controls reject external endpoints and weak tokens', async () => {
+  const report = await emptyReport();
   assert.throws(() => renderCensusSharePage(report, {
     rescan: {
-      endpoint: 'https://example.com/scan',
-      live_endpoint: '/api/live',
-      stop_endpoint: '/api/stop',
-      observe_start_endpoint: '/api/observe/start',
-      observe_stop_endpoint: '/api/observe/stop',
-      session_token: 'weak',
+      endpoint: 'https://example.com/scan', monitor_start_endpoint: '/api/monitor/start', monitor_stop_endpoint: '/api/monitor/stop',
+      monitor_stream_endpoint: '/api/monitor/stream', monitor_clear_endpoint: '/api/monitor/clear', contribution_preview_endpoint: '/api/contribution/preview', session_token: 'weak',
     },
   }), /INVALID_LOCAL_RESCAN_OPTIONS/);
 });

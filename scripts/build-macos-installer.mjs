@@ -6,6 +6,8 @@ import { fileURLToPath } from 'node:url';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(scriptDir, '..');
+const packageMetadata = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+const productVersion = packageMetadata.version;
 const outputRoot = path.join(root, 'artifacts', 'macos');
 const cacheRoot = path.join(root, 'artifacts', 'runtime-cache');
 const stagingRoot = path.join(outputRoot, 'pkg-root');
@@ -18,7 +20,7 @@ const appResources = path.join(resources, 'app');
 const runtimeDir = path.join(resources, 'runtime');
 const executablePath = path.join(macosDir, 'Forkit AI Footprints');
 const bundledNode = path.join(runtimeDir, 'node');
-const packagePath = path.join(outputRoot, `Forkit-AI-Footprints-0.2.0-macos-${process.arch}.pkg`);
+const packagePath = path.join(outputRoot, `Forkit-AI-Footprints-${productVersion}-macos-${process.arch}.pkg`);
 const nodeEntitlementsPath = path.join(outputRoot, 'node-entitlements.plist');
 const appEntitlementsPath = path.join(outputRoot, 'app-entitlements.plist');
 const applicationIdentity = process.env.FORKIT_MACOS_APPLICATION_IDENTITY || '-';
@@ -61,7 +63,12 @@ run('tar', ['-xzf', nodeArchive, '-C', runtimeExtract]);
 fs.copyFileSync(path.join(runtimeExtract, `node-v${nodeVersion}-darwin-arm64`, 'bin', 'node'), bundledNode);
 fs.chmodSync(bundledNode, 0o755);
 
-fs.writeFileSync(path.join(appResources, 'package.json'), `${JSON.stringify({ private: true, type: 'commonjs' }, null, 2)}\n`);
+fs.writeFileSync(path.join(appResources, 'package.json'), `${JSON.stringify({
+  name: 'forkit-ai-footprints-bundled',
+  version: productVersion,
+  private: true,
+  type: 'commonjs',
+}, null, 2)}\n`);
 fs.writeFileSync(path.join(contents, 'Info.plist'), `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
@@ -72,7 +79,7 @@ fs.writeFileSync(path.join(contents, 'Info.plist'), `<?xml version="1.0" encodin
   <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
   <key>CFBundleName</key><string>Forkit AI Footprints</string>
   <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleShortVersionString</key><string>0.2.0</string>
+  <key>CFBundleShortVersionString</key><string>${productVersion}</string>
   <key>CFBundleVersion</key><string>1</string>
   <key>LSMinimumSystemVersion</key><string>14.0</string>
   <key>LSUIElement</key><true/>
@@ -93,7 +100,7 @@ fs.writeFileSync(appEntitlementsPath, `<?xml version="1.0" encoding="UTF-8"?>
 <plist version="1.0"><dict>
 ${appAttestEntitlement}</dict></plist>
 `);
-run('xcrun', ['swiftc', '-parse-as-library', path.join(root, 'native/macos/ForkitAiFootprintsLauncher.swift'), '-framework', 'DeviceCheck', '-framework', 'CryptoKit', '-framework', 'Security', '-o', executablePath]);
+run('xcrun', ['swiftc', '-parse-as-library', path.join(root, 'native/macos/ForkitAiFootprintsLauncher.swift'), '-framework', 'AppKit', '-framework', 'WebKit', '-framework', 'DeviceCheck', '-framework', 'CryptoKit', '-framework', 'Security', '-o', executablePath]);
 fs.chmodSync(executablePath, 0o755);
 run('xattr', ['-cr', appPath]);
 
@@ -102,13 +109,13 @@ run('codesign', ['--force', '--options', 'runtime', ...timestampArgs, '--entitle
 run('codesign', ['--force', '--options', 'runtime', ...timestampArgs, '--entitlements', appEntitlementsPath, '--sign', applicationIdentity, appPath]);
 run('codesign', ['--verify', '--deep', '--strict', '--verbose=2', appPath]);
 
-const pkgArgs = ['--root', stagingRoot, '--identifier', 'dev.forkit.ai-footprints.pkg', '--version', '0.2.0', '--install-location', '/'];
+const pkgArgs = ['--root', stagingRoot, '--identifier', 'dev.forkit.ai-footprints.pkg', '--version', productVersion, '--install-location', '/'];
 if (installerIdentity) pkgArgs.push('--sign', installerIdentity);
 pkgArgs.push(packagePath);
 run('pkgbuild', pkgArgs);
 
 const smoke = run(bundledNode, [path.join(appResources, 'dist', 'cli.js'), '--version']);
-if (smoke !== '0.2.0') throw new Error(`Bundled CLI smoke returned ${smoke}.`);
+if (smoke !== productVersion) throw new Error(`Bundled CLI smoke returned ${smoke}; expected ${productVersion}.`);
 const appAttestCapability = JSON.parse(run(executablePath, ['--app-attest', 'status']));
 if (appAttestCapability.network_request_made !== false) throw new Error('App Attest capability smoke made an unexpected network request.');
 

@@ -17,15 +17,22 @@ current release claim.
 
 ## Install on macOS
 
-The public experience is deliberately three steps:
+No public channel is live yet. The prepared free global command is:
 
-1. Download **Forkit AI Footprints for Mac**.
-2. Open the verified installer.
-3. Open the app and discover your footprint.
+```bash
+npx --yes forkit-ai-footprints@latest
+```
 
-The Developer ID-signed and Apple-notarized installer includes its own
-checksummed Node runtime. Public users will not need Node, npm, Homebrew, an
-account, or a Terminal command. Developers can build the local candidate with:
+Mac users who already have Node can run it directly. Homebrew users can first
+run `brew install node`; users with neither can use the official Node LTS
+installer and verify `node`, `npm`, and `npx`. A Forkit-specific Homebrew formula
+and direct download are deliberately not advertised because those channels do
+not exist. The website may present the `npx` command as available only after the
+exact tested package is published and the release manifest verifies it. See
+[`docs/GLOBAL_DISTRIBUTION.md`](./docs/GLOBAL_DISTRIBUTION.md).
+
+The future click installer remains blocked until it can be Developer ID-signed
+and Apple-notarized. Developers can build the local candidate with:
 
 ```bash
 npm ci
@@ -63,8 +70,8 @@ npm install -g forkit-ai-footprints
 forkit-ai-footprints serve
 ```
 
-npm remains a developer fallback after an authorized package publication; it
-is not the primary public Mac installation experience.
+npm is a global developer channel after an authorized publication; it is not a
+replacement for the simpler Homebrew recommendation on macOS.
 
 ## Commands
 
@@ -72,6 +79,7 @@ Run a local scan, verify the installation, or score one manually labelled Mac:
 
 ```bash
 forkit-ai-footprints serve
+forkit-ai-footprints monitor
 forkit-ai-footprints scan
 forkit-ai-footprints doctor
 forkit-ai-footprints evaluate --truth /absolute/path/to/local-truth.json
@@ -110,38 +118,36 @@ names, paths, commands, endpoints, configuration values, account identity, or
 Census ID. Its copy/share controls include only the visible aggregate summary
 and run only after a user click.
 
-`serve` binds only to `127.0.0.1`, keeps the report in memory, and opens the
-Guess → Actual experience. `Scan again` calls a random-token-protected local
-endpoint and returns aggregate display fields only. The guess remains in the
-browser page and is never sent to the local server or Forkit.dev. `Close local
-scan` shuts down the token-protected loopback service.
+`serve` binds only to `127.0.0.1`, keeps the report and monitor in memory, and
+opens the AI activity → Guess → Reveal → Share experience. `Scan again` calls a random-token-protected local
+endpoint. The protected local page can name detected runtimes, models, AI apps,
+and tools; saved/shareable and anonymous/global artifacts remain aggregate-only.
+The guess remains in the browser page and is never sent to the local server or
+Forkit.dev. Start/Stop controls monitoring explicitly; browser/window closure
+does not stop it, while native Quit stops the monitor and loopback service.
 
 The local app also keeps an owner-only device journal containing the sanitized
 Mac display name, first/last scan timestamps, and scan count. This lets the Mac
-identify its own history without placing the device name in a report, saved
-share page, image, anonymous preview, or website payload. The activity view uses
-a token-protected local stream sampled at most every 500 ms and displays the
-actual scan latency; it is near-real-time, not zero delay.
+resume its local state without placing the device name in a report, saved share
+page, image, anonymous preview, or website payload. The single result view uses
+a token-protected local stream with a one-second target interval. Repeated
+cumulative CPU-time deltas and hysteresis distinguish Working now from Open /
+idle; process presence alone is never activity. It is near-real-time, not zero delay.
 
 The revealed resource view reports deduplicated recognized logical model-file
-bytes and supported
-runtime loaded-model evidence. For active agent products it aggregates process
-count plus point-in-time CPU and memory percentages. Those percentages are a
-snapshot, not energy, token, cost, or lifetime usage.
+bytes and provider-native loaded-model evidence. The activity view uses private
+process-tree CPU-time deltas and separately displays Forkit's measured CPU,
+resident memory, and bounded-history overhead. None is an energy, token, cost,
+or lifetime-usage measurement.
 
-`Observe one AI task` is the more meaningful resource view: click Start,
-perform one task, then click Stop. It reports the observation duration, sample
-count, average and peak detected-agent CPU/memory percentages, and the maximum
-agent-process and loaded-model counts seen in that window. It stays in memory.
-If the same process performs background work, that activity can be included;
-the result is not per-prompt attribution and does not measure GPU, energy,
-tokens, cost, disk I/O, or network usage.
+AI Footprints does not claim prompt or task ownership. **Working now** means
+sustained recent work inside a supported process tree, which may be foreground
+or background. The result does not measure GPU, energy, tokens, cost, disk I/O,
+or per-process network usage.
 
 After revealing the result, `Create share card` renders a 1200×630 PNG entirely
-in the browser. The card turns Guess → Discovered into a visual story and uses
-only aggregate fields: model records, supported loaded state, agent process
-count, recognized model-file bytes, and either the task observation or the
-clearly labelled point-in-time resource snapshot. It can be downloaded or passed to the operating
+in the browser. Its result-based line and cards use only model-record count,
+recognized model storage, observed duration, and activity ratio. It can be downloaded or passed to the operating
 system share sheet after an explicit click; no model names or scan records are
 placed in the image or uploaded by AI Footprints.
 
@@ -168,9 +174,11 @@ forkit-ai-footprints scan --no-tools
 forkit-ai-footprints scan --no-mcp
 ```
 
-`--anonymous-payload --consent-share` creates an aggregate-only preview after
-the local result. It does not upload anything. The preview excludes model,
-tool, MCP server, workspace, repository, machine, and account identifiers.
+CLI flags cannot bypass the required monitoring session. The local UI enables
+an exact schema `2.0` aggregate preview only after 600 valid observed seconds;
+preview and consent remain separate, and no upload transport exists. The
+payload excludes app/model names, process counts, CPU/RAM, chat, workspace,
+repository, device, guess, Census, and account identifiers.
 
 ## Shared core API
 

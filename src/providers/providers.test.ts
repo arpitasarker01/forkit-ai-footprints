@@ -4,11 +4,14 @@ import { LMStudioProvider } from './lmstudio';
 import { OllamaProvider } from './ollama';
 import { configuredOpenAICompatibleProviders, OpenAICompatibleProvider } from './openai-compatible';
 
+const verifiedOllama = async () => true;
+
 test('Ollama census prefers a content-addressed weights digest', async () => {
   const weights = 'a'.repeat(64);
   const manifest = 'b'.repeat(64);
   const fetchImpl: typeof fetch = async (input) => {
     const url = String(input);
+    if (url.endsWith('/api/version')) return new Response(JSON.stringify({ version: '0.20.5' }));
     if (url.endsWith('/api/tags')) {
       return new Response(JSON.stringify({
         models: [{
@@ -36,7 +39,7 @@ test('Ollama census prefers a content-addressed weights digest', async () => {
       },
     }), { status: 200 });
   };
-  const result = await new OllamaProvider('http://localhost:11434', fetchImpl)
+  const result = await new OllamaProvider('http://localhost:11434', fetchImpl, verifiedOllama)
     .scan('2026-08-22T00:00:00.000Z');
   assert.equal(result.runtime.status, 'available');
   assert.equal(result.models[0]?.identity, weights);
@@ -49,13 +52,14 @@ test('Ollama census prefers a content-addressed weights digest', async () => {
 test('Ollama inventory remains useful when api/ps is unavailable', async () => {
   const fetchImpl: typeof fetch = async (input) => {
     const url = String(input);
+    if (url.endsWith('/api/version')) return new Response(JSON.stringify({ version: '0.20.5' }));
     if (url.endsWith('/api/tags')) {
       return new Response(JSON.stringify({ models: [{ name: 'model-a', digest: `sha256:${'a'.repeat(64)}` }] }), { status: 200 });
     }
     if (url.endsWith('/api/ps')) return new Response('{}', { status: 404 });
     return new Response('{}', { status: 200 });
   };
-  const result = await new OllamaProvider('http://localhost:11434', fetchImpl)
+  const result = await new OllamaProvider('http://localhost:11434', fetchImpl, verifiedOllama)
     .scan('2026-08-22T00:00:00.000Z');
   assert.equal(result.runtime.evidence_status, 'online');
   assert.equal(result.models[0]?.evidence_status, 'discovered');
@@ -67,15 +71,57 @@ test('Ollama reuses immutable digest details during near-real-time scans', async
   const digest = 'b'.repeat(64);
   const fetchImpl: typeof fetch = async (input) => {
     const url = String(input);
+    if (url.endsWith('/api/version')) return new Response(JSON.stringify({ version: '0.20.5' }));
     if (url.endsWith('/api/tags')) return new Response(JSON.stringify({ models: [{ name: 'model-a', digest: `sha256:${digest}` }] }));
     if (url.endsWith('/api/ps')) return new Response(JSON.stringify({ models: [] }));
     showCalls += 1;
     return new Response(JSON.stringify({ details: { family: 'llama' } }));
   };
-  const provider = new OllamaProvider('http://localhost:11434', fetchImpl);
+  const provider = new OllamaProvider('http://localhost:11434', fetchImpl, verifiedOllama);
   await provider.scan('2026-08-23T00:00:00.000Z');
   await provider.scan('2026-08-23T00:00:01.000Z');
   assert.equal(showCalls, 1);
+});
+
+test('Ollama rejects a valid-looking API when listener identity is not verified', async () => {
+  let fetchCount = 0;
+  const fetchImpl: typeof fetch = async () => {
+    fetchCount += 1;
+    return new Response(JSON.stringify({ version: '0.20.5', models: [] }));
+  };
+  const result = await new OllamaProvider('http://localhost:11434', fetchImpl, async () => false)
+    .scan('2026-08-23T00:00:00.000Z');
+  assert.equal(result.runtime.status, 'unavailable');
+  assert.equal(result.runtime.error_code, 'runtime_identity_unverified');
+  assert.equal(fetchCount, 0);
+});
+
+test('Ollama requires version, tags, and ps response shapes', async () => {
+  const fetchImpl: typeof fetch = async (input) => {
+    const url = String(input);
+    if (url.endsWith('/api/version')) return new Response(JSON.stringify({ version: '0.20.5' }));
+    if (url.endsWith('/api/tags')) return new Response(JSON.stringify({ models: [] }));
+    return new Response('{}');
+  };
+  const result = await new OllamaProvider('http://localhost:11434', fetchImpl, verifiedOllama)
+    .scan('2026-08-23T00:00:00.000Z');
+  assert.equal(result.runtime.status, 'available');
+  assert.equal(result.warnings[0]?.code, 'ollama_running_state_unavailable');
+});
+
+test('Ollama accepts raw 64-hex content digests', async () => {
+  const digest = 'c'.repeat(64);
+  const fetchImpl: typeof fetch = async (input) => {
+    const url = String(input);
+    if (url.endsWith('/api/version')) return new Response(JSON.stringify({ version: '0.20.5' }));
+    if (url.endsWith('/api/tags')) return new Response(JSON.stringify({ models: [{ name: 'raw:latest', digest }] }));
+    if (url.endsWith('/api/ps')) return new Response(JSON.stringify({ models: [] }));
+    return new Response('{}');
+  };
+  const result = await new OllamaProvider('http://localhost:11434', fetchImpl, verifiedOllama)
+    .scan('2026-08-23T00:00:00.000Z');
+  assert.equal(result.models[0]?.identity, digest);
+  assert.equal(result.models[0]?.identity_kind, 'content-sha256');
 });
 
 test('LM Studio census uses provider identity without retaining model paths', async () => {

@@ -1,5 +1,6 @@
 import { parseLoopbackEndpoint, type SafeEndpoint } from '../endpoints';
 import { sha256 } from '../hash';
+import { verifyMacosLoopbackRuntimeIdentity, type RuntimeIdentityVerifier } from '../runtime-identity';
 import type { RuntimeProvider, RuntimeScanResult } from '../types';
 import {
   createModel,
@@ -13,8 +14,19 @@ import {
 
 function parseSha256(value: string | null): string | null {
   if (!value) return null;
-  const match = /^sha256:([0-9a-f]{64})$/i.exec(value);
+  const match = /^(?:sha256:)?([0-9a-f]{64})$/i.exec(value);
   return match?.[1]?.toLowerCase() ?? null;
+}
+
+function validOllamaVersion(value: unknown): boolean {
+  const body = readRecord(value);
+  const version = readString(body?.version);
+  return version !== null && /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(version);
+}
+
+function validModelArray(value: unknown): unknown[] | null {
+  const body = readRecord(value);
+  return body !== null && Array.isArray(body.models) ? body.models : null;
 }
 
 export class OllamaProvider implements RuntimeProvider {
@@ -25,6 +37,7 @@ export class OllamaProvider implements RuntimeProvider {
   constructor(
     endpoint = 'http://localhost:11434',
     private readonly fetchImpl: typeof fetch = fetch,
+    private readonly verifyIdentity: RuntimeIdentityVerifier = verifyMacosLoopbackRuntimeIdentity,
   ) {
     const safeEndpoint = parseLoopbackEndpoint(endpoint);
     if (!safeEndpoint) throw new Error('Ollama endpoint must be loopback HTTP(S).');
@@ -32,11 +45,7 @@ export class OllamaProvider implements RuntimeProvider {
   }
 
   async scan(observedAt: string): Promise<RuntimeScanResult> {
-    const [tags, running] = await Promise.all([
-      fetchJson(`${this.endpoint.url}/api/tags`, { method: 'GET' }, this.fetchImpl),
-      fetchJson(`${this.endpoint.url}/api/ps`, { method: 'GET' }, this.fetchImpl),
-    ]);
-    if (!tags.ok) {
+    if (!await this.verifyIdentity(this.endpoint.url, 'ollama')) {
       return {
         runtime: createRuntime({
           name: this.name,
@@ -44,22 +53,49 @@ export class OllamaProvider implements RuntimeProvider {
           status: 'unavailable',
           modelCount: 0,
           observedAt,
-          errorCode: tags.error,
+          errorCode: 'runtime_identity_unverified',
         }),
         models: [],
-        warnings: [],
+        warnings: [{
+          code: 'runtime_identity_unverified',
+          message: 'A loopback response could not be tied to the supported Ollama executable.',
+          scope: 'runtime',
+        }],
+      };
+    }
+    const [version, tags, running] = await Promise.all([
+      fetchJson(`${this.endpoint.url}/api/version`, { method: 'GET' }, this.fetchImpl),
+      fetchJson(`${this.endpoint.url}/api/tags`, { method: 'GET' }, this.fetchImpl),
+      fetchJson(`${this.endpoint.url}/api/ps`, { method: 'GET' }, this.fetchImpl),
+    ]);
+    const tagEntries = tags.ok ? validModelArray(tags.body) : null;
+    if (!version.ok || !validOllamaVersion(version.body) || tagEntries === null) {
+      return {
+        runtime: createRuntime({
+          name: this.name,
+          endpoint: this.endpoint.display,
+          status: 'unavailable',
+          modelCount: 0,
+          observedAt,
+          errorCode: !version.ok ? version.error : !tags.ok ? tags.error : 'invalid_ollama_api_shape',
+        }),
+        models: [],
+        warnings: [{
+          code: 'ollama_api_unverified',
+          message: 'The listener owner matched Ollama, but its version or inventory response was not valid.',
+          scope: 'runtime',
+        }],
       };
     }
 
-    const runningBody = readRecord(running.body);
-    const runningEntries = readArray(runningBody?.models);
+    const validatedRunning = running.ok ? validModelArray(running.body) : null;
+    const runningEntries = validatedRunning ?? [];
     const runningNames = new Set(runningEntries.flatMap((value) => {
       const entry = readRecord(value);
       const name = readString(entry?.name) ?? readString(entry?.model);
       return name ? [name.toLowerCase()] : [];
     }));
-    const body = readRecord(tags.body);
-    const entries = readArray(body?.models);
+    const entries = tagEntries;
     const models = await Promise.all(entries.map(async (entryValue) => {
       const entry = readRecord(entryValue);
       const name = readString(entry?.name) ?? readString(entry?.model);
@@ -138,7 +174,7 @@ export class OllamaProvider implements RuntimeProvider {
         observedAt,
       }),
       models: detectedModels,
-      warnings: running.ok ? [] : [{
+      warnings: validatedRunning !== null ? [] : [{
         code: 'ollama_running_state_unavailable',
         message: 'Ollama inventory was available, but confirmed loaded-model state could not be read.',
         scope: 'runtime',

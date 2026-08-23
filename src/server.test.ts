@@ -1,110 +1,72 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { runCensus } from './census';
+import { ActivityMonitor } from './monitor';
 import { startAiFootprintsServer } from './server';
 
-test('local server exposes aggregate HTML and token-gated metadata-only rescans', async () => {
+test('local server owns one monitor independently of browser streams', async () => {
   let scanCount = 0;
+  let now = 0;
+  const monitor = new ActivityMonitor({ now: () => now, excludedRootPid: null, sampleProcesses: async () => [], intervalMs: 1000 });
+  const nativeToken = 'n'.repeat(48);
   const service = await startAiFootprintsServer({
     port: 0,
+    nativeToken,
+    monitor,
     scan: async () => {
       scanCount += 1;
-      return runCensus({
-        includeRuntimes: false,
-        includeFilesystem: false,
-        includeAgents: false,
-        includeTools: false,
-        includeMcp: false,
-      });
+      return runCensus({ includeRuntimes: false, includeFilesystem: false, includeAgents: false, includeTools: false, includeMcp: false, platform: 'darwin' });
     },
-    observeSample: async () => runCensus({
-      includeRuntimes: false,
-      includeFilesystem: false,
-      includeAgents: false,
-      includeTools: false,
-      includeMcp: false,
-    }),
-    recordScan: async (generatedAt) => ({
-      schema_version: '1.0',
-      device_label: 'Local Test Mac',
-      device_label_source: 'generic-mac',
-      first_scan_at: generatedAt,
-      last_scan_at: generatedAt,
-      scan_count: scanCount,
-    }),
+    recordScan: async (generatedAt) => ({ schema_version: '1.0', device_label: 'Local Test Mac', device_label_source: 'generic-mac', first_scan_at: generatedAt, last_scan_at: generatedAt, scan_count: scanCount }),
   });
+  const origin = service.url.slice(0, -1);
+  const headers = { origin, 'x-forkit-footprints-session': service.sessionToken };
   try {
-    const pageResponse = await fetch(service.url);
-    const html = await pageResponse.text();
-    assert.equal(pageResponse.status, 200);
-    assert.match(html, /The scan is complete\. Guess before the local facts are revealed\./);
-    assert.match(html, /Scan again/);
-    assert.match(html, /Measure one AI task/);
-    assert.match(html, /Local Test Mac/);
-    assert.doesNotMatch(html, /https:\/\//i);
+    const page = await fetch(service.url);
+    const html = await page.text();
+    assert.equal(page.status, 200);
+    assert.match(page.headers.get('content-security-policy') ?? '', /img-src data:/);
+    assert.match(html, /Start Monitoring/);
+    assert.match(html, /AI activity now/);
+    assert.match(html, /Optional global comparison/);
+    assert.doesNotMatch(html, />Discover</);
+    assert.doesNotMatch(html, />Observe</);
+    assert.doesNotMatch(html, />Evolution</);
 
-    const rejected = await fetch(`${service.url}api/scan`, { method: 'POST' });
-    assert.equal(rejected.status, 403);
+    assert.equal((await fetch(`${service.url}api/monitor/start`, { method: 'POST' })).status, 403);
+    const started = await fetch(`${service.url}api/monitor/start`, { method: 'POST', headers });
+    assert.equal(started.status, 200);
+    assert.equal((await started.json() as { lifecycle: string }).lifecycle, 'monitoring');
 
-    const accepted = await fetch(`${service.url}api/scan`, {
-      method: 'POST',
-      headers: {
-        origin: service.url.slice(0, -1),
-        'x-forkit-footprints-session': service.sessionToken,
-      },
-    });
-    const snapshot = await accepted.json() as Record<string, unknown>;
-    assert.equal(accepted.status, 200);
-    assert.equal(snapshot.external_request_count, 0);
+    const controller = new AbortController();
+    const stream = await fetch(`${service.url}api/monitor/stream`, { method: 'POST', headers, signal: controller.signal });
+    const reader = stream.body!.getReader();
+    const first = await reader.read();
+    assert.equal(JSON.parse(new TextDecoder().decode(first.value).trim()).lifecycle, 'monitoring');
+    controller.abort();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    assert.equal(service.monitor.snapshot().lifecycle, 'monitoring');
+    assert.equal(service.server.listening, true);
+
+    const preview = await fetch(`${service.url}api/contribution/preview`, { method: 'POST', headers });
+    assert.equal(preview.status, 409);
+    assert.match(JSON.stringify(await preview.json()), /MINIMUM_OBSERVATION/);
+
+    const stopped = await fetch(`${service.url}api/monitor/stop`, { method: 'POST', headers });
+    assert.equal((await stopped.json() as { lifecycle: string }).lifecycle, 'stopped');
+    assert.equal(service.server.listening, true);
+
+    const rescanned = await fetch(`${service.url}api/scan`, { method: 'POST', headers });
+    assert.equal(rescanned.status, 200);
     assert.equal(scanCount, 2);
 
-    const observationHeaders = {
-      origin: service.url.slice(0, -1),
-      'x-forkit-footprints-session': service.sessionToken,
-    };
-    const liveAbort = new AbortController();
-    const liveResponse = await fetch(`${service.url}api/live`, {
-      method: 'POST', headers: observationHeaders, signal: liveAbort.signal,
+    const nativeStatus = await fetch(`${service.url}api/native/status`, {
+      method: 'POST', headers: { 'x-forkit-footprints-native': nativeToken },
     });
-    assert.equal(liveResponse.status, 200);
-    const liveReader = liveResponse.body!.getReader();
-    const liveChunk = await liveReader.read();
-    const live = JSON.parse(new TextDecoder().decode(liveChunk.value).trim()) as Record<string, unknown>;
-    assert.equal(live.measurement, 'bounded-near-real-time-loopback');
-    assert.equal(live.external_requests_made, 0);
-    const observationStarted = await fetch(`${service.url}api/observe/start`, {
-      method: 'POST', headers: observationHeaders,
-    });
-    assert.equal(observationStarted.status, 202);
-    const observationStopped = await fetch(`${service.url}api/observe/stop`, {
-      method: 'POST', headers: observationHeaders,
-    });
-    const observation = await observationStopped.json() as Record<string, unknown>;
-    assert.equal(observationStopped.status, 200);
-    assert.equal(observation.measurement, 'user-timed-detected-agent-window');
-    assert.equal(observation.external_requests_made, 0);
-    const evidence = observation.evidence_manifest as { capabilities: Array<{ metric: string; exclusive_task_proof: boolean }> };
-    assert.equal(evidence.capabilities.every((entry) => entry.exclusive_task_proof === false), true);
-    assert.equal(evidence.capabilities.some((entry) => entry.metric === 'gpu'), true);
-    assert.ok(Number(observation.sample_count) >= 1);
-
-    const stopped = await fetch(`${service.url}api/stop`, {
-      method: 'POST',
-      headers: {
-        origin: service.url.slice(0, -1),
-        'x-forkit-footprints-session': service.sessionToken,
-      },
-    });
-    assert.equal(stopped.status, 200);
-    let liveClosed = false;
-    for (let attempt = 0; attempt < 3 && !liveClosed; attempt += 1) {
-      liveClosed = (await liveReader.read()).done;
-    }
-    assert.equal(liveClosed, true);
-    liveAbort.abort();
-    await new Promise((resolve) => setTimeout(resolve, 20));
-    assert.equal(service.server.listening, false);
+    assert.equal(nativeStatus.status, 200);
+    assert.equal((await nativeStatus.json() as { lifecycle: string }).lifecycle, 'stopped');
   } finally {
     await service.close();
+    assert.equal(service.server.listening, false);
   }
 });

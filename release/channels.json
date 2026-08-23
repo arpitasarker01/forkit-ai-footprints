@@ -1,0 +1,41 @@
+{
+  "schema_version": "1.0",
+  "product": "forkit-ai-footprints",
+  "version_source": "package.json",
+  "repository": "arpitasarker01/forkit-census",
+  "support": {
+    "operating_system": "macOS",
+    "architecture": "Apple Silicon",
+    "field_accuracy_claim": false
+  },
+  "channels": {
+    "github_release": {
+      "role": "canonical immutable release",
+      "tag": "v{version}",
+      "manifest_asset": "forkit-ai-footprints-{version}-release.json",
+      "status": "publication-unapproved"
+    },
+    "npm": {
+      "role": "global developer installation",
+      "package": "forkit-ai-footprints",
+      "install": "npx --yes forkit-ai-footprints@{version}",
+      "status": "publication-unapproved"
+    },
+    "homebrew": {
+      "role": "global macOS package-manager installation",
+      "formula": "forkit-ai-footprints",
+      "install": "brew install arpitasarker01/ai-footprints/forkit-ai-footprints",
+      "status": "tap-not-created"
+    },
+    "macos_installer": {
+      "role": "future click installation",
+      "asset": "Forkit-AI-Footprints-{version}-macos-arm64.pkg",
+      "status": "blocked-on-developer-id-and-notarization"
+    },
+    "website": {
+      "role": "public recommendation surface",
+      "path": "/ai-footprints",
+      "status": "hold-production-lock"
+    }
+  }
+}

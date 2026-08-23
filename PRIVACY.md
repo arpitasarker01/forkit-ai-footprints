@@ -10,11 +10,17 @@ Forkit AI Footprints (`forkit-ai-footprints`) is metadata-only by design.
 - process name and command metadata held only long enough to classify explicit
   executable, module, or package-runner evidence; raw commands are not included
   in the report or in the evidence hash;
-- process CPU and memory percentages aggregated only for strongly classified
-  agent processes as a point-in-time local snapshot;
+- cumulative CPU time, current CPU percentage, and resident memory for supported
+  process trees, held locally for repeated activity classification; raw process
+  entries are never exported;
 - directory entries and file metadata for supported model extensions;
 - loopback runtime API responses from explicitly supported local endpoints.
 - known AI-tool installation/configuration path existence;
+- local runtime, model, AI-app, and AI-tool display names in the interactive
+  loopback UI only; these names are excluded from saved/shareable artifacts and
+  anonymous/global payloads;
+- optional chat/workspace labels supplied explicitly by a cooperating app for
+  local display only; absent cooperation, the fields remain empty;
 - macOS major version, CPU architecture, and Node major in aggregate field-test
   results;
 - aggregate counts, exact recognized model-file bytes, architecture, Node major, product version,
@@ -35,8 +41,9 @@ Census must not retain or emit:
 - hostname or Mac display name in Census reports, saved share pages, anonymous
   contributions, or global payloads; username, email, and Forkit.dev account
   identity are prohibited everywhere.
-- MCP server names, commands, URLs, environment keys, environment values,
-  workspace names, or repository names.
+- MCP server names, commands, URLs, environment keys, or environment values;
+- chat, workspace, or repository names in reports, saved/shareable artifacts,
+  contribution previews, or global payloads.
 
 ## Network boundary
 
@@ -52,19 +59,22 @@ Runtime_C2-write, billing, telemetry-upload, or deployment client.
 
 `forkit-ai-footprints serve` binds only to `127.0.0.1`. Its rescan route
 requires the same page origin and a random in-memory session token. The route
-returns aggregate display fields only; it never returns item names, paths,
-commands, endpoints, configuration values, or account data. The numeric guess
-is compared inside the browser and is not submitted to the local server.
-`Close local scan` uses the same origin and random in-memory token, then stops
-the loopback server.
+may return local runtime, model, AI-app, and AI-tool display names to that
+protected local page. It never returns full paths, raw commands, endpoints,
+configuration values, prompts, chat titles, workspace names, or account data.
+The numeric guess is compared inside the browser and is not submitted to the
+local server. Start, Stop, Clear history, Scan again, and contribution preview
+all require the same-origin random session token. Closing a browser or native
+window does not stop monitoring; native Quit stops the monitor and local service.
 
 The interactive app keeps `device-journal.json` under the user's macOS
 Application Support directory with directory mode `0700` and file mode `0600`.
 It contains only the sanitized Mac display name, first/last scan timestamps, and
 scan count. It is never placed in the Census report, rescan snapshot, share
-image, saved share page, or anonymous/global contribution. The local runtime
-stream is same-origin, session-token protected, aggregate-only, and sampled no
-more often than every 500 ms; it makes no external request.
+image, saved share page, or anonymous/global contribution. The local monitor
+stream is same-origin and session-token protected. Sampling runs at a one-second
+target interval; durations exclude stopped time and gaps longer than three
+intervals. The stream makes no external request.
 
 The packaged app uses a native launcher to query Apple DeviceCheck capability.
 The status check makes no network request and writes no key. On a future
@@ -72,13 +82,6 @@ supported, signed macOS 27+ build, a separate explicit enrollment action may
 generate one App Attest key and store only its opaque key identifier in the
 device-only Keychain. The current UI and CLI do not invoke enrollment,
 attestation, assertion generation, or upload.
-
-`Observe one AI task` starts and stops only after user clicks. During that
-window, AI Footprints keeps aggregate CPU/memory samples for strongly detected
-agent processes in memory. The result includes duration, sample count, average
-and peak CPU/memory percentages, and maximum agent/loaded-model counts. It does
-not retain process IDs or commands. Shared processes may include background
-activity, so this is not a per-prompt, energy, token, cost, or GPU measurement.
 
 ## Filesystem identity
 
@@ -99,11 +102,13 @@ and unsupported model locations can make actual disk blocks differ.
 
 ## Resource evidence
 
-CPU and memory remain detected-process window measurements, not exclusive
-per-prompt proof. Static hardware metadata can describe device capability but
-not task utilization. GPU and network-traffic attribution are reported as
-unavailable because the release does not have a supported cross-process source
-that proves exclusive third-party task ownership. No estimate is substituted.
+**Working now** requires sustained cumulative CPU-time deltas across repeated
+samples of a supported process tree. Two positive samples enter working and
+three negative samples exit it. Process presence alone remains **Open / idle**.
+This is still not exclusive per-prompt proof. Forkit's own process tree is
+excluded from AI activity and measured separately for CPU, RAM, and bounded
+history overhead. Static hardware metadata describes capability, not use. GPU
+and per-process network attribution remain unavailable; no estimate is used.
 
 ## Review rule
 
@@ -112,11 +117,13 @@ used as automatic evidence of ownership, safety, provenance, or passport status.
 
 ## Anonymous contribution boundary
 
-The CLI can create a local, allowlisted aggregate preview only after
-separate explicit consent. It contains OS/architecture, aggregate counts,
-confirmed-running count, active agent product/process counts, exact recognized
-model-file bytes, detector types, and version numbers. It excludes the guess and the
-local Census ID and all item-level records. The CLI still has no uploader. A
+The local app can create an allowlisted schema `2.0` preview only after at least
+600 valid observed seconds. Preview and consent are separate actions. It
+contains valid seconds, AI-active seconds, activity ratio, supported app count
+and categories, model/loaded/runtime counts, recognized model-file bytes,
+macOS major, architecture, and scanner/runtime schema versions. It excludes
+names, process counts, CPU/RAM values, guess, device identity, local Census ID,
+timestamps, and all item-level records. The CLI and app still have no uploader. A
 separate Forkit.dev aggregate endpoint candidate exists with contribution writes
 disabled by default. That candidate now fails closed without Apple App Attest
 verification and excludes quarantined or revoked installations from the public
@@ -133,20 +140,9 @@ no automatic network requests. Its copy/share controls act only after a user
 click and use aggregate text.
 
 The interactive `serve` page can also render a 1200×630 discovery card locally
-with browser Canvas. It includes the user's browser-only numeric guess plus
-aggregate model-record, loaded-state, agent-process, recognized storage, and
-point-in-time agent CPU/memory values, or the user-timed observation result when
-the user has explicitly completed one.
-The image has no item names, paths, account identifiers, or external assets.
+with browser Canvas. It includes model-record count, recognized storage,
+observed duration, and activity ratio. Its result-based line is derived only
+from these aggregates. The image has no item names, paths, process counts,
+account identifiers, workspace/chat titles, or external assets.
 Downloading it or opening the operating system share sheet requires a separate
 user click; AI Footprints does not receive the image.
-
-## Optional private evolution history
-
-The interactive page does not save scan history automatically. After reveal,
-the user may click `Save private baseline` or `Save this scan`. That action
-writes at most 12 aggregate snapshots to browser local storage on the same Mac:
-timestamp, model/loaded-model/runtime/agent counts, recognized model-file bytes,
-and the derived chapter label. It excludes item names, paths, commands, the
-guess, task-observation samples, and account identity. `Clear history` removes
-that browser-local record. No history is sent to Forkit.

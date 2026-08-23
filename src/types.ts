@@ -159,6 +159,10 @@ export interface ProcessEntry {
   cmd?: string;
   cpu_percent?: number;
   memory_percent?: number;
+  /** Internal resident memory from the operating system. Never emitted in a Census report. */
+  rss_bytes?: number;
+  /** Internal cumulative process CPU time. Never emitted in a Census report. */
+  cpu_time_ms?: number;
 }
 
 export interface CensusOptions {

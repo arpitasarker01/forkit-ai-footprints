@@ -148,16 +148,14 @@ test('anonymous payload is withheld without separate consent after local result'
   assert.match(result.stderr, /separate --consent-share is required/i);
 });
 
-test('consented anonymous payload is an explicit preview and remains not uploaded', () => {
+test('consent cannot bypass the required valid monitor session and exact preview', () => {
   const result = runCli([
     'scan', '--json', '--anonymous-payload', '--consent-share', '--no-runtimes', '--no-model-files', '--no-agents', '--no-tools', '--no-mcp',
   ]);
-  assert.equal(result.status, 0, result.stderr);
-  const envelope = JSON.parse(result.stdout);
-  assert.equal(envelope.uploaded, false);
-  assert.equal(envelope.local_report.product, 'forkit-ai-footprints');
-  assert.equal(envelope.anonymous_contribution.schema_version, '1.2');
-  assert.equal(Object.hasOwn(envelope.anonymous_contribution, 'guess'), false);
+  assert.equal(result.status, 2);
+  assert.equal(JSON.parse(result.stdout).product, 'forkit-ai-footprints');
+  assert.match(result.stderr, /valid 10-minute monitor session/i);
+  assert.match(result.stderr, /Nothing was uploaded/i);
 });
 
 test('clipboard integration maps to native commands without a shell', () => {

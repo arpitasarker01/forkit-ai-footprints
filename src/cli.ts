@@ -5,7 +5,7 @@ import { runCensus } from './census';
 import { runDoctor } from './doctor';
 import { formatCensusReport, formatDoctorReport } from './format';
 import { PRODUCT_VERSION } from './version';
-import { buildAnonymousCensusContribution } from './sharing';
+import { ActivityMonitor } from './monitor';
 import { evaluateMacosFieldTruthFile } from './evaluate';
 import { aggregateMacosFieldEvaluationDirectory } from './aggregate';
 import { renderCensusSharePage } from './share-page';
@@ -13,7 +13,7 @@ import { startAiFootprintsServer } from './server';
 import { recordLocalScan } from './local-device';
 
 interface ParsedOptions {
-  command: 'help' | 'version' | 'scan' | 'doctor' | 'evaluate' | 'aggregate' | 'share-page' | 'serve';
+  command: 'help' | 'version' | 'scan' | 'monitor' | 'doctor' | 'evaluate' | 'aggregate' | 'share-page' | 'serve';
   json: boolean;
   output: string | null;
   includeRuntimes: boolean;
@@ -38,6 +38,7 @@ macOS-only experimental release candidate.
 
 Usage:
   forkit-ai-footprints serve [--port 47811]
+  forkit-ai-footprints monitor [--json]
   forkit-ai-footprints scan [options]
   forkit-ai-footprints doctor [--json]
   forkit-ai-footprints share-page --output /path/to/local-ai-footprint.html
@@ -48,8 +49,8 @@ Options:
   --verbose              Show detector and identity details
   --guess <count>        Compare your estimate with discovered models
   --copy                 Copy the rendered local result to the clipboard
-  --anonymous-payload    Build an aggregate-only preview; never uploads
-  --consent-share        Required with --anonymous-payload (separate consent)
+  --anonymous-payload    Reserved for a completed 10-minute monitor session
+  --consent-share        Separate consent; never enables upload in this build
   --output <file>        Save the selected human or JSON report
   --model-dir <path>     Inspect an explicit model directory; repeatable
   --truth <file>         Evaluate locally against manually labelled macOS truth
@@ -90,6 +91,7 @@ export function parseArgs(args: string[]): ParsedOptions {
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index]!;
     if (arg === 'scan' || arg === 'report') command = 'scan';
+    else if (arg === 'monitor') command = 'monitor';
     else if (arg === 'doctor') command = 'doctor';
     else if (arg === 'evaluate') command = 'evaluate';
     else if (arg === 'aggregate') command = 'aggregate';
@@ -214,14 +216,35 @@ export async function main(args = process.argv.slice(2)): Promise<number> {
   if (options.command === 'serve') {
     const service = await startAiFootprintsServer({ port: options.port });
     process.stdout.write(`Forkit AI Footprints is ready at ${service.url}\nMetadata stays on this device. Press Ctrl+C to stop.\n`);
-    if (process.platform === 'darwin' && process.env.FORKIT_AI_FOOTPRINTS_NO_OPEN !== '1') {
+    if (process.platform === 'darwin' && process.env.FORKIT_AI_FOOTPRINTS_NO_OPEN !== '1'
+      && process.env.FORKIT_AI_FOOTPRINTS_APP_BUNDLE !== '1') {
       spawnSync('open', [service.url], { stdio: 'ignore', shell: false });
     }
     await new Promise<void>((resolve) => {
-      const stop = () => service.server.close(() => resolve());
+      const stop = () => { void service.close().finally(resolve); };
       process.once('SIGINT', stop);
       process.once('SIGTERM', stop);
     });
+    return 0;
+  }
+  if (options.command === 'monitor') {
+    const monitor = new ActivityMonitor();
+    await monitor.start();
+    process.stderr.write('Monitoring locally until Ctrl+C. Process IDs and commands are not emitted.\n');
+    await new Promise<void>((resolve) => {
+      const stop = () => resolve();
+      process.once('SIGINT', stop);
+      process.once('SIGTERM', stop);
+    });
+    const summary = monitor.stop();
+    const rendered = options.json
+      ? `${JSON.stringify(summary, null, 2)}\n`
+      : `Observed ${summary.observed_seconds.toFixed(1)}s · AI active ${summary.active_seconds.toFixed(1)}s · ratio ${summary.activity_ratio === null ? 'unavailable' : `${Math.round(summary.activity_ratio * 100)}%`}\n`;
+    await emit(rendered, options.output);
+    if (options.anonymousPayload) {
+      process.stderr.write('Anonymous preview requires a completed 10-minute GUI session with the exact payload reviewed first. Nothing was uploaded.\n');
+      return 2;
+    }
     return 0;
   }
   if (options.command === 'doctor') {
@@ -288,23 +311,17 @@ export async function main(args = process.argv.slice(2)): Promise<number> {
     report.privacy.local_state_written = true;
     report.privacy.local_state_scope = 'device-journal-only';
   }
-  let rendered: string;
-  if (options.anonymousPayload && options.shareConsent) {
-    const contribution = buildAnonymousCensusContribution(report, true);
-    rendered = options.json
-      ? `${JSON.stringify({ local_report: report, anonymous_contribution: contribution, uploaded: false }, null, 2)}\n`
-      : `${formatCensusReport(report, { verbose: options.verbose })}\nAnonymous aggregate preview (not uploaded)\n${JSON.stringify(contribution, null, 2)}\n`;
-  } else {
-    rendered = options.json
-      ? `${JSON.stringify(report, null, 2)}\n`
-      : formatCensusReport(report, { verbose: options.verbose });
-  }
+  const rendered = options.json
+    ? `${JSON.stringify(report, null, 2)}\n`
+    : formatCensusReport(report, { verbose: options.verbose });
   await emit(rendered, options.output);
   if (options.copy && !copyToClipboard(rendered)) {
     process.stderr.write('Clipboard command unavailable; the result remains printable and can be copied from the terminal.\n');
   }
-  if (options.anonymousPayload && !options.shareConsent) {
-    process.stderr.write('Anonymous contribution was not prepared: separate --consent-share is required. The local result above is complete.\n');
+  if (options.anonymousPayload) {
+    process.stderr.write(options.shareConsent
+      ? 'Anonymous contribution was not prepared: a valid 10-minute monitor session and exact payload review are required. Nothing was uploaded.\n'
+      : 'Anonymous contribution was not prepared: separate --consent-share is required. Nothing was uploaded.\n');
     return 2;
   }
   return 0;

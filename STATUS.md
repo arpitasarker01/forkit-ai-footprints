@@ -1,168 +1,113 @@
 # Forkit AI Footprints Status
 
-Public product name: **Forkit AI Footprints**. Prepared package and executable:
-`forkit-ai-footprints`. Temporary compatibility binary: `forkit-census`.
-
 Last updated: 2026-08-23
 
 Version: `0.2.0`
 
-Status: macOS accuracy hardening in progress; release classification `future/investigate`
+Production classification: `future/investigate`
 
-## Implemented
+Release state: complete local macOS/Apple Silicon candidate; not published,
+pushed, deployed, signed, notarized, or production-promoted.
 
-- independent package and `forkit-ai-footprints` executable;
-- token-protected `127.0.0.1` local UI with Guess → Actual and Scan again;
-- owner-only local Mac device journal with first/last scan time and scan count,
-  excluded from reports, saved share pages, and contribution payloads;
-- protected 500 ms bounded near-real-time aggregate runtime/agent stream for the
-  local UI, with measured scan latency and no zero-delay claim;
-- focused Discover, Observe, and Evolution views;
-- optional browser-local history capped at 12 aggregate snapshots, with
-  deterministic AI Curious → AI Orchestrator chapters and a clear-history action;
-- token-protected `Close local scan` action for the packaged-app lifecycle;
-- explicit package-root shared-core API with TypeScript declarations and an
-  isolated consumer smoke test;
-- unified runtime, model-file, and agent scan;
-- Ollama, LM Studio, and loopback OpenAI-compatible providers;
-- Ollama `/api/ps` confirmed-running model evidence;
-- Ollama content-addressed identity when the runtime exposes a digest;
-- metadata-only filesystem model identity;
-- executable/module/package-runner agent evidence with arbitrary argument-token
-  matches rejected;
-- a labeled agent-process conformance corpus with positive and difficult
-  negative cases;
-- product-level agent deduplication with process instance counts;
-- point-in-time aggregate CPU and memory percentages for strongly classified
-  agent processes, with no per-process details retained in the report;
-- human and JSON reports;
-- passive AI-tool and MCP configuration detection;
-- deduplicated exact recognized logical model-file bytes, scan-completeness
-  evidence, guess comparison, verbose and native clipboard modes;
-- user-started task observation with in-memory average/peak detected-agent CPU
-  and memory samples, duration, sample count, and explicit shared-process limits;
-- a separately consented aggregate-only contribution preview with no uploader;
-- loopback-only endpoint enforcement;
-- doctor command;
-- local unit and isolated package-smoke tooling;
-- packaged local macOS field evaluator that emits aggregate metrics only;
-- offline multi-result aggregation with coverage strata and Wilson 95%
-  confidence intervals;
-- self-contained aggregate-only local HTML share page with explicit copy/native
-  share controls and no automatic network activity;
-- browser-generated 1200×630 Guess → Discovered PNG with local download and
-  native share actions, dynamic result-based language, defensible resource
-  snapshots, aggregate fields only, and no external assets;
-- discovery, observed-task, and evolution share-card narratives;
-- local 36 MB Apple Silicon `.pkg` candidate with a checksummed official Node
-  runtime bundled, a native App Attest-aware launcher, app/CLI smoke, and valid
-  ad-hoc app signature;
-- native DeviceCheck capability validation that fails closed on the current
-  macOS 26 Mac (`app_attest_supported=false`, no network request);
-- macOS-only hosted CI definition and real-device validation command.
-- separately labelled controlled-compatibility CI for macOS 14, 15, and 26 on
-  Apple Silicon plus macOS 15 on Intel; these runs are not field evidence.
+## What is implemented
 
-## Intentionally absent
+- One local experience: AI activity first, Guess → Reveal, an aggregate share
+  card, optional exact global-payload review, Scan again, and technical details.
+- Explicit Start/Stop Monitoring with repeated one-second macOS process-tree
+  sampling, cumulative CPU-time deltas, two-sample entry and three-sample exit
+  hysteresis, and sleep-gap exclusion.
+- Clear states: **Working now**, **Open / idle**, **Not running**, and **Stopped**.
+  Process presence alone never becomes working activity.
+- The monitor is owned by the local service, not a browser tab. Closing the
+  window does not end a session; stopping preserves the summary; clearing is a
+  separate explicit action.
+- A native AppKit/WebKit window and menu-bar controller with Show, Start/Stop,
+  and Quit actions. Quit stops the service and has a process-exit fallback so
+  the bundled Node service cannot remain orphaned.
+- Local-only optional chat/workspace display when a cooperating app explicitly
+  supplies those values. No inference from window titles, folders, prompts, or
+  commands is attempted.
+- Forkit's own process tree is excluded from detected AI activity. Its CPU,
+  RAM, and bounded-history overhead are measured and labelled separately.
+- Exact recognized logical model-file bytes for supported roots, with hard-link,
+  symlink, overlapping-root, Hugging Face snapshot, and Ollama content-addressed
+  deduplication.
+- Verified Ollama availability requires the exact local listener owner, a valid
+  version response, and a valid tags response. Loaded state comes only from a
+  valid `/api/ps` response.
+- A schema `2.0` candidate global aggregate based on valid observed seconds and
+  AI-active seconds. It excludes names, process counts, paths, commands, chat,
+  workspace, device identity, guess, and Census ID. Review and consent are
+  separate; upload transport remains disabled.
+- A single Forkit.dev AI Footprints page with an honest unavailable/prelaunch
+  state, a verified global-pulse design, and three macOS paths leading to the
+  same future `npx --yes forkit-ai-footprints@latest` command. Unpublished
+  Forkit Homebrew/download channels are not claimed.
+- One release version sourced from `package.json`, release-coherence checks,
+  package smoke tooling, a bundled official Node runtime, and an unsigned local
+  `.app`/`.pkg` candidate.
 
-- login and account state;
-- passport draft or Mint actions;
-- Forkit.dev registry writes;
-- Runtime_C2 mutation;
-- remote telemetry;
-- enabled Global AI Footprints contribution transport;
-- Developer ID-signed, Apple-notarized, stapled installer;
-- model byte reads;
-- raw command/path output;
-- npm publication;
-- production promotion.
-- per-prompt attribution, GPU use, energy, tokens, cost, disk I/O, or network
-  attribution; the current task window does not claim these measurements.
-- zero-delay runtime detection; the local stream is bounded near-real-time and
-  includes provider response and scheduling latency.
+## Evidence from this Apple Silicon Mac
 
-## Validation state
+- Models discovered: **5**.
+- Models loaded: **0**.
+- Recognized model storage: **2,600,071,742 bytes** (**2.60 GB / 2.42 GiB**)
+  across **12** deduplicated recognized files with complete supported-root
+  coverage.
+- Verified local runtime: **Ollama 0.20.5**, owned by the exact Homebrew
+  `ollama` executable on `127.0.0.1:11434`.
+- Ollama inventory: `llama3.2:latest`; `/api/ps` was empty. The correct state is
+  **engine available, no model loaded**, not AI work.
+- A real **984.1-second** valid session observed Codex activity for **982.9
+  seconds** (ratio **0.999**) while this development task was actively running.
+  This is real process-tree activity evidence, not prompt/task/token ownership.
+- During the measured session, Forkit overhead was **1.3% median CPU**, **3.3%
+  p95 CPU**, about **53.3 MB current RAM**, **117.1 MB maximum RAM**, and **627
+  bytes** of bounded serialized history at the final payload sample.
 
-Current local validation for the macOS hardening branch on macOS/arm64:
+## Validation completed locally
 
-- `npm ci`: pass; zero reported vulnerabilities;
-- `npm test`: 59/59 pass locally after the measurement-foundation changes;
-  hosted validation still refers to the previous pushed implementation because
-  the new work is intentionally local and unpushed;
-- curated agent detector benchmark: 58/58 cases pass (26 positive, 32 negative,
-  zero false positives, zero false negatives, zero wrong classifications);
-- `npm run smoke:package`: pass;
-- packaged `forkit-ai-footprints evaluate --truth ...`: pass; aggregate-only result,
-  no labelled item names, no upload, and no accuracy-claim authorization;
-- `forkit-ai-footprints doctor --json`: pass;
-- repeated real-device unified Census with stable item sets: pass;
-- real-device loopback guard: 12 loopback requests across two scans, zero
-  external requests;
-- real-device resource snapshot: 5 model records, 0 loaded models, exactly
-  2,600,071,742 recognized logical bytes across 12 unique files with complete
-  supported-root coverage, 1 active agent product across 13 processes; CPU and
-  memory percentages are explicitly point-in-time;
-- real-device protected live stream: three samples completed in 122–147 ms with
-  one responding runtime, zero external requests, and a 500 ms maximum schedule
-  interval; this is bounded near-real-time, not zero delay;
-- real-browser user-timed observation: 7 local samples over 5.8 seconds with
-  average/peak detected-agent CPU and peak memory rendered into the share card;
-  this validates the flow, not exclusive attribution to one prompt;
-- native app bundle launch and bundled-runtime CLI smoke: pass; package remains
-  unsigned and non-distributable;
-- Developer ID preflight: correctly blocked because full Xcode, Developer ID
-  Application/Installer identities, a notarytool profile, and App Attest
-  environment selection are absent on this Mac;
-- real-browser Guess → Discovered, local rescan, caption copy, and 1200×630 PNG
-  download: pass on the same Apple Silicon Mac;
-- hosted package smoke and controlled macOS 14/15/26 Apple Silicon plus macOS
-  15 Intel compatibility checks: 8/8 pass for implementation commit `b482ccd`;
-- privacy scan of the real report: no home-directory, Windows-user-path,
-  API-key-prefix, API-key-flag, or session-token leak found.
+- TypeScript build and the complete local test suite.
+- Curated agent detector corpus: **58/58** fixtures, 26 positive and 32 negative,
+  with zero fixture errors. This is conformance evidence, not field accuracy.
+- Isolated packed-package installation/import/CLI smoke.
+- Native Swift compilation, bundled CLI/version smoke, bundled official Node
+  checksum, App Attest capability probe, and unsigned `.app`/`.pkg` build.
+- Real native 1120×786 window creation, monitor start, service ownership, and
+  stopped-state clean quit on this Mac.
+- Real-browser QA for the local monitor, Guess → Reveal, correct GB/GiB labels,
+  share-card dialog, and the one-page Forkit.dev installation/global-state page.
+- Forkit.dev production website build and registry AI Footprints route tests.
 
-The hardened real-device census reports one high-confidence Codex product using
-exact executable evidence. It rejects reproduced false positives from unrelated
-`grep codex` arguments and paths containing `claude`. This is encouraging
-evidence from one Apple Silicon Mac, not a field-accuracy benchmark.
+## Intentionally not enabled or not yet field-validated
 
-Historical hosted GitHub Actions validation for implementation commit `239005b`:
+- No upload, verified global contribution, public ranking, account, registry
+  write, passport, Mint, Runtime_C2 write, telemetry, or production deployment.
+- No npm publication, Homebrew tap, GitHub Release, public download, or website
+  availability claim.
+- No Developer ID signature, notarization, stapling, Gatekeeper distribution
+  test, or clean external-Mac installation test.
+- No representative multi-device macOS field-accuracy result and no Intel Mac
+  release claim.
+- App Attest reports unsupported on this macOS 26 device, so this Mac cannot
+  produce a verified global contribution under the proposed proof policy.
+- No prompt, task, token, energy, cost, GPU, disk-I/O, or per-process network
+  attribution.
 
-- Node 20, 22, and 24 test/package inspection: 9/9 pass across Ubuntu, macOS,
-  and Windows;
-- isolated installed-package smoke: 3/3 pass across Ubuntu, macOS, and Windows;
-- workflow conclusion: success ([run 32583418237](https://github.com/arpitasarker01/forkit-census/actions/runs/32583418237)).
+## Accuracy boundary
 
-Those historical runs prove the earlier package paths executed on those hosted
-runners. They are no longer a Windows or Ubuntu release claim. The active scope
-is macOS only, and the curated benchmark still does not measure precision or
-recall across representative field devices.
+The detector is deliberately conservative. Exact executable/module/package
+runner matches and verified runtime identities are strong implementation rules,
+but one real Mac and a curated fixture corpus cannot establish a global
+precision/recall percentage. Model storage is exact only for recognized files
+inside supported roots when `storage_complete=true`; it is not whole-disk AI
+storage or APFS physical allocation. **Working now** means sustained recent CPU
+time in a supported process tree and nothing more.
 
-Historical hosted GitHub Actions validation for handoff-completion commit `b5ae91e`:
+## Smallest release gate
 
-- Node 20, 22, and 24 test/package inspection: 9/9 pass across Ubuntu, macOS,
-  and Windows;
-- isolated installed-package smoke: 3/3 pass across Ubuntu, macOS, and Windows;
-- workflow conclusion: success ([run 32587498034](https://github.com/arpitasarker01/forkit-census/actions/runs/32587498034)).
-
-## Remaining product decisions
-
-- complete founder review of the product boundary;
-- integrate `forkit-connect census` against this canonical package after an
-  approved package/promotion sequence, removing the temporary duplicated core;
-- approve a Global AI Footprints schema, privacy policy, endpoint, retention policy,
-  and comparison response before adding any uploader;
-- implement native App Attest for macOS 27+ before any global uploader; local
-  results on macOS 26 and earlier must not affect the verified global pulse;
-- keep every new verified installation quarantined until the Forkit risk service
-  clears it; unverified, quarantined, and revoked rows must contribute zero;
-- choose the experimental distribution and support policy;
-- obtain a separately labelled, consented multi-device macOS evaluation before
-  making any field-accuracy claim;
-- validate Intel Mac separately before adding it to the support claim;
-- keep npm publication and production promotion as separate approvals.
-- install full Xcode, Developer ID Application and Installer certificates, and
-  a notarytool keychain profile before the signed-distribution gate can run.
-
-The npm name `forkit-ai-footprints` returned `E404` on 2026-08-22 and therefore appears
-unpublished. Availability is not ownership and must be rechecked immediately
-before any separately authorized publication.
+Founder review should approve the local UI wording, schema `2.0` allowlist, and
+unsigned npm-first distribution candidate. After that, run the final clean-tree
+release suite, publish the exact tested package through founder-controlled npm
+trusted publishing, verify the registry version, and only then mark the website
+channel available. Apple signing remains a later independent gate.

@@ -1,63 +1,83 @@
+import { execFileSync } from 'node:child_process';
+import type { MonitorSnapshot } from './monitor';
 import type { CensusReport } from './types';
 
-export interface AnonymousCensusContribution {
-  schema_version: '1.2';
-  system: {
-    platform: NodeJS.Platform;
-    architecture: string;
-  };
+export const MINIMUM_COMPARISON_SECONDS = 600;
+
+function macosMajorVersion(): number {
+  try {
+    const productVersion = execFileSync('/usr/bin/sw_vers', ['-productVersion'], {
+      encoding: 'utf8',
+      timeout: 2_000,
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+    const major = Number(productVersion.split('.')[0]);
+    return Number.isInteger(major) && major > 0 ? major : 0;
+  } catch {
+    return 0;
+  }
+}
+
+export interface AnonymousAiFootprintContribution {
+  schema_version: '2.0';
+  observation: { valid_seconds: number; ai_active_seconds: number; activity_ratio: number };
   counts: {
-    runtimes_online: number;
-    models_discovered: number;
-    models_confirmed_running: number;
-    agent_products_active: number;
-    agent_processes_active: number;
-    ai_tools: number;
-    mcp_configs: number;
+    supported_apps_observed_working: number;
+    supported_app_categories: string[];
+    local_models_discovered: number;
+    local_models_loaded: number;
+    verified_local_runtimes_available: number;
   };
   model_storage_bytes: number;
-  detector_types: string[];
-  versions: {
-    census: string;
-    node_major: number;
+  system: { platform: 'darwin'; architecture: string; os_major: number };
+  versions: { scanner: string; node_major: number; monitor_schema: '1.0' };
+}
+
+export function buildAnonymousAiFootprintPreview(
+  report: CensusReport,
+  monitor: MonitorSnapshot,
+  options: { osMajor?: number } = {},
+): AnonymousAiFootprintContribution {
+  if (report.system.platform !== 'darwin') throw new Error('ANONYMOUS_FOOTPRINT_MACOS_REQUIRED');
+  if (!report.summary.storage_complete) throw new Error('ANONYMOUS_FOOTPRINT_STORAGE_INCOMPLETE');
+  if (monitor.observed_seconds < MINIMUM_COMPARISON_SECONDS) throw new Error('ANONYMOUS_FOOTPRINT_MINIMUM_OBSERVATION_REQUIRED');
+  if (monitor.active_seconds < 0 || monitor.active_seconds > monitor.observed_seconds) throw new Error('ANONYMOUS_FOOTPRINT_INVALID_ACTIVITY_DURATION');
+  const validSeconds = Math.floor(monitor.observed_seconds);
+  const activeSeconds = Math.min(validSeconds, Math.floor(monitor.active_seconds));
+  const workingProducts = monitor.products.filter((product) => product.active_seconds > 0);
+  return {
+    schema_version: '2.0',
+    observation: {
+      valid_seconds: validSeconds,
+      ai_active_seconds: activeSeconds,
+      activity_ratio: validSeconds === 0 ? 0 : Math.round((activeSeconds / validSeconds) * 1000) / 1000,
+    },
+    counts: {
+      supported_apps_observed_working: workingProducts.length,
+      supported_app_categories: [...new Set(workingProducts.map((product) => product.kind))].sort(),
+      local_models_discovered: report.summary.model_count,
+      local_models_loaded: report.summary.confirmed_running_model_count,
+      verified_local_runtimes_available: report.summary.available_runtime_count,
+    },
+    model_storage_bytes: report.summary.storage_bytes,
+    system: {
+      platform: 'darwin',
+      architecture: report.system.architecture,
+      os_major: options.osMajor ?? macosMajorVersion(),
+    },
+    versions: {
+      scanner: report.product_version,
+      node_major: report.system.node_major,
+      monitor_schema: monitor.schema_version,
+    },
   };
 }
 
-/** Builds an allowlisted aggregate only after a distinct, explicit consent. It never uploads. */
-export function buildAnonymousCensusContribution(
-  report: CensusReport,
+/** Consent is separate from local preview construction. This never uploads. */
+export function authorizeAnonymousAiFootprintContribution(
+  payload: AnonymousAiFootprintContribution,
   consent: boolean,
-): AnonymousCensusContribution {
-  if (!consent) throw new Error('ANONYMOUS_CENSUS_CONSENT_REQUIRED');
-  if (!report.summary.storage_complete) throw new Error('ANONYMOUS_CENSUS_STORAGE_INCOMPLETE');
-  const detectorTypes = new Set<string>();
-  if (report.runtimes.some((runtime) => runtime.evidence_status === 'online')) detectorTypes.add('runtime-api');
-  if (report.models.some((model) => model.source === 'filesystem')) detectorTypes.add('filesystem-metadata');
-  if (report.agents.length > 0) detectorTypes.add('process-signature');
-  for (const tool of report.tools) {
-    for (const type of tool.detector_types) detectorTypes.add(`tool-${type}`);
-  }
-  if (report.mcp_configs.length > 0) detectorTypes.add('mcp-config-count');
-  return {
-    schema_version: '1.2',
-    system: {
-      platform: report.system.platform,
-      architecture: report.system.architecture,
-    },
-    counts: {
-      runtimes_online: report.summary.available_runtime_count,
-      models_discovered: report.summary.model_count,
-      models_confirmed_running: report.summary.confirmed_running_model_count,
-      agent_products_active: report.summary.agent_product_count,
-      agent_processes_active: report.summary.agent_process_count,
-      ai_tools: report.summary.tool_count,
-      mcp_configs: report.summary.mcp_config_count,
-    },
-    model_storage_bytes: report.summary.storage_bytes,
-    detector_types: [...detectorTypes].sort(),
-    versions: {
-      census: report.product_version,
-      node_major: report.system.node_major,
-    },
-  };
+): AnonymousAiFootprintContribution {
+  if (!consent) throw new Error('ANONYMOUS_FOOTPRINT_CONSENT_REQUIRED');
+  return payload;
 }

@@ -49,6 +49,54 @@ test('macOS default roots include current Jan llama.cpp and MLX model stores', (
   assert.equal(roots.some((root) => root.endsWith(path.join('Jan', 'data', 'mlx', 'models'))), true);
 });
 
+test('Hugging Face environment roots follow HF_HOME, HF_HUB_CACHE, and XDG cache locations', () => {
+  const previous = {
+    hfHome: process.env.HF_HOME,
+    hfHubCache: process.env.HF_HUB_CACHE,
+    xdgCacheHome: process.env.XDG_CACHE_HOME,
+  };
+  process.env.HF_HOME = path.join(os.tmpdir(), 'forkit-hf-home');
+  process.env.HF_HUB_CACHE = path.join(os.tmpdir(), 'forkit-hf-hub');
+  process.env.XDG_CACHE_HOME = path.join(os.tmpdir(), 'forkit-xdg-cache');
+  try {
+    const roots = getDefaultModelRoots();
+    assert.equal(roots.includes(path.resolve(process.env.HF_HOME, 'hub')), true);
+    assert.equal(roots.includes(path.resolve(process.env.HF_HUB_CACHE)), true);
+    assert.equal(roots.includes(path.resolve(process.env.XDG_CACHE_HOME, 'huggingface', 'hub')), true);
+  } finally {
+    if (previous.hfHome === undefined) delete process.env.HF_HOME;
+    else process.env.HF_HOME = previous.hfHome;
+    if (previous.hfHubCache === undefined) delete process.env.HF_HUB_CACHE;
+    else process.env.HF_HUB_CACHE = previous.hfHubCache;
+    if (previous.xdgCacheHome === undefined) delete process.env.XDG_CACHE_HOME;
+    else process.env.XDG_CACHE_HOME = previous.xdgCacheHome;
+  }
+});
+
+test('Hugging Face snapshots count a shared blob once across revisions', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'forkit-census-hf-cache-'));
+  const repo = path.join(root, 'models--acme--shared-model');
+  const blob = path.join(repo, 'blobs', 'content-hash');
+  const firstSnapshot = path.join(repo, 'snapshots', 'revision-a');
+  const secondSnapshot = path.join(repo, 'snapshots', 'revision-b');
+  fs.mkdirSync(path.dirname(blob), { recursive: true });
+  fs.mkdirSync(firstSnapshot, { recursive: true });
+  fs.mkdirSync(secondSnapshot, { recursive: true });
+  fs.writeFileSync(blob, Buffer.alloc(53));
+  fs.symlinkSync(path.relative(firstSnapshot, blob), path.join(firstSnapshot, 'model.safetensors'));
+  fs.symlinkSync(path.relative(secondSnapshot, blob), path.join(secondSnapshot, 'model.safetensors'));
+  try {
+    const result = await scanFilesystemModels('2026-08-23T00:00:00.000Z', { roots: [root] });
+    assert.equal(result.models.length, 1);
+    assert.equal(result.models[0]?.name, 'acme/shared-model');
+    assert.equal(result.models[0]?.size_bytes, 53);
+    assert.equal(result.storage?.logical_bytes, 53);
+    assert.equal(result.storage?.recognized_file_count, 1);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test('Ollama content-addressed files contribute exact storage without creating a fake model record', async () => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'forkit-census-ollama-'));
   const root = path.join(home, '.ollama', 'models');
