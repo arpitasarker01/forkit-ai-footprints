@@ -31,7 +31,7 @@ test('local server exposes aggregate HTML and token-gated metadata-only rescans'
     assert.equal(pageResponse.status, 200);
     assert.match(html, /The scan is complete\. Guess before the local facts are revealed\./);
     assert.match(html, /Scan again/);
-    assert.match(html, /Observe one AI task/);
+    assert.match(html, /Measure one AI task/);
     assert.doesNotMatch(html, /https:\/\//i);
 
     const rejected = await fetch(`${service.url}api/scan`, { method: 'POST' });

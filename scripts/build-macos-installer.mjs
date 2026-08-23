@@ -18,7 +18,7 @@ const appResources = path.join(resources, 'app');
 const runtimeDir = path.join(resources, 'runtime');
 const executablePath = path.join(macosDir, 'Forkit AI Footprints');
 const bundledNode = path.join(runtimeDir, 'node');
-const packagePath = path.join(outputRoot, `Forkit-AI-Footprints-0.1.0-macos-${process.arch}.pkg`);
+const packagePath = path.join(outputRoot, `Forkit-AI-Footprints-0.2.0-macos-${process.arch}.pkg`);
 const entitlementsPath = path.join(outputRoot, 'node-entitlements.plist');
 const applicationIdentity = process.env.FORKIT_MACOS_APPLICATION_IDENTITY || '-';
 const installerIdentity = process.env.FORKIT_MACOS_INSTALLER_IDENTITY || '';
@@ -68,7 +68,7 @@ fs.writeFileSync(path.join(contents, 'Info.plist'), `<?xml version="1.0" encodin
   <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
   <key>CFBundleName</key><string>Forkit AI Footprints</string>
   <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleShortVersionString</key><string>0.1.0</string>
+  <key>CFBundleShortVersionString</key><string>0.2.0</string>
   <key>CFBundleVersion</key><string>1</string>
   <key>LSMinimumSystemVersion</key><string>14.0</string>
   <key>LSUIElement</key><true/>
@@ -95,13 +95,13 @@ run('codesign', ['--force', '--options', 'runtime', ...timestampArgs, '--entitle
 run('codesign', ['--force', '--options', 'runtime', ...timestampArgs, '--sign', applicationIdentity, appPath]);
 run('codesign', ['--verify', '--deep', '--strict', '--verbose=2', appPath]);
 
-const pkgArgs = ['--root', stagingRoot, '--identifier', 'dev.forkit.ai-footprints.pkg', '--version', '0.1.0', '--install-location', '/'];
+const pkgArgs = ['--root', stagingRoot, '--identifier', 'dev.forkit.ai-footprints.pkg', '--version', '0.2.0', '--install-location', '/'];
 if (installerIdentity) pkgArgs.push('--sign', installerIdentity);
 pkgArgs.push(packagePath);
 run('pkgbuild', pkgArgs);
 
 const smoke = run(bundledNode, [path.join(appResources, 'dist', 'cli.js'), '--version']);
-if (smoke !== '0.1.0') throw new Error(`Bundled CLI smoke returned ${smoke}.`);
+if (smoke !== '0.2.0') throw new Error(`Bundled CLI smoke returned ${smoke}.`);
 
 const releaseReady = applicationIdentity !== '-' && Boolean(installerIdentity);
 process.stdout.write(`${JSON.stringify({

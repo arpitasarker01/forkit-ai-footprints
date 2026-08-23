@@ -114,6 +114,10 @@ export function renderCensusSharePage(report: CensusReport, options: AiFootprint
     .mark { width:34px; height:34px; border-radius:11px; background:linear-gradient(145deg,var(--teal),#6aa7ab 54%,var(--orange)); box-shadow:0 8px 20px rgba(0,129,144,.18); }
     .private { display:flex; align-items:center; gap:8px; color:var(--muted); font-size:12px; font-weight:680; }
     .dot { width:8px; height:8px; border-radius:50%; background:var(--green); box-shadow:0 0 0 5px rgba(45,152,123,.10); }
+    .lane-nav { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:28px; padding:7px; border:1px solid var(--line); border-radius:17px; background:rgba(255,254,250,.58); }
+    .lane-button { min-height:42px; border:0; border-radius:12px; color:var(--muted); background:transparent; font-weight:780; cursor:pointer; }
+    .lane-button[aria-selected="true"] { color:#fff; background:var(--teal); box-shadow:0 9px 22px rgba(0,129,144,.17); }
+    .lane-panel[hidden] { display:none !important; }
     .measures { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:38px; }
     .measure { padding:13px 15px; border:1px solid var(--line); border-radius:15px; background:rgba(255,254,250,.56); }
     .measure strong { display:block; font-size:12px; }
@@ -149,6 +153,17 @@ export function renderCensusSharePage(report: CensusReport, options: AiFootprint
     .observer p { margin:0; max-width:700px; color:var(--muted); font-size:11px; line-height:1.5; }
     .observer-actions { display:flex; align-items:center; gap:10px; }
     .observer-result { margin-top:7px !important; color:var(--teal) !important; font-weight:720; }
+    .evolution { margin-top:13px; padding:27px; border:1px solid var(--line); border-radius:24px; background:var(--paper); box-shadow:var(--shadow); }
+    .evolution-grid { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(280px,.9fr); gap:18px; align-items:stretch; }
+    .chapter-card { display:flex; min-height:190px; flex-direction:column; justify-content:space-between; padding:24px; border-radius:20px; color:#fff; background:linear-gradient(145deg,#007b87,#2d987b 55%,#f49355); }
+    .chapter-card .label { color:rgba(255,255,255,.72); }
+    .chapter-name { margin:12px 0 0; font-size:38px; line-height:1; letter-spacing:-.055em; }
+    .chapter-copy { margin:15px 0 0; color:rgba(255,255,255,.82); font-size:12px; line-height:1.5; }
+    .history-card { padding:22px; border:1px solid var(--line); border-radius:20px; background:rgba(255,254,250,.68); }
+    .history-card h2 { margin:7px 0 8px; font-size:24px; letter-spacing:-.04em; }
+    .history-card p { margin:0; color:var(--muted); font-size:11px; line-height:1.55; }
+    .history-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
+    .history-actions .button { min-height:40px; font-size:12px; }
     .share-dialog { width:min(760px,calc(100% - 28px)); max-height:calc(100vh - 28px); margin:auto; padding:0; border:1px solid rgba(255,255,255,.75); border-radius:26px; color:var(--ink); background:#fffefa; box-shadow:0 32px 100px rgba(28,36,34,.28); overflow:auto; }
     .share-dialog::backdrop { background:rgba(25,31,30,.52); backdrop-filter:blur(9px); }
     .share-studio { padding:22px; }
@@ -162,7 +177,7 @@ export function renderCensusSharePage(report: CensusReport, options: AiFootprint
     .share-note { margin:12px 0 0; color:var(--muted); font-size:10px; line-height:1.5; text-align:center; }
     footer { display:flex; justify-content:space-between; gap:20px; padding:15px 3px 0; color:var(--muted); font-size:9px; line-height:1.5; }
     @media (max-width:900px) { .metrics{grid-template-columns:repeat(2,1fr)} }
-    @media (max-width:760px) { .measures{grid-template-columns:1fr;margin-bottom:30px}.hero{grid-template-columns:1fr;align-items:start}.metrics{grid-template-columns:1fr}.metric{min-height:130px}.observer{grid-template-columns:1fr}.observer-actions{align-items:stretch}.observer-actions .button{flex:1} }
+    @media (max-width:760px) { .measures{grid-template-columns:1fr;margin-bottom:30px}.hero{grid-template-columns:1fr;align-items:start}.metrics{grid-template-columns:1fr}.metric{min-height:130px}.observer,.evolution-grid{grid-template-columns:1fr}.observer-actions{align-items:stretch}.observer-actions .button{flex:1} }
     @media (max-width:440px) { .shell{width:calc(100% - 24px);padding-top:16px}.private{font-size:0}h1{font-size:58px}.guess-row{grid-template-columns:1fr}.actions,.share-actions{flex-direction:column}footer{flex-direction:column}.share-studio{padding:15px} }
   </style>
 </head>
@@ -172,6 +187,12 @@ export function renderCensusSharePage(report: CensusReport, options: AiFootprint
       <div class="brand"><span class="mark" aria-hidden="true"></span>Forkit AI Footprints</div>
       <div class="private"><span class="dot" aria-hidden="true"></span>Metadata only · stays on this device</div>
     </nav>
+    <nav class="lane-nav" aria-label="AI Footprints views">
+      <button class="lane-button" type="button" data-lane="discover" aria-selected="true">Discover</button>
+      <button class="lane-button" type="button" data-lane="observe" aria-selected="false">Observe</button>
+      <button class="lane-button" type="button" data-lane="evolution" aria-selected="false">Evolution</button>
+    </nav>
+    <section class="lane-panel" id="discover-panel">
     <section class="measures" aria-label="What this local scan measures">
       <article class="measure"><strong>Models</strong><span>Metadata records, loaded-state evidence, and model-file disk use.</span></article>
       <article class="measure"><strong>Runtimes</strong><span>Only supported services responding on this Mac through loopback.</span></article>
@@ -193,12 +214,19 @@ export function renderCensusSharePage(report: CensusReport, options: AiFootprint
       <article class="metric"><div class="label">Model disk use</div><div class="value combo" id="storage-value">?</div><div class="note" id="storage-note">Exact recognized file total; model bytes are never read.</div></article>
       <article class="metric"><div class="label">Agent activity now</div><div class="value combo"><span id="agent-value">?</span> product<br><span id="agent-process-value">?</span> processes</div><div class="note" id="agent-resource-value">Point-in-time CPU and memory snapshot.</div></article>
     </section>
-    ${rescan ? '<section class="observer" id="observer" hidden><div><div class="label">Optional task measurement</div><h2>Observe one AI task</h2><p>Start, perform one task, then stop. Forkit samples strongly detected agent processes in memory and reports the window average and peak. Shared-process background activity may be included.</p><p class="observer-result" id="observer-result">Not started.</p></div><div class="observer-actions"><button class="button" id="observe-button" type="button">Start observation</button></div></section>' : ''}
+    </section>
+    ${rescan ? '<section class="observer lane-panel" id="observe-panel" hidden><div><div class="label">Observe</div><h2>Measure one AI task</h2><p>Start, perform one task, then stop. Forkit samples strongly detected agent processes and reports the window average and peak. Shared-process background activity may be included.</p><p class="observer-result" id="observer-result">Ready when you are.</p></div><div class="observer-actions"><button class="button" id="observe-button" type="button">Start observation</button><button class="button secondary" id="observe-share-button" type="button" hidden>Share task</button></div></section>' : '<section class="observer lane-panel" id="observe-panel" hidden><div><div class="label">Observe</div><h2>Task observation opens from the Mac app.</h2><p>This saved page contains discovery results only.</p></div></section>'}
+    <section class="evolution lane-panel" id="evolution-panel" hidden>
+      <div class="evolution-grid">
+        <div class="chapter-card"><div><div class="label">Your current chapter</div><h2 class="chapter-name" id="chapter-name">Reveal to begin</h2><p class="chapter-copy" id="chapter-copy">Your chapter reflects visible local activity, not a score.</p></div><div class="label" id="chapter-change">No private history saved</div></div>
+        <div class="history-card"><div class="label">Private evolution</div><h2>Remember only what changed.</h2><p>Optional history stores aggregate counts in this browser on this Mac. No names, paths, guess, or task details.</p><p class="observer-result" id="history-result">Reveal your footprint, then choose whether to save a baseline.</p><div class="history-actions"><button class="button" id="history-button" type="button">Save private baseline</button><button class="button secondary" id="evolution-share-button" type="button" hidden>Share this chapter</button><button class="button secondary" id="clear-history-button" type="button" hidden>Clear history</button></div></div>
+      </div>
+    </section>
     <footer><span>Scan stays in memory · <span id="scan-date">${escapeHtml(snapshot.generated_date)}</span> · ${escapeHtml(snapshot.architecture_label)}</span><span>No weights, prompts, commands, config values, or account data</span></footer>
   </main>
   <dialog class="share-dialog" id="share-dialog" aria-labelledby="share-title">
     <div class="share-studio">
-      <div class="share-head"><div><div class="label">Your discovery card</div><h2 id="share-title">AI hiding in plain sight.</h2></div><button class="icon-button" id="close-share" type="button" aria-label="Close share card">×</button></div>
+      <div class="share-head"><div><div class="label" id="share-kind">Your discovery card</div><h2 id="share-title">AI hiding in plain sight.</h2></div><button class="icon-button" id="close-share" type="button" aria-label="Close share card">×</button></div>
       <div class="canvas-shell"><canvas id="share-canvas" width="1200" height="630" aria-label="Generated Forkit AI Footprints discovery card"></canvas></div>
       <div class="share-actions"><button class="button" id="share-image" type="button">Share image</button><button class="button secondary" id="download-image" type="button">Download PNG</button><button class="button secondary" id="copy-share" type="button">Copy caption</button></div>
       <p class="share-note">Created entirely on this device from aggregate counts. No item names or scan data are uploaded.</p>
@@ -214,8 +242,11 @@ export function renderCensusSharePage(report: CensusReport, options: AiFootprint
     let revealed = false;
     let observing = false;
     let observationResult = null;
+    let shareMode = 'discover';
+    let evolutionDelta = null;
+    const HISTORY_KEY = 'forkit-ai-footprints-private-history-v1';
     function plural(value, singular, pluralValue) { return value === 1 ? singular : (pluralValue || singular + 's'); }
-    function currentGuess() { const value = Number(guessInput.value); return Number.isSafeInteger(value) && value >= 0 ? value : null; }
+    function currentGuess() { if (!guessInput.value.trim()) return null; const value = Number(guessInput.value); return Number.isSafeInteger(value) && value >= 0 ? value : null; }
     function agentResourceText() {
       if (observationResult) return observationResult.duration_seconds.toFixed(1) + 's task window · ' + metricValue(observationResult.average_cpu_percent) + ' avg CPU · ' + metricValue(observationResult.peak_cpu_percent) + ' peak CPU · ' + metricValue(observationResult.peak_memory_percent) + ' peak memory';
       if (currentSnapshot.agent_cpu_percent === null || currentSnapshot.agent_memory_percent === null) return 'Agent CPU and memory snapshot unavailable';
@@ -229,9 +260,63 @@ export function renderCensusSharePage(report: CensusReport, options: AiFootprint
       if (models <= 9) return { line1:'Your Mac is already', line2:'an AI workshop.', title:'More intelligence was hiding in plain sight.' };
       return { line1:'Not just using AI.', line2:'Building an ecosystem.', title:'Your local AI world is bigger than it looks.' };
     }
+    function chapter() {
+      if (currentSnapshot.active_agent_product_count > 1) return { name:'AI Orchestrator', copy:'Multiple agent products are active in your local AI system.' };
+      if (currentSnapshot.active_agent_product_count === 1) return { name:'Agent Operator', copy:'An AI agent is active in your local workflow.' };
+      if (currentSnapshot.online_runtime_count > 0 || currentSnapshot.confirmed_running_model_count > 0) return { name:'AI Builder', copy:'Your Mac is actively running part of a local AI stack.' };
+      if (currentSnapshot.model_record_count > 0) return { name:'Local Explorer', copy:'You have started building a visible local model collection.' };
+      return { name:'AI Curious', copy:'A clear baseline is still a meaningful place to begin.' };
+    }
+    function historyEntry() {
+      return { saved_at:new Date().toISOString(), model_records:currentSnapshot.model_record_count, loaded_models:currentSnapshot.confirmed_running_model_count, responding_runtimes:currentSnapshot.online_runtime_count, agent_products:currentSnapshot.active_agent_product_count, agent_processes:currentSnapshot.active_agent_process_count, model_storage_bytes:currentSnapshot.model_storage_bytes, chapter:chapter().name };
+    }
+    function readHistory() {
+      try {
+        const value = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+        if (!Array.isArray(value)) return [];
+        return value.filter((item) => item && typeof item.saved_at === 'string' && Number.isSafeInteger(item.model_records) && Number.isSafeInteger(item.agent_products)).slice(-12);
+      } catch { return []; }
+    }
+    function formatBytes(bytes) {
+      if (!bytes) return '0 B';
+      const units=['B','KB','MB','GB','TB','PB']; let value=bytes; let unit=0;
+      while (unit < units.length - 1 && value >= 1024) { value/=1024; unit+=1; }
+      return (value < 10 && unit > 1 ? value.toFixed(2) : value < 100 ? value.toFixed(1) : value.toFixed(0)) + ' ' + units[unit];
+    }
+    function deltaLine(previous, current) {
+      if (!previous) return 'Baseline saved. Your next scan can show what changed.';
+      const models = current.model_records - previous.model_records;
+      const agents = current.agent_products - previous.agent_products;
+      const storage = current.model_storage_bytes - previous.model_storage_bytes;
+      const parts = [];
+      if (models) parts.push((models > 0 ? '+' : '') + models + ' model ' + plural(Math.abs(models), 'record'));
+      if (agents) parts.push((agents > 0 ? '+' : '') + agents + ' agent ' + plural(Math.abs(agents), 'product'));
+      if (storage) parts.push((storage > 0 ? '+' : '−') + formatBytes(Math.abs(storage)) + ' model storage');
+      return parts.length ? parts.join(' · ') : 'No aggregate change since your previous saved scan.';
+    }
+    function renderEvolution() {
+      const currentChapter = chapter();
+      document.getElementById('chapter-name').textContent = revealed ? currentChapter.name : 'Reveal to begin';
+      document.getElementById('chapter-copy').textContent = revealed ? currentChapter.copy : 'Your chapter reflects visible local activity, not a score.';
+      const history = readHistory();
+      document.getElementById('clear-history-button').hidden = history.length === 0;
+      document.getElementById('evolution-share-button').hidden = !revealed;
+      if (!revealed) return;
+      const line = evolutionDelta || (history.length ? deltaLine(history[history.length - 1], historyEntry()) : 'No private history saved yet.');
+      document.getElementById('chapter-change').textContent = line;
+      document.getElementById('history-result').textContent = history.length ? line + ' · ' + history.length + ' saved ' + plural(history.length, 'scan') + '.' : 'Choose Save private baseline to remember aggregate counts on this Mac.';
+      document.getElementById('history-button').textContent = history.length ? 'Save this scan' : 'Save private baseline';
+    }
+    function switchLane(lane) {
+      document.querySelectorAll('.lane-button').forEach((button) => button.setAttribute('aria-selected', String(button.dataset.lane === lane)));
+      document.querySelectorAll('.lane-panel').forEach((panel) => { panel.hidden = panel.id !== lane + '-panel'; });
+      if (lane === 'evolution') renderEvolution();
+    }
     function shareText() {
       const guess = currentGuess();
       const prefix = guess === null ? '' : 'I guessed ' + guess + '. ';
+      if (shareMode === 'observe' && observationResult) return 'I observed one AI task on my Mac for ' + observationResult.duration_seconds.toFixed(1) + ' seconds: ' + metricValue(observationResult.average_cpu_percent) + ' average detected-agent CPU, ' + metricValue(observationResult.peak_cpu_percent) + ' peak CPU, and ' + metricValue(observationResult.peak_memory_percent) + ' peak memory. Local measurement; shared-process background activity may be included.';
+      if (shareMode === 'evolution') return 'My local AI chapter is ' + chapter().name + '. ' + (evolutionDelta || 'I created a private baseline for what comes next.') + ' Forkit AI Footprints keeps the history on my Mac.';
       return inspiration().title + ' ' + prefix + 'Forkit AI Footprints found ' + currentSnapshot.model_record_count + ' local model ' + plural(currentSnapshot.model_record_count, 'record') + ', ' + currentSnapshot.confirmed_running_model_count + ' loaded, ' + currentSnapshot.online_runtime_count + ' responding ' + plural(currentSnapshot.online_runtime_count, 'runtime') + ', and ' + currentSnapshot.active_agent_product_count + ' active AI agent ' + plural(currentSnapshot.active_agent_product_count, 'product') + ' across ' + currentSnapshot.active_agent_process_count + ' ' + plural(currentSnapshot.active_agent_process_count, 'process', 'processes') + '. Recognized model files use ' + currentSnapshot.model_storage_display + '. ' + agentResourceText() + (observationResult ? ' during my observed task window.' : ' at scan time.') + ' Metadata only; nothing uploaded.';
     }
     function roundedRect(context, x, y, width, height, radius) {
@@ -243,7 +328,11 @@ export function renderCensusSharePage(report: CensusReport, options: AiFootprint
       const guess = currentGuess();
       const actual = currentSnapshot.model_record_count;
       const difference = guess === null ? null : actual - guess;
-      const message = inspiration();
+      const message = shareMode === 'observe' && observationResult
+        ? { line1:'One task.', line2:'Measured locally.', title:'A real moment in my AI workflow.' }
+        : shareMode === 'evolution'
+          ? { line1:'My AI chapter:', line2:chapter().name + '.', title:'Local AI grows one chapter at a time.' }
+          : inspiration();
       context.clearRect(0, 0, 1200, 630);
       const background = context.createLinearGradient(0, 0, 1200, 630); background.addColorStop(0, '#f8eee1'); background.addColorStop(.48, '#f5f0e6'); background.addColorStop(1, '#d8ecec'); context.fillStyle = background; context.fillRect(0, 0, 1200, 630);
       const glowA = context.createRadialGradient(110, 90, 5, 110, 90, 270); glowA.addColorStop(0, 'rgba(244,147,85,.34)'); glowA.addColorStop(1, 'rgba(244,147,85,0)'); context.fillStyle = glowA; context.fillRect(0, 0, 430, 400);
@@ -253,7 +342,7 @@ export function renderCensusSharePage(report: CensusReport, options: AiFootprint
       const nodeCount = Math.max(3, Math.min(18, actual + currentSnapshot.online_runtime_count + currentSnapshot.active_agent_product_count));
       for (let index = 0; index < nodeCount; index += 1) { const angle = (Math.PI * 2 * index / nodeCount) - Math.PI / 2; const radius = 76 + (index % 3) * 76; const x = Math.cos(angle) * radius; const y = Math.sin(angle) * radius; context.beginPath(); context.arc(x, y, index % 3 === 0 ? 11 : 7, 0, Math.PI * 2); context.fillStyle = index % 3 === 0 ? '#f49355' : '#008190'; context.fill(); }
       context.beginPath(); context.arc(0, 0, 53, 0, Math.PI * 2); context.fillStyle = '#fffefa'; context.fill(); context.strokeStyle = 'rgba(45,43,39,.10)'; context.stroke(); context.fillStyle = '#292824'; context.font = '800 33px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'; context.textAlign = 'center'; context.fillText(String(actual), 0, 12); context.restore();
-      context.textAlign = 'left'; context.fillStyle = '#008190'; context.font = '800 19px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'; context.fillText('FORKIT AI FOOTPRINTS  ·  PRIVATE LOCAL DISCOVERY', 64, 61);
+      context.textAlign = 'left'; context.fillStyle = '#008190'; context.font = '800 19px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'; context.fillText('FORKIT AI FOOTPRINTS  ·  ' + shareMode.toUpperCase(), 64, 61);
       context.fillStyle = '#292824'; context.font = '800 55px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'; context.fillText(message.line1, 64, 145); context.fillText(message.line2, 64, 205);
       context.fillStyle = '#6d6961'; context.font = '600 20px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'; context.fillText(actual + ' model ' + plural(actual, 'record') + ' · ' + currentSnapshot.active_agent_product_count + ' active ' + plural(currentSnapshot.active_agent_product_count, 'agent') + ' · ' + currentSnapshot.model_storage_display + ' on disk', 64, 249);
       roundedRect(context, 64, 285, 510, 137, 25); context.fillStyle = 'rgba(255,254,250,.76)'; context.fill(); context.strokeStyle = 'rgba(45,43,39,.10)'; context.stroke();
@@ -262,11 +351,11 @@ export function renderCensusSharePage(report: CensusReport, options: AiFootprint
       context.fillStyle = difference === 0 ? '#2d987b' : '#a9582d'; context.font = '750 16px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'; context.fillText(difference === 0 ? 'Exactly right.' : Math.abs(difference) + (difference > 0 ? ' more than I expected.' : ' fewer than I expected.'), 91, 410);
       const cards = [[String(actual), 'MODEL RECORDS'], [String(currentSnapshot.confirmed_running_model_count), 'LOADED MODEL' + (currentSnapshot.confirmed_running_model_count === 1 ? '' : 'S')], [String(currentSnapshot.active_agent_process_count), 'AGENT PROCESS' + (currentSnapshot.active_agent_process_count === 1 ? '' : 'ES')], [currentSnapshot.model_storage_display, 'MODEL DISK USE']];
       cards.forEach((card, index) => { const x = 64 + index * 263; roundedRect(context, x, 453, 244, 91, 19); context.fillStyle = index % 2 === 0 ? 'rgba(255,254,250,.78)' : 'rgba(220,236,239,.72)'; context.fill(); context.strokeStyle = 'rgba(45,43,39,.10)'; context.stroke(); context.fillStyle = '#292824'; context.font = '800 29px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'; context.fillText(card[0], x + 18, 493); context.fillStyle = '#6d6961'; context.font = '800 12px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'; context.fillText(card[1], x + 18, 522); });
-      context.fillStyle = '#292824'; context.font = '800 15px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'; context.fillText(actual > 0 ? 'LOCAL AI EXPLORER' : 'AI CURIOUS', 64, 588);
+      context.fillStyle = '#292824'; context.font = '800 15px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'; context.fillText(chapter().name.toUpperCase(), 64, 588);
       context.fillStyle = '#6d6961'; context.font = '600 13px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'; context.fillText(agentResourceText() + '  ·  Metadata only  ·  Nothing uploaded', 290, 588);
     }
     function canvasBlob() { return new Promise((resolve) => shareCanvas.toBlob(resolve, 'image/png')); }
-    async function openShareStudio() { drawShareCard(); document.getElementById('share-title').textContent = inspiration().title; document.body.classList.add('dialog-open'); shareDialog.showModal(); }
+    async function openShareStudio(mode) { shareMode = mode || 'discover'; drawShareCard(); document.getElementById('share-kind').textContent = 'Your ' + shareMode + ' card'; document.getElementById('share-title').textContent = shareMode === 'observe' ? 'A real moment in my AI workflow.' : shareMode === 'evolution' ? 'Local AI grows one chapter at a time.' : inspiration().title; document.body.classList.add('dialog-open'); shareDialog.showModal(); }
     function closeShareStudio() { shareDialog.close(); document.body.classList.remove('dialog-open'); }
     function renderActual() {
       revealed = true;
@@ -281,7 +370,7 @@ export function renderCensusSharePage(report: CensusReport, options: AiFootprint
       document.getElementById('scan-date').textContent = currentSnapshot.generated_date;
       document.getElementById('summary').innerHTML = '<strong>' + inspiration().title + '</strong><br>' + currentSnapshot.model_record_count + ' model ' + plural(currentSnapshot.model_record_count, 'record') + ' · ' + currentSnapshot.confirmed_running_model_count + ' loaded · ' + currentSnapshot.active_agent_product_count + ' active ' + plural(currentSnapshot.active_agent_product_count, 'agent') + ' · ' + currentSnapshot.model_storage_display + ' on disk.';
       document.getElementById('result-actions').hidden = false;
-      if (rescanConfig) document.getElementById('observer').hidden = false;
+      renderEvolution();
     }
     function compareGuess() {
       const guess = currentGuess();
@@ -301,7 +390,22 @@ export function renderCensusSharePage(report: CensusReport, options: AiFootprint
     }
     document.getElementById('reveal-button').addEventListener('click', compareGuess);
     guessInput.addEventListener('keydown', (event) => { if (event.key === 'Enter') compareGuess(); });
-    document.getElementById('share-button').addEventListener('click', openShareStudio);
+    document.querySelectorAll('.lane-button').forEach((button) => button.addEventListener('click', () => switchLane(button.dataset.lane)));
+    document.getElementById('share-button').addEventListener('click', () => openShareStudio('discover'));
+    document.getElementById('evolution-share-button').addEventListener('click', () => openShareStudio('evolution'));
+    document.getElementById('history-button').addEventListener('click', () => {
+      if (!revealed) { switchLane('discover'); document.getElementById('guess-input').focus(); return; }
+      const history = readHistory();
+      const current = historyEntry();
+      const previous = history[history.length - 1] || null;
+      evolutionDelta = deltaLine(previous, current);
+      localStorage.setItem(HISTORY_KEY, JSON.stringify([...history, current].slice(-12)));
+      renderEvolution();
+    });
+    document.getElementById('clear-history-button').addEventListener('click', () => {
+      if (!window.confirm('Clear private AI Footprints history from this browser?')) return;
+      localStorage.removeItem(HISTORY_KEY); evolutionDelta = null; renderEvolution();
+    });
     document.getElementById('close-share').addEventListener('click', closeShareStudio);
     shareDialog.addEventListener('click', (event) => { if (event.target === shareDialog) closeShareStudio(); });
     document.getElementById('download-image').addEventListener('click', async () => { const blob = await canvasBlob(); if (!blob) return; const link = document.createElement('a'); link.download='my-forkit-ai-footprint.png'; link.href=URL.createObjectURL(blob); link.click(); setTimeout(() => URL.revokeObjectURL(link.href), 1000); document.getElementById('download-image').textContent='Downloaded'; });
@@ -335,12 +439,14 @@ export function renderCensusSharePage(report: CensusReport, options: AiFootprint
           button.textContent = 'Observe another task';
           document.getElementById('observer-result').textContent = agentResourceText() + ' · ' + observationResult.sample_count + ' samples.';
           document.getElementById('agent-resource-value').textContent = agentResourceText();
+          document.getElementById('observe-share-button').hidden = false;
           status.textContent = 'Task window measured locally. Shared-process background activity may be included.';
         }
       } catch {
         status.textContent = 'Task observation could not complete. No result was saved.';
       } finally { button.disabled = false; }
     });
+    if (rescanConfig) document.getElementById('observe-share-button').addEventListener('click', () => openShareStudio('observe'));
     if (rescanConfig) document.getElementById('stop-button').addEventListener('click', async () => {
       const button = document.getElementById('stop-button'); button.disabled = true; button.textContent = 'Closing…';
       try {

@@ -1,6 +1,6 @@
 {
   "name": "forkit-ai-footprints",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Forkit AI Footprints: private local AI model, runtime, and agent inventory",
   "license": "MIT",
   "repository": {

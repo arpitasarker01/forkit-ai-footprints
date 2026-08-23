@@ -46,6 +46,13 @@ test('share snapshot contains aggregate facts without item-level records', async
   assert.match(html, /Reveal my footprint/);
   assert.match(html, /How many model records are hiding on this Mac/);
   assert.match(html, /Create share card/);
+  assert.match(html, />Discover</);
+  assert.match(html, />Observe</);
+  assert.match(html, />Evolution</);
+  assert.match(html, /Save private baseline/);
+  assert.match(html, /forkit-ai-footprints-private-history-v1/);
+  assert.match(html, /localStorage\.setItem\(HISTORY_KEY/);
+  assert.match(html, /No names, paths, guess, or task details/);
   assert.match(html, /canvas id="share-canvas" width="1200" height="630"/);
   assert.match(html, /Download PNG/);
   assert.match(html, /Share image/);
@@ -96,7 +103,8 @@ test('local rescan control requires a relative endpoint and random session token
   });
   assert.match(html, /Scan again/);
   assert.match(html, /Close local scan/);
-  assert.match(html, /Observe one AI task/);
+  assert.match(html, /Measure one AI task/);
+  assert.match(html, /Share task/);
   assert.match(html, /Stop & measure/);
   assert.match(html, /x-forkit-footprints-session/);
   assert.throws(() => renderCensusSharePage(report, {

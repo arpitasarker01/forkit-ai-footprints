@@ -100,3 +100,13 @@ the user has explicitly completed one.
 The image has no item names, paths, account identifiers, or external assets.
 Downloading it or opening the operating system share sheet requires a separate
 user click; AI Footprints does not receive the image.
+
+## Optional private evolution history
+
+The interactive page does not save scan history automatically. After reveal,
+the user may click `Save private baseline` or `Save this scan`. That action
+writes at most 12 aggregate snapshots to browser local storage on the same Mac:
+timestamp, model/loaded-model/runtime/agent counts, recognized model-file bytes,
+and the derived chapter label. It excludes item names, paths, commands, the
+guess, task-observation samples, and account identity. `Clear history` removes
+that browser-local record. No history is sent to Forkit.

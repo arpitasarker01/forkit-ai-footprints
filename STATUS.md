@@ -5,7 +5,7 @@ Public product name: **Forkit AI Footprints**. Prepared package and executable:
 
 Last updated: 2026-08-23
 
-Version: `0.1.0`
+Version: `0.2.0`
 
 Status: macOS accuracy hardening in progress; release classification `future/investigate`
 
@@ -13,6 +13,9 @@ Status: macOS accuracy hardening in progress; release classification `future/inv
 
 - independent package and `forkit-ai-footprints` executable;
 - token-protected `127.0.0.1` local UI with Guess → Actual and Scan again;
+- focused Discover, Observe, and Evolution views;
+- optional browser-local history capped at 12 aggregate snapshots, with
+  deterministic AI Curious → AI Orchestrator chapters and a clear-history action;
 - token-protected `Close local scan` action for the packaged-app lifecycle;
 - explicit package-root shared-core API with TypeScript declarations and an
   isolated consumer smoke test;
@@ -45,6 +48,7 @@ Status: macOS accuracy hardening in progress; release classification `future/inv
 - browser-generated 1200×630 Guess → Discovered PNG with local download and
   native share actions, dynamic result-based language, defensible resource
   snapshots, aggregate fields only, and no external assets;
+- discovery, observed-task, and evolution share-card narratives;
 - local 36 MB Apple Silicon `.pkg` candidate with a checksummed official Node
   runtime bundled, app/CLI smoke, and valid ad-hoc app signature;
 - macOS-only hosted CI definition and real-device validation command.

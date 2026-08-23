@@ -4,7 +4,7 @@ import { evaluateMacosFieldTruth } from './evaluate';
 import type { CensusReport } from './types';
 
 const report = {
-  product_version: '0.1.0',
+  product_version: '0.2.0',
   system: { platform: 'darwin', architecture: 'arm64', node_major: 22 },
   agents: [{ signature: 'codex' }],
   tools: [{ name: 'Codex' }, { name: 'Cursor' }],

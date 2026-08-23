@@ -50,7 +50,7 @@ git clone https://github.com/arpitasarker01/forkit-census.git
 cd forkit-census
 npm ci
 npm pack
-npm install -g ./forkit-ai-footprints-0.1.0.tgz
+npm install -g ./forkit-ai-footprints-0.2.0.tgz
 forkit-ai-footprints serve
 ```
 
