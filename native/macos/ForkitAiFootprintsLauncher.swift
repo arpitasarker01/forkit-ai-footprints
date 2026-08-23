@@ -84,26 +84,43 @@ private final class FootprintsAppDelegate: NSObject, NSApplicationDelegate, NSWi
     private var headerLine: NSMenuItem?
     private var statusLine: NSMenuItem?
     private var monitorAction: NSMenuItem?
+    private var openAction: NSMenuItem?
+    private var quitAction: NSMenuItem?
     private var statusTimer: Timer?
     private var latestStatus: [String: Any] = [:]
     private var shuttingDown = false
+    private var uiLocale = Locale.preferredLanguages.first?.lowercased().hasPrefix("de") == true ? "de" : "en"
+    private var localizedCopy: [String: [String: String]] = [:]
 
-    init(arguments: [String]) { self.arguments = arguments }
+    init(arguments: [String]) {
+        self.arguments = arguments
+        if let url = Bundle.main.resourceURL?.appendingPathComponent("app/dist/locales.json"),
+           let data = try? Data(contentsOf: url),
+           let value = try? JSONSerialization.jsonObject(with: data) as? [String: [String: String]] { localizedCopy = value }
+    }
+
+    private func copy(_ key: String, _ values: [String: String] = [:]) -> String {
+        var result = localizedCopy[uiLocale]?[key] ?? localizedCopy["en"]?[key] ?? key
+        for (name, value) in values { result = result.replacingOccurrences(of: "{\(name)}", with: value) }
+        return result
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        NSApp.setActivationPolicy(.accessory)
+        NSApp.setActivationPolicy(.regular)
         setupStatusItem()
         do { try startNodeService() }
-        catch { showFatalError("The local AI Footprints service could not start.") }
+        catch { showFatalError(copy("fatalService")) }
     }
 
     private func setupStatusItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         item.autosaveName = "ForkitAI FootprintStatusItem"
         item.isVisible = true
-        if let image = NSImage(systemSymbolName: "waveform.path.ecg", accessibilityDescription: "Forkit AI Footprint") {
+        let officialImage = Bundle.main.url(forResource: "ForkitStatusTemplate", withExtension: "png").flatMap(NSImage.init(contentsOf:))
+        if let image = officialImage ?? NSImage(systemSymbolName: "waveform.path.ecg", accessibilityDescription: "Forkit AI Footprint") {
             image.isTemplate = true
-            item.button?.image = image.withSymbolConfiguration(.init(pointSize: 15, weight: .semibold)) ?? image
+            image.size = NSSize(width: 18, height: 18)
+            item.button?.image = image
             item.button?.imagePosition = .imageOnly
         } else {
             item.button?.title = "F"
@@ -111,16 +128,16 @@ private final class FootprintsAppDelegate: NSObject, NSApplicationDelegate, NSWi
         }
         item.button?.toolTip = "Forkit AI Footprint"
         let menu = NSMenu()
-        let header = NSMenuItem(title: "Forkit AI Footprint", action: nil, keyEquivalent: "")
+        let header = NSMenuItem(title: copy("appTitle"), action: nil, keyEquivalent: "")
         header.isEnabled = false; menu.addItem(header)
-        let status = NSMenuItem(title: "○ Stopped", action: nil, keyEquivalent: "")
+        let status = NSMenuItem(title: copy("menuStopped"), action: nil, keyEquivalent: "")
         status.isEnabled = false; menu.addItem(status); menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Open AI Footprint", action: #selector(showFootprint), keyEquivalent: "o"))
-        let toggle = NSMenuItem(title: "Start Monitoring", action: #selector(toggleMonitoring), keyEquivalent: "m")
+        let open = NSMenuItem(title: copy("openFootprint"), action: #selector(showFootprint), keyEquivalent: "o"); menu.addItem(open)
+        let toggle = NSMenuItem(title: copy("startMonitoring"), action: #selector(toggleMonitoring), keyEquivalent: "m")
         menu.addItem(toggle); menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Quit Forkit", action: #selector(requestQuit), keyEquivalent: "q"))
+        let quit = NSMenuItem(title: copy("quitForkit"), action: #selector(requestQuit), keyEquivalent: "q"); menu.addItem(quit)
         for menuItem in menu.items { menuItem.target = self }
-        item.menu = menu; statusItem = item; headerLine = header; statusLine = status; monitorAction = toggle
+        item.menu = menu; statusItem = item; headerLine = header; statusLine = status; monitorAction = toggle; openAction = open; quitAction = quit
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self, weak item] in
             guard let self, let item else { return }
             let imageReady = item.button?.image != nil || !(item.button?.title.isEmpty ?? true)
@@ -161,7 +178,7 @@ private final class FootprintsAppDelegate: NSObject, NSApplicationDelegate, NSWi
         let view = WKWebView(frame: .zero, configuration: configuration)
         let controller = NSViewController(); controller.view = view
         let window = NSWindow(contentViewController: controller)
-        window.title = "Forkit AI Footprints"; window.setContentSize(NSSize(width: 1120, height: 780)); window.minSize = NSSize(width: 760, height: 620)
+        window.title = copy("appTitle"); window.setContentSize(NSSize(width: 1120, height: 780)); window.minSize = NSSize(width: 760, height: 620)
         window.center(); window.delegate = self; window.isReleasedWhenClosed = false
         self.webView = view; self.window = window
         view.load(URLRequest(url: url)); showFootprint()
@@ -187,19 +204,28 @@ private final class FootprintsAppDelegate: NSObject, NSApplicationDelegate, NSWi
 
     private func refreshStatus() {
         post("/api/native/status") { [weak self] value in
-            guard let self, let value else { self?.statusLine?.title = "○ Service unavailable"; return }
+            guard let self, let value else { self?.statusLine?.title = self?.copy("serviceUnavailable") ?? "○ Service unavailable"; return }
             self.latestStatus = value
+            if let locale = value["ui_locale"] as? String, locale == "en" || locale == "de" { self.uiLocale = locale }
             let monitoring = value["lifecycle"] as? String == "monitoring"
             let products = value["products"] as? [[String: Any]] ?? []
             let working = products.filter { $0["state"] as? String == "working-now" }.count
-            self.statusLine?.title = monitoring ? (working > 0 ? "● Monitoring · \(working) working" : "● Monitoring") : "○ Stopped"
-            self.monitorAction?.title = monitoring ? "Stop Monitoring" : "Start Monitoring"
+            self.headerLine?.title = self.copy("appTitle")
+            self.openAction?.title = self.copy("openFootprint")
+            self.quitAction?.title = self.copy("quitForkit")
+            self.statusLine?.title = monitoring ? (working > 0 ? self.copy("menuWorking", ["count": String(working)]) : self.copy("menuMonitoring")) : self.copy("menuStopped")
+            self.monitorAction?.title = monitoring ? self.copy("stopMonitoring") : self.copy("startMonitoring")
         }
     }
 
     @objc private func showFootprint() {
         guard let window else { return }
         window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        showFootprint()
+        return true
     }
 
     @objc private func toggleMonitoring() {
@@ -213,10 +239,10 @@ private final class FootprintsAppDelegate: NSObject, NSApplicationDelegate, NSWi
     func windowShouldClose(_ sender: NSWindow) -> Bool {
         sender.orderOut(nil)
         let defaults = UserDefaults.standard
-        if !defaults.bool(forKey: "ForkitFootprintsCloseNoticeHidden") {
-            let alert = NSAlert(); alert.messageText = "Forkit is still available in the menu bar"
-            alert.informativeText = "Closing this window does not stop monitoring. Reopen the same session from the Forkit icon in the menu bar. If the menu bar is hidden in full screen, move the pointer to the top edge first."
-            alert.addButton(withTitle: "Got it"); alert.showsSuppressionButton = true; alert.suppressionButton?.title = "Don’t show again"
+        if latestStatus["lifecycle"] as? String == "monitoring" && !defaults.bool(forKey: "ForkitFootprintsCloseNoticeHidden") {
+            let alert = NSAlert(); alert.messageText = copy("closeTitle")
+            alert.informativeText = copy("closeBody")
+            alert.addButton(withTitle: copy("gotIt")); alert.showsSuppressionButton = true; alert.suppressionButton?.title = copy("dontShow")
             alert.runModal()
             if alert.suppressionButton?.state == .on { defaults.set(true, forKey: "ForkitFootprintsCloseNoticeHidden") }
         }
@@ -226,9 +252,9 @@ private final class FootprintsAppDelegate: NSObject, NSApplicationDelegate, NSWi
     @objc private func requestQuit() {
         refreshStatus()
         if latestStatus["lifecycle"] as? String == "monitoring" {
-            let alert = NSAlert(); alert.messageText = "Stop monitoring and quit?"
+            let alert = NSAlert(); alert.messageText = copy("quitTitle")
             alert.informativeText = quitSummary(latestStatus)
-            alert.addButton(withTitle: "Keep Monitoring"); alert.addButton(withTitle: "Stop & Quit")
+            alert.addButton(withTitle: copy("keepMonitoring")); alert.addButton(withTitle: copy("stopQuit"))
             if alert.runModal() == .alertSecondButtonReturn { stopAndQuit() }
         } else { stopAndQuit() }
     }
@@ -240,12 +266,13 @@ private final class FootprintsAppDelegate: NSObject, NSApplicationDelegate, NSWi
         let cpu = overhead["current_cpu_percent"] as? Double
         let memory = overhead["current_memory_bytes"] as? Double ?? 0
         let history = overhead["history_bytes"] as? Double ?? 0
-        return String(format: "Observed %.0fs · AI active %.0fs\nForkit %.1f%% CPU · %.1f MB RAM · %.1f KB history", observed, active, cpu ?? 0, memory / 1_000_000, history / 1_000)
+        return String(format: "%@ %.0fs · %@ %.0fs\nForkit %.1f%% CPU · %.1f MB RAM · %.1f KB", copy("observed"), observed, copy("aiActive"), active, cpu ?? 0, memory / 1_000_000, history / 1_000)
     }
 
     private func stopAndQuit() {
         guard !shuttingDown else { return }; shuttingDown = true; statusTimer?.invalidate(); statusTimer = nil
-        finishTermination()
+        post("/api/native/quit") { [weak self] _ in self?.finishTermination() }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in self?.finishTermination() }
     }
 
     private func finishTermination() {
@@ -267,12 +294,12 @@ private final class FootprintsAppDelegate: NSObject, NSApplicationDelegate, NSWi
     private func serviceTerminated(_ status: Int32) {
         nodeProcess = nil
         if shuttingDown { finishTermination(); return }
-        statusLine?.title = "Service stopped"
-        showFatalError("The local service stopped unexpectedly. No monitoring remains active.")
+        statusLine?.title = copy("serviceStopped")
+        showFatalError(copy("fatalStopped"))
     }
 
     private func showFatalError(_ message: String) {
-        let alert = NSAlert(); alert.messageText = "Forkit AI Footprints"; alert.informativeText = message; alert.addButton(withTitle: "Quit"); alert.runModal()
+        let alert = NSAlert(); alert.messageText = copy("appTitle"); alert.informativeText = message; alert.addButton(withTitle: copy("quit")); alert.runModal()
         shuttingDown = true; finishTermination()
     }
 

@@ -25,12 +25,15 @@ does not publish anything.
 | Channel | Audience | Cost to users | Current state |
 |---|---|---:|---|
 | GitHub Release | canonical immutable artifacts and checksums | Free | Not published |
-| Homebrew tap | recommended global macOS installation | Free | Tap not created |
-| npm public registry | developers who already have Node/npm | Free | Package not published |
+| npm public registry | primary Apple Silicon bootstrap; installs a persistent app in `~/Applications` | Free | Package not published |
+| Homebrew tap | optional future package-manager channel | Free | Tap not created |
 | Signed `.pkg` | future click installation | Free to users | Blocked on paid Apple identity and notarization |
 
-Homebrew and npm are not tied to the founder's Mac. They are global registries;
-the current product support claim is still macOS on Apple Silicon until broader
+Homebrew and npm are not tied to the founder's Mac. They are global registries.
+The npm command is a one-time bootstrap: it copies a self-contained GUI app into
+the current user's Applications folder and opens it. Later use is through
+Applications, Spotlight, Dock, or the Forkit menu-bar icon without Terminal.
+The current product support claim is still macOS on Apple Silicon until broader
 field validation exists.
 
 ## Release order

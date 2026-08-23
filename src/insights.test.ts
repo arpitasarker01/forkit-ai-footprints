@@ -43,6 +43,15 @@ test('insights remain hidden until enough valid observed time exists', () => {
   assert.deepEqual(buildLocalInsights(snapshot({ observed_seconds: 59 }), { model_record_count: 5, confirmed_running_model_count: 0 }), []);
 });
 
+test('German insights use the same deterministic measurements', () => {
+  const result = buildLocalInsights(snapshot(), { model_record_count: 5, confirmed_running_model_count: 0 }, 60, 'de');
+  assert.deepEqual(result, [
+    { kind: 'activity-share', text: 'Codex arbeitete während 82 % Ihrer Beobachtung.' },
+    { kind: 'longest-block', text: 'Ihr längster durchgehender KI-aktiver Zeitraum dauerte 8 Min 12 Sek.' },
+    { kind: 'local-models-unused', text: '5 lokale Modelle sind verfügbar, wurden während dieser Beobachtung aber nicht ausgeführt.' },
+  ]);
+});
+
 test('longest block never crosses an explicit Stop and restart boundary', () => {
   const result = buildLocalInsights(snapshot({ timeline: [
     { started_at: '2026-08-23T10:00:00.000Z', ended_at: '2026-08-23T10:01:00.000Z', state: 'working-now', product_signatures: ['codex'], observation_id: 1 },

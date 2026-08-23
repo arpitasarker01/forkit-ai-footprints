@@ -1,4 +1,5 @@
 import type { ActivityTimelineSegment, MonitorSnapshot } from './monitor';
+import { type UiLocale, uiText } from './localization';
 
 export type LocalInsightKind = 'activity-share' | 'longest-block' | 'workflow' | 'local-models-unused' | 'mostly-idle';
 
@@ -14,11 +15,11 @@ export interface LocalInsightFootprint {
 
 const MINIMUM_INSIGHT_SECONDS = 60;
 
-function durationLabel(value: number): string {
+function durationLabel(value: number, locale: UiLocale): string {
   const seconds = Math.max(0, Math.round(value));
-  if (seconds < 60) return `${seconds}s`;
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
-  return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
+  if (seconds < 60) return locale === 'de' ? `${seconds} Sek` : `${seconds}s`;
+  if (seconds < 3600) return locale === 'de' ? `${Math.floor(seconds / 60)} Min ${seconds % 60} Sek` : `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+  return locale === 'de' ? `${Math.floor(seconds / 3600)} Std ${Math.floor((seconds % 3600) / 60)} Min` : `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
 }
 
 function longestActiveSeconds(timeline: ActivityTimelineSegment[], gapToleranceMs: number): number {
@@ -49,6 +50,7 @@ export function buildLocalInsights(
   monitor: MonitorSnapshot,
   footprint: LocalInsightFootprint,
   minimumSeconds = MINIMUM_INSIGHT_SECONDS,
+  locale: UiLocale = 'en',
 ): LocalInsight[] {
   if (monitor.observed_seconds < minimumSeconds || monitor.activity_ratio === null) return [];
   const insights: LocalInsight[] = [];
@@ -56,22 +58,22 @@ export function buildLocalInsights(
   const activityPercent = Math.round(monitor.activity_ratio * 100);
 
   if (monitor.activity_ratio <= 0.2) {
-    insights.push({ kind: 'mostly-idle', text: 'Your supported AI tools were mostly idle during this observation.' });
+    insights.push({ kind: 'mostly-idle', text: uiText(locale, 'insightMostlyIdle') });
   } else if (activeProducts.length === 1) {
-    insights.push({ kind: 'activity-share', text: `${activeProducts[0]!.name} was working during ${activityPercent}% of your observation.` });
+    insights.push({ kind: 'activity-share', text: uiText(locale, 'insightActivityProduct', { product: activeProducts[0]!.name, percent: activityPercent }) });
   } else {
-    insights.push({ kind: 'activity-share', text: `Supported AI tools were working during ${activityPercent}% of your observation.` });
+    insights.push({ kind: 'activity-share', text: uiText(locale, 'insightActivityGeneric', { percent: activityPercent }) });
   }
 
   const longest = longestActiveSeconds(monitor.timeline, monitor.sample_interval_ms * 3);
-  if (longest >= 10) insights.push({ kind: 'longest-block', text: `Your longest continuous AI-active period was ${durationLabel(longest)}.` });
+  if (longest >= 10) insights.push({ kind: 'longest-block', text: uiText(locale, 'insightLongest', { duration: durationLabel(longest, locale) }) });
 
   if (activeProducts.length > 1) {
-    insights.push({ kind: 'workflow', text: `Active AI work was observed across ${activeProducts.length} supported tools.` });
+    insights.push({ kind: 'workflow', text: uiText(locale, 'insightMulti', { count: activeProducts.length }) });
   } else if (footprint.model_record_count > 0 && footprint.confirmed_running_model_count === 0) {
-    insights.push({ kind: 'local-models-unused', text: `${footprint.model_record_count} local models are available, but none ran during this observation.` });
+    insights.push({ kind: 'local-models-unused', text: uiText(locale, 'insightModelsUnused', { count: footprint.model_record_count }) });
   } else if (activeProducts.length === 1 && insights[0]?.kind !== 'activity-share') {
-    insights.push({ kind: 'workflow', text: `All observed AI activity came from ${activeProducts[0]!.name}.` });
+    insights.push({ kind: 'workflow', text: uiText(locale, 'insightFocused', { product: activeProducts[0]!.name }) });
   }
 
   return insights.slice(0, 3);

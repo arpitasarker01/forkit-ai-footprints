@@ -27,6 +27,11 @@ test('argument parser makes scan unified by default', () => {
   assert.equal(parsed.includeAgents, true);
 });
 
+test('no-argument command is the one-time persistent app bootstrap', () => {
+  assert.equal(parseArgs([]).command, 'install');
+  assert.equal(parseArgs(['install-app']).command, 'install');
+});
+
 test('CLI emits a valid empty metadata-only JSON census', () => {
   const result = runCli(['scan', '--json', '--no-runtimes', '--no-model-files', '--no-agents']);
   assert.equal(result.status, 0, result.stderr);

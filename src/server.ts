@@ -11,6 +11,7 @@ import { classifyLoadedRuntimeProcesses, loadedRuntimeSignatures } from './runti
 import { buildAnonymousAiFootprintPreview } from './sharing';
 import { buildLocalInsights } from './insights';
 import type { CensusReport } from './types';
+import { normalizeLocale, type UiLocale } from './localization';
 
 export interface AiFootprintsServerOptions {
   hostname?: '127.0.0.1';
@@ -85,6 +86,7 @@ export async function startAiFootprintsServer(options: AiFootprintsServerOptions
   const streams = new Set<MonitorStream>();
   let origin = '';
   let closing: Promise<void> | null = null;
+  let currentLocale: UiLocale = 'en';
 
   function browserAuthorized(request: http.IncomingMessage): boolean {
     return request.headers.origin === origin
@@ -110,7 +112,7 @@ export async function startAiFootprintsServer(options: AiFootprintsServerOptions
       insights: buildLocalInsights(snapshot, {
         model_record_count: currentReport.summary.model_count,
         confirmed_running_model_count: currentReport.summary.confirmed_running_model_count,
-      }).map((insight) => insight.text),
+      }, 60, currentLocale).map((insight) => insight.text),
     };
   }
 
@@ -121,10 +123,16 @@ export async function startAiFootprintsServer(options: AiFootprintsServerOptions
       return;
     }
 
-    const pathname = new URL(request.url ?? '/', origin).pathname;
+    const requestUrl = new URL(request.url ?? '/', origin);
+    const pathname = requestUrl.pathname;
     if (request.method === 'GET' && (pathname === '/' || pathname === '/index.html')) {
+      const requestedLocale = requestUrl.searchParams.get('lang');
+      currentLocale = requestedLocale === 'en' || requestedLocale === 'de'
+        ? requestedLocale
+        : normalizeLocale(request.headers['accept-language']);
       sendText(response, 200, 'text/html; charset=utf-8', renderCensusSharePage(currentReport, {
         localDeviceLabel: localDevice.device_label,
+        locale: currentLocale,
         rescan: {
           endpoint: '/api/scan',
           monitor_start_endpoint: '/api/monitor/start',
@@ -132,6 +140,7 @@ export async function startAiFootprintsServer(options: AiFootprintsServerOptions
           monitor_stream_endpoint: '/api/monitor/stream',
           monitor_clear_endpoint: '/api/monitor/clear',
           contribution_preview_endpoint: '/api/contribution/preview',
+          locale_endpoint: '/api/ui/locale',
           session_token: sessionToken,
         },
       }));
@@ -203,6 +212,22 @@ export async function startAiFootprintsServer(options: AiFootprintsServerOptions
       return;
     }
 
+    if (request.method === 'POST' && pathname === '/api/ui/locale') {
+      if (!browserControl) { sendJson(response, 403, { error: 'LOCAL_SESSION_REQUIRED' }); return; }
+      let raw = '';
+      for await (const chunk of request) {
+        raw += String(chunk);
+        if (raw.length > 128) { sendJson(response, 413, { error: 'INVALID_LOCALE' }); return; }
+      }
+      try {
+        const value = JSON.parse(raw) as { locale?: unknown };
+        if (value.locale !== 'en' && value.locale !== 'de') throw new Error('INVALID_LOCALE');
+        currentLocale = value.locale;
+        sendJson(response, 200, { locale: currentLocale });
+      } catch { sendJson(response, 400, { error: 'INVALID_LOCALE' }); }
+      return;
+    }
+
     if (request.method === 'POST' && pathname === '/api/contribution/preview') {
       if (!browserControl) { sendJson(response, 403, { error: 'LOCAL_SESSION_REQUIRED' }); return; }
       try { sendJson(response, 200, buildAnonymousAiFootprintPreview(currentReport, monitor.snapshot())); }
@@ -214,7 +239,7 @@ export async function startAiFootprintsServer(options: AiFootprintsServerOptions
 
     if (request.method === 'POST' && pathname === '/api/native/status') {
       if (!nativeControl) { sendJson(response, 403, { error: 'NATIVE_CONTROL_REQUIRED' }); return; }
-      sendJson(response, 200, monitor.snapshot());
+      sendJson(response, 200, { ...monitor.snapshot(), ui_locale: currentLocale });
       return;
     }
 

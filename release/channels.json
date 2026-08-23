@@ -34,7 +34,7 @@
     },
     "website": {
       "role": "public recommendation surface",
-      "path": "/ai-footprints",
+      "path": "/ai-footprint",
       "status": "hold-production-lock"
     }
   }

@@ -29,6 +29,7 @@ test('one-page app puts truthful activity before footprint and comparison', asyn
       monitor_stream_endpoint: '/api/monitor/stream',
       monitor_clear_endpoint: '/api/monitor/clear',
       contribution_preview_endpoint: '/api/contribution/preview',
+      locale_endpoint: '/api/ui/locale',
       session_token: 'a'.repeat(48),
     },
   });
@@ -39,8 +40,8 @@ test('one-page app puts truthful activity before footprint and comparison', asyn
   assert.match(html, /NOT RUNNING/);
   assert.match(html, /Guess, then reveal/);
   assert.match(html, /Optional global comparison/);
-  assert.match(html, /Where do you stand globally\?/);
-  assert.match(html, /Compare your observed AI activity with other participating Forkit observations/);
+  assert.match(html, /Is your AI activity unusually high\?/);
+  assert.match(html, /See where you stand among participating Forkit observations/);
   assert.match(html, /See my global position/);
   assert.match(html, /Share aggregates &amp; compare/);
   assert.match(html, /Keep everything local/);
@@ -69,7 +70,7 @@ test('share output excludes private context even when supported tool names are a
   const html = renderCensusSharePage(report, {
     rescan: {
       endpoint: '/api/scan', monitor_start_endpoint: '/api/monitor/start', monitor_stop_endpoint: '/api/monitor/stop',
-      monitor_stream_endpoint: '/api/monitor/stream', monitor_clear_endpoint: '/api/monitor/clear', contribution_preview_endpoint: '/api/contribution/preview', session_token: 'b'.repeat(48),
+      monitor_stream_endpoint: '/api/monitor/stream', monitor_clear_endpoint: '/api/monitor/clear', contribution_preview_endpoint: '/api/contribution/preview', locale_endpoint: '/api/ui/locale', session_token: 'b'.repeat(48),
     },
   });
   assert.match(html, new RegExp(sentinel));
@@ -84,7 +85,7 @@ test('comparison never renders a fabricated percentile or worldwide-user claim',
   const html = renderCensusSharePage(await emptyReport(), {
     rescan: {
       endpoint: '/api/scan', monitor_start_endpoint: '/api/monitor/start', monitor_stop_endpoint: '/api/monitor/stop',
-      monitor_stream_endpoint: '/api/monitor/stream', monitor_clear_endpoint: '/api/monitor/clear', contribution_preview_endpoint: '/api/contribution/preview', session_token: 'c'.repeat(48),
+      monitor_stream_endpoint: '/api/monitor/stream', monitor_clear_endpoint: '/api/monitor/clear', contribution_preview_endpoint: '/api/contribution/preview', locale_endpoint: '/api/ui/locale', session_token: 'c'.repeat(48),
     },
   });
   assert.doesNotMatch(html, /Top \d+%/i);
@@ -99,11 +100,22 @@ test('saved aggregate page is self-contained and exposes no item names', async (
   const sentinel = 'PRIVATE_MODEL_DO_NOT_RENDER';
   report.models = [{ name: sentinel }] as unknown as typeof report.models;
   const html = renderCensusSharePage(report);
-  assert.match(html, /Forkit AI Footprints/);
-  assert.match(html, /canvas[^>]+width="1200" height="630"/);
+  assert.match(html, /Forkit AI Footprint/);
+  assert.match(html, /canvas[^>]+width="1080" height="1080"/);
   assert.doesNotMatch(html, new RegExp(sentinel));
   assert.doesNotMatch(html, /https?:\/\//i);
   assert.doesNotMatch(html, /[a-f0-9]{48}/);
+});
+
+test('German GUI and square share export are localized from the same product copy', async () => {
+  const html = renderCensusSharePage(await emptyReport(), { locale: 'de' });
+  assert.match(html, /lang="de"/);
+  assert.match(html, /KI-Aktivität jetzt/);
+  assert.match(html, /Monitoring starten/);
+  assert.match(html, /Ist Ihre KI-Aktivität ungewöhnlich hoch\?/);
+  assert.match(html, /PNG speichern/);
+  assert.match(html, /Bild kopieren/);
+  assert.match(html, /width="1080" height="1080"/);
 });
 
 test('local controls reject external endpoints and weak tokens', async () => {
@@ -111,7 +123,7 @@ test('local controls reject external endpoints and weak tokens', async () => {
   assert.throws(() => renderCensusSharePage(report, {
     rescan: {
       endpoint: 'https://example.com/scan', monitor_start_endpoint: '/api/monitor/start', monitor_stop_endpoint: '/api/monitor/stop',
-      monitor_stream_endpoint: '/api/monitor/stream', monitor_clear_endpoint: '/api/monitor/clear', contribution_preview_endpoint: '/api/contribution/preview', session_token: 'weak',
+      monitor_stream_endpoint: '/api/monitor/stream', monitor_clear_endpoint: '/api/monitor/clear', contribution_preview_endpoint: '/api/contribution/preview', locale_endpoint: '/api/ui/locale', session_token: 'weak',
     },
   }), /INVALID_LOCAL_RESCAN_OPTIONS/);
 });

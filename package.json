@@ -26,6 +26,9 @@
   "os": [
     "darwin"
   ],
+  "cpu": [
+    "arm64"
+  ],
   "files": [
     "dist",
     "README.md",
@@ -48,7 +51,7 @@
     "validate:app-attest": "node ./scripts/validate-app-attest-helper.mjs",
     "preflight:macos:release": "node ./scripts/preflight-macos-release.mjs",
     "evaluate:macos": "npm run build && node ./scripts/evaluate-macos-field.mjs",
-    "prepack": "npm run build && node ./scripts/prune-dist.mjs",
+    "prepack": "npm run build && node ./scripts/prune-dist.mjs && node ./scripts/prepare-macos-bootstrap.mjs",
     "smoke:package": "node ./scripts/smoke-package.mjs",
     "build:macos:installer": "npm run build && node ./scripts/prune-dist.mjs && COPYFILE_DISABLE=1 node ./scripts/build-macos-installer.mjs",
     "release:check": "node ./scripts/verify-release-coherence.mjs",

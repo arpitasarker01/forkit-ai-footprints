@@ -11,14 +11,14 @@ const productVersion = packageMetadata.version;
 const outputRoot = path.join(root, 'artifacts', 'macos');
 const cacheRoot = path.join(root, 'artifacts', 'runtime-cache');
 const stagingRoot = path.join(outputRoot, 'pkg-root');
-const appName = 'Forkit AI Footprints.app';
+const appName = 'Forkit AI Footprint.app';
 const appPath = path.join(stagingRoot, 'Applications', appName);
 const contents = path.join(appPath, 'Contents');
 const macosDir = path.join(contents, 'MacOS');
 const resources = path.join(contents, 'Resources');
 const appResources = path.join(resources, 'app');
 const runtimeDir = path.join(resources, 'runtime');
-const executablePath = path.join(macosDir, 'Forkit AI Footprints');
+const executablePath = path.join(macosDir, 'Forkit AI Footprint');
 const bundledNode = path.join(runtimeDir, 'node');
 const packagePath = path.join(outputRoot, `Forkit-AI-Footprints-${productVersion}-macos-${process.arch}.pkg`);
 const nodeEntitlementsPath = path.join(outputRoot, 'node-entitlements.plist');
@@ -50,6 +50,12 @@ fs.mkdirSync(appResources, { recursive: true });
 fs.mkdirSync(runtimeDir, { recursive: true });
 
 fs.cpSync(path.join(root, 'dist'), path.join(appResources, 'dist'), { recursive: true });
+fs.copyFileSync(path.join(root, 'dist', 'assets', 'forkit-icon-light.png'), path.join(resources, 'ForkitStatusTemplate.png'));
+const iconset = path.join(outputRoot, 'ForkitAIFootprint.iconset');
+fs.mkdirSync(iconset, { recursive: true });
+const sourceIcon = path.join(root, 'dist', 'assets', 'forkit-icon-light.png');
+for (const [name, size] of [['icon_16x16.png',16],['icon_16x16@2x.png',32],['icon_32x32.png',32],['icon_32x32@2x.png',64],['icon_128x128.png',128],['icon_128x128@2x.png',256],['icon_256x256.png',256],['icon_256x256@2x.png',512],['icon_512x512.png',512],['icon_512x512@2x.png',1024]]) run('sips', ['-z', String(size), String(size), sourceIcon, '--out', path.join(iconset, name)]);
+run('iconutil', ['-c', 'icns', iconset, '-o', path.join(resources, 'ForkitAIFootprint.icns')]);
 fs.mkdirSync(path.join(appResources, 'node_modules'), { recursive: true });
 fs.cpSync(path.join(root, 'node_modules', 'ps-list'), path.join(appResources, 'node_modules', 'ps-list'), { recursive: true });
 if (!fs.existsSync(nodeArchive)) {
@@ -73,16 +79,16 @@ fs.writeFileSync(path.join(contents, 'Info.plist'), `<?xml version="1.0" encodin
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
   <key>CFBundleDevelopmentRegion</key><string>en</string>
-  <key>CFBundleDisplayName</key><string>Forkit AI Footprints</string>
-  <key>CFBundleExecutable</key><string>Forkit AI Footprints</string>
+  <key>CFBundleDisplayName</key><string>Forkit AI Footprint</string>
+  <key>CFBundleExecutable</key><string>Forkit AI Footprint</string>
+  <key>CFBundleIconFile</key><string>ForkitAIFootprint</string>
   <key>CFBundleIdentifier</key><string>dev.forkit.ai-footprints</string>
   <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
-  <key>CFBundleName</key><string>Forkit AI Footprints</string>
+  <key>CFBundleName</key><string>Forkit AI Footprint</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>${productVersion}</string>
   <key>CFBundleVersion</key><string>1</string>
   <key>LSMinimumSystemVersion</key><string>14.0</string>
-  <key>LSUIElement</key><true/>
 </dict></plist>
 `);
 fs.writeFileSync(nodeEntitlementsPath, `<?xml version="1.0" encoding="UTF-8"?>

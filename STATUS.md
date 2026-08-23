@@ -25,10 +25,15 @@ pushed, deployed, signed, notarized, or production-promoted.
 - The monitor is owned by the local service, not a browser tab. Closing the
   window does not end a session; stopping preserves the summary; clearing is a
   separate explicit action.
+- A persistent native AppKit/WebKit app installed into the current user's
+  Applications folder by a one-time npm bootstrap. Later launches use normal
+  macOS surfaces and do not require Terminal.
 - A native AppKit/WebKit window and retained menu-bar controller with Open,
   Start/Stop, and Quit actions. Closing hides the window without quitting; Quit
   stops the service and has a process-exit fallback so the bundled Node service
   cannot remain orphaned.
+- One English/German localization source drives the app, deterministic insights,
+  share caption, menu-bar menu, and close/quit notices.
 - Local-only optional chat/workspace display when a cooperating app explicitly
   supplies those values. No inference from window titles, folders, prompts, or
   commands is attempted.
@@ -44,13 +49,15 @@ pushed, deployed, signed, notarized, or production-promoted.
   AI-active seconds. It excludes names, process counts, paths, commands, chat,
   workspace, device identity, guess, and Census ID. Review and consent are
   separate; upload transport remains disabled.
-- A single Forkit.dev AI Footprints page with an honest unavailable/prelaunch
+- A 1080×1080 local share card with Share, Save PNG, Copy Image, and Copy
+  Caption controls. It contains only measured totals and supported tool names.
+- A single Forkit.dev `/ai-footprint` page with an honest unavailable/prelaunch
   state, a verified global-pulse design, and three macOS paths leading to the
   same future `npx --yes forkit-ai-footprints@latest` command. Unpublished
   Forkit Homebrew/download channels are not claimed.
 - One release version sourced from `package.json`, release-coherence checks,
-  package smoke tooling, a bundled official Node runtime, and an unsigned local
-  `.app`/`.pkg` candidate.
+  package smoke tooling, a bundled official Node runtime, official Forkit app
+  and menu-bar assets, and an unsigned local `.app`/`.pkg` candidate.
 
 ## Evidence from this Apple Silicon Mac
 
@@ -69,11 +76,14 @@ pushed, deployed, signed, notarized, or production-promoted.
 - During the measured session, Forkit overhead was **1.3% median CPU**, **3.3%
   p95 CPU**, about **53.3 MB current RAM**, **117.1 MB maximum RAM**, and **627
   bytes** of bounded serialized history at the final payload sample.
-- The final bundled-app lifecycle run observed **61.4 seconds** of valid time and
-  **60.1 seconds** AI-active (ratio **0.979**), producing: “Codex was working
-  during 98% of your observation.”, “Your longest continuous AI-active period
-  was 59s.”, and “5 local models are available, but none ran during this
-  observation.”
+- A final source-identical bundled-app observation reached **63.3 seconds** of
+  valid time and **62.1 seconds** AI-active (ratio **0.981**), producing: “Codex
+  was working during 98% of your observation.”, “Your longest continuous
+  AI-active period was 1m 1s.”, and “5 local models are available, but none ran
+  during this observation.”
+- A separate real session crossed the 10-minute gate at exactly **600 valid
+  seconds** and **598 AI-active seconds**. Only then did the local comparison
+  preview become available; no transport was enabled.
 
 ## Validation completed locally
 
@@ -83,12 +93,16 @@ pushed, deployed, signed, notarized, or production-promoted.
 - Isolated packed-package installation/import/CLI smoke.
 - Native Swift compilation, bundled CLI/version smoke, bundled official Node
   checksum, App Attest capability probe, and unsigned `.app`/`.pkg` build.
-- Real native 1120×786 window creation, visible-on-reveal menu-bar item, menu
+- Real native 1120×787 window creation, visible-on-reveal menu-bar item, menu
   Start, window close with continued monitoring, reopen with the same timeline,
   Stop, restart, and monitoring-state Quit with zero remaining Forkit process or
   loopback listener on this Mac.
-- Real-browser QA for the local monitor, Guess → Reveal, correct GB/GiB labels,
-  share-card dialog, and the one-page Forkit.dev installation/global-state page.
+- Accessibility evidence placed the retained 24×24 status item at `y=-59` while
+  macOS auto-hid the menu bar and at `y=3` after revealing the bar. Its help text
+  was “Forkit AI Footprint” and its complete localized menu was exposed.
+- Real-browser QA in English and German for the local monitor, Guess → Reveal,
+  correct GB/GiB labels, deterministic captions, 1080×1080 PNG export, image
+  clipboard/share payloads, and the one-page Forkit.dev installation/global page.
 - Forkit.dev production website build and registry AI Footprints route tests.
 
 ## Intentionally not enabled or not yet field-validated

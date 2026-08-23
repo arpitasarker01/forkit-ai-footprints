@@ -50,10 +50,18 @@ try {
     USERPROFILE: home,
     XDG_CONFIG_HOME: path.join(home, '.config'),
     FORKIT_CENSUS_DISABLE_DEFAULT_RUNTIMES: '1',
+    FORKIT_AI_FOOTPRINTS_APPLICATIONS_DIR: path.join(home, 'Applications'),
+    FORKIT_AI_FOOTPRINTS_NO_OPEN: '1',
   };
   fs.mkdirSync(environment.APPDATA, { recursive: true });
   fs.mkdirSync(environment.XDG_CONFIG_HOME, { recursive: true });
   run('npx', ['forkit-ai-footprints', '--help'], { cwd: install, env: environment });
+  run('npx', ['forkit-ai-footprints'], { cwd: install, env: environment });
+  const installedApp = path.join(environment.FORKIT_AI_FOOTPRINTS_APPLICATIONS_DIR, 'Forkit AI Footprint.app');
+  const installedInfo = fs.readFileSync(path.join(installedApp, 'Contents', 'Info.plist'), 'utf8');
+  if (!installedInfo.includes('dev.forkit.ai-footprints') || !fs.existsSync(path.join(installedApp, 'Contents', 'Resources', 'ForkitAIFootprint.icns'))) {
+    throw new Error('One-time package bootstrap did not install a persistent branded app.');
+  }
   run('npx', ['forkit-census', '--version'], { cwd: install, env: environment });
   const apiSmoke = path.join(install, 'api-smoke.cjs');
   fs.writeFileSync(apiSmoke, [
@@ -115,8 +123,8 @@ try {
     '--no-runtimes', '--no-model-files', '--no-agents', '--no-tools', '--no-mcp',
   ], { cwd: install, env: environment });
   const sharePage = fs.readFileSync(sharePagePath, 'utf8');
-  if (!sharePage.includes('Forkit AI Footprints') || /https?:\/\//i.test(sharePage)) {
-    throw new Error('Installed Census aggregate share-page contract failed.');
+  if (!sharePage.includes('Forkit AI Footprint') || /https?:\/\//i.test(sharePage)) {
+    throw new Error('Installed AI Footprint aggregate share-page contract failed.');
   }
   const journalPath = path.join(home, 'Library', 'Application Support', 'Forkit AI Footprints', 'device-journal.json');
   if (!fs.existsSync(journalPath) || (fs.statSync(journalPath).mode & 0o777) !== 0o600) {

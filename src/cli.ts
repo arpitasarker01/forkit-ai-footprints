@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 import fs from 'node:fs/promises';
+import path from 'node:path';
+import os from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { runCensus } from './census';
 import { runDoctor } from './doctor';
@@ -13,7 +15,7 @@ import { startAiFootprintsServer } from './server';
 import { recordLocalScan } from './local-device';
 
 interface ParsedOptions {
-  command: 'help' | 'version' | 'scan' | 'monitor' | 'doctor' | 'evaluate' | 'aggregate' | 'share-page' | 'serve';
+  command: 'install' | 'help' | 'version' | 'scan' | 'monitor' | 'doctor' | 'evaluate' | 'aggregate' | 'share-page' | 'serve';
   json: boolean;
   output: string | null;
   includeRuntimes: boolean;
@@ -37,6 +39,7 @@ Private, metadata-only local AI inventory.
 macOS-only experimental release candidate.
 
 Usage:
+  forkit-ai-footprints
   forkit-ai-footprints serve [--port 47811]
   forkit-ai-footprints monitor [--json]
   forkit-ai-footprints scan [options]
@@ -70,7 +73,7 @@ Privacy:
 `;
 
 export function parseArgs(args: string[]): ParsedOptions {
-  let command: ParsedOptions['command'] = 'scan';
+  let command: ParsedOptions['command'] = 'install';
   let json = false;
   let output: string | null = null;
   let includeRuntimes = true;
@@ -90,7 +93,8 @@ export function parseArgs(args: string[]): ParsedOptions {
 
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index]!;
-    if (arg === 'scan' || arg === 'report') command = 'scan';
+    if (arg === 'install' || arg === 'install-app') command = 'install';
+    else if (arg === 'scan' || arg === 'report') command = 'scan';
     else if (arg === 'monitor') command = 'monitor';
     else if (arg === 'doctor') command = 'doctor';
     else if (arg === 'evaluate') command = 'evaluate';
@@ -169,6 +173,39 @@ export function parseArgs(args: string[]): ParsedOptions {
   };
 }
 
+export async function installPersistentMacApp(options: { applicationsDirectory?: string; open?: boolean } = {}): Promise<string> {
+  if (process.platform !== 'darwin' || process.arch !== 'arm64') throw new Error('The persistent GUI currently supports Apple Silicon macOS only.');
+  const source = path.join(__dirname, 'bootstrap', 'Forkit AI Footprint.app');
+  try { await fs.access(path.join(source, 'Contents', 'Info.plist')); }
+  catch { throw new Error('This package does not contain the macOS GUI bootstrap. Install from the packed release candidate.'); }
+  const applicationsDirectory = options.applicationsDirectory
+    ?? process.env.FORKIT_AI_FOOTPRINTS_APPLICATIONS_DIR
+    ?? path.join(os.homedir(), 'Applications');
+  const destination = path.join(applicationsDirectory, 'Forkit AI Footprint.app');
+  const staging = path.join(applicationsDirectory, `.Forkit AI Footprint.installing-${process.pid}.app`);
+  const previous = path.join(applicationsDirectory, `.Forkit AI Footprint.previous-${process.pid}.app`);
+  await fs.mkdir(applicationsDirectory, { recursive: true, mode: 0o700 });
+  await fs.rm(staging, { recursive: true, force: true });
+  await fs.cp(source, staging, { recursive: true, preserveTimestamps: true });
+  let hadPrevious = false;
+  try {
+    const existingInfo = await fs.readFile(path.join(destination, 'Contents', 'Info.plist'), 'utf8').catch(() => '');
+    if (existingInfo && !existingInfo.includes('dev.forkit.ai-footprints')) throw new Error('The destination contains a different application.');
+    if (existingInfo) { await fs.rename(destination, previous); hadPrevious = true; }
+    await fs.rename(staging, destination);
+    if (hadPrevious) await fs.rm(previous, { recursive: true, force: true });
+  } catch (error) {
+    await fs.rm(staging, { recursive: true, force: true });
+    if (hadPrevious) await fs.rename(previous, destination).catch(() => undefined);
+    throw error;
+  }
+  if (options.open !== false && process.env.FORKIT_AI_FOOTPRINTS_NO_OPEN !== '1') {
+    const launched = spawnSync('/usr/bin/open', [destination], { stdio: 'ignore', shell: false });
+    if (launched.status !== 0) throw new Error('Forkit was installed, but macOS could not open it.');
+  }
+  return destination;
+}
+
 async function emit(output: string, filePath: string | null): Promise<void> {
   process.stdout.write(output);
   if (filePath) await fs.writeFile(filePath, output, { encoding: 'utf8', flag: 'w' });
@@ -211,6 +248,11 @@ export async function main(args = process.argv.slice(2)): Promise<number> {
   }
   if (options.command === 'version') {
     process.stdout.write(`${PRODUCT_VERSION}\n`);
+    return 0;
+  }
+  if (options.command === 'install') {
+    const destination = await installPersistentMacApp();
+    process.stdout.write(`Forkit AI Footprint is installed at ${destination}\nOpen it later from Applications or Spotlight; Terminal is no longer required.\nYour AI activity stays on this device by default. After seeing your results, you can optionally review aggregate measurements for global comparison.\n`);
     return 0;
   }
   if (options.command === 'serve') {

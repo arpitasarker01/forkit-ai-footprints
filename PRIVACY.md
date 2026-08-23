@@ -140,7 +140,7 @@ account identity, or the local Census ID. It loads no external assets and makes
 no automatic network requests. Its copy/share controls act only after a user
 click and use aggregate text.
 
-The interactive `serve` page can also render a 1200×630 discovery card locally
+The interactive `serve` page can also render a 1080×1080 discovery card locally
 with browser Canvas. It includes model-record count, recognized storage,
 activity ratio, and the supported active tool product name. Its result line is
 derived only from measured local insights. The image has no model names, paths,
