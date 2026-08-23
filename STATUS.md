@@ -50,7 +50,10 @@ Status: macOS accuracy hardening in progress; release classification `future/inv
   snapshots, aggregate fields only, and no external assets;
 - discovery, observed-task, and evolution share-card narratives;
 - local 36 MB Apple Silicon `.pkg` candidate with a checksummed official Node
-  runtime bundled, app/CLI smoke, and valid ad-hoc app signature;
+  runtime bundled, a native App Attest-aware launcher, app/CLI smoke, and valid
+  ad-hoc app signature;
+- native DeviceCheck capability validation that fails closed on the current
+  macOS 26 Mac (`app_attest_supported=false`, no network request);
 - macOS-only hosted CI definition and real-device validation command.
 - separately labelled controlled-compatibility CI for macOS 14, 15, and 26 on
   Apple Silicon plus macOS 15 on Intel; these runs are not field evidence.

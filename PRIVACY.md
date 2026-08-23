@@ -54,6 +54,13 @@ is compared inside the browser and is not submitted to the local server.
 `Close local scan` uses the same origin and random in-memory token, then stops
 the loopback server.
 
+The packaged app uses a native launcher to query Apple DeviceCheck capability.
+The status check makes no network request and writes no key. On a future
+supported, signed macOS 27+ build, a separate explicit enrollment action may
+generate one App Attest key and store only its opaque key identifier in the
+device-only Keychain. The current UI and CLI do not invoke enrollment,
+attestation, assertion generation, or upload.
+
 `Observe one AI task` starts and stops only after user clicks. During that
 window, AI Footprints keeps aggregate CPU/memory samples for strongly detected
 agent processes in memory. The result includes duration, sample count, average

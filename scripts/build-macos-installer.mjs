@@ -19,9 +19,11 @@ const runtimeDir = path.join(resources, 'runtime');
 const executablePath = path.join(macosDir, 'Forkit AI Footprints');
 const bundledNode = path.join(runtimeDir, 'node');
 const packagePath = path.join(outputRoot, `Forkit-AI-Footprints-0.2.0-macos-${process.arch}.pkg`);
-const entitlementsPath = path.join(outputRoot, 'node-entitlements.plist');
+const nodeEntitlementsPath = path.join(outputRoot, 'node-entitlements.plist');
+const appEntitlementsPath = path.join(outputRoot, 'app-entitlements.plist');
 const applicationIdentity = process.env.FORKIT_MACOS_APPLICATION_IDENTITY || '-';
 const installerIdentity = process.env.FORKIT_MACOS_INSTALLER_IDENTITY || '';
+const appAttestEnvironment = process.env.FORKIT_MACOS_APP_ATTEST_ENVIRONMENT || '';
 const nodeVersion = '24.10.0';
 const nodeArchiveName = `node-v${nodeVersion}-darwin-arm64.tar.gz`;
 const nodeArchive = path.join(cacheRoot, nodeArchiveName);
@@ -36,6 +38,8 @@ function run(command, args) {
 if (process.platform !== 'darwin') throw new Error('The macOS installer must be built on macOS.');
 if (process.arch !== 'arm64') throw new Error('The current release candidate supports Apple Silicon only.');
 if (!fs.existsSync(path.join(root, 'dist', 'cli.js'))) throw new Error('Run npm run build before building the installer.');
+if (appAttestEnvironment && !['development', 'production'].includes(appAttestEnvironment)) throw new Error('Invalid App Attest environment.');
+if (appAttestEnvironment && applicationIdentity === '-') throw new Error('App Attest entitlement requires a real Apple signing identity.');
 
 fs.rmSync(outputRoot, { recursive: true, force: true });
 fs.mkdirSync(cacheRoot, { recursive: true });
@@ -74,25 +78,28 @@ fs.writeFileSync(path.join(contents, 'Info.plist'), `<?xml version="1.0" encodin
   <key>LSUIElement</key><true/>
 </dict></plist>
 `);
-fs.writeFileSync(entitlementsPath, `<?xml version="1.0" encoding="UTF-8"?>
+fs.writeFileSync(nodeEntitlementsPath, `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
   <key>com.apple.security.cs.allow-jit</key><true/>
   <key>com.apple.security.cs.allow-unsigned-executable-memory</key><true/>
 </dict></plist>
 `);
-fs.writeFileSync(executablePath, `#!/bin/zsh
-set -eu
-CONTENTS_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-export FORKIT_AI_FOOTPRINTS_APP_BUNDLE=1
-exec "$CONTENTS_DIR/Resources/runtime/node" "$CONTENTS_DIR/Resources/app/dist/cli.js" serve
+const appAttestEntitlement = appAttestEnvironment
+  ? `  <key>com.apple.developer.devicecheck.appattest-environment</key><string>${appAttestEnvironment}</string>\n`
+  : '';
+fs.writeFileSync(appEntitlementsPath, `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+${appAttestEntitlement}</dict></plist>
 `);
+run('xcrun', ['swiftc', '-parse-as-library', path.join(root, 'native/macos/ForkitAiFootprintsLauncher.swift'), '-framework', 'DeviceCheck', '-framework', 'CryptoKit', '-framework', 'Security', '-o', executablePath]);
 fs.chmodSync(executablePath, 0o755);
 run('xattr', ['-cr', appPath]);
 
 const timestampArgs = applicationIdentity === '-' ? ['--timestamp=none'] : ['--timestamp'];
-run('codesign', ['--force', '--options', 'runtime', ...timestampArgs, '--entitlements', entitlementsPath, '--sign', applicationIdentity, bundledNode]);
-run('codesign', ['--force', '--options', 'runtime', ...timestampArgs, '--sign', applicationIdentity, appPath]);
+run('codesign', ['--force', '--options', 'runtime', ...timestampArgs, '--entitlements', nodeEntitlementsPath, '--sign', applicationIdentity, bundledNode]);
+run('codesign', ['--force', '--options', 'runtime', ...timestampArgs, '--entitlements', appEntitlementsPath, '--sign', applicationIdentity, appPath]);
 run('codesign', ['--verify', '--deep', '--strict', '--verbose=2', appPath]);
 
 const pkgArgs = ['--root', stagingRoot, '--identifier', 'dev.forkit.ai-footprints.pkg', '--version', '0.2.0', '--install-location', '/'];
@@ -102,6 +109,8 @@ run('pkgbuild', pkgArgs);
 
 const smoke = run(bundledNode, [path.join(appResources, 'dist', 'cli.js'), '--version']);
 if (smoke !== '0.2.0') throw new Error(`Bundled CLI smoke returned ${smoke}.`);
+const appAttestCapability = JSON.parse(run(executablePath, ['--app-attest', 'status']));
+if (appAttestCapability.network_request_made !== false) throw new Error('App Attest capability smoke made an unexpected network request.');
 
 const releaseReady = applicationIdentity !== '-' && Boolean(installerIdentity);
 process.stdout.write(`${JSON.stringify({
@@ -109,6 +118,7 @@ process.stdout.write(`${JSON.stringify({
   packagePath,
   architecture: process.arch,
   bundledRuntime: `v${nodeVersion}`,
+  appAttestCapability,
   releaseReady,
   nextReleaseGate: releaseReady
     ? 'Submit the pkg with xcrun notarytool, staple it, verify with spctl, then test on a separate clean Mac.'

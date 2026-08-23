@@ -99,6 +99,37 @@ it is intentionally not nested inside npm's publication lifecycle.
 These are release gates, not current achievements. No public accuracy claim is
 allowed until an independently reviewed aggregate evaluation satisfies them.
 
+## Accuracy interpretation
+
+Different numbers have different meanings; there is no honest single accuracy
+percentage for the whole product.
+
+- **Known agents/tools:** the curated process corpus is a conformance test, not
+  field prevalence. The release target is a lower 95% precision bound of 99%
+  and a lower 95% supported-catalog recall bound of 90% after the field minimum.
+- **Supported runtimes and loaded models:** a successful loopback API response
+  is strong current-state evidence. Unsupported/custom runtimes remain outside
+  recall and must not be described as absent AI.
+- **Model inventory:** file metadata and runtime records are exact for evidence
+  the scanner recognizes, but total recall across every possible model format
+  and directory is unknown until representative field labelling.
+- **Model storage:** the byte sum is exact for recognized files whose metadata
+  can be read. It is not total AI disk use when a format or location is outside
+  the supported catalog.
+- **Agent CPU/memory:** the values are operating-system samples for strongly
+  detected processes. They are not exclusive task attribution and receive no
+  per-task accuracy percentage in this release.
+- **Verified global installations:** App Attest plus replay/risk controls can
+  strongly establish a genuine supported app installation, but this is an
+  integrity result rather than detector precision. It cannot prove that every
+  local artifact is meaningful or prevent all deliberate local environment
+  manipulation.
+
+The practical public target is therefore **≥99% precision and ≥90% recall
+within the explicitly supported catalog**, with Wilson lower bounds satisfying
+the release rules above. The current evidence does not yet authorize those
+figures as achieved accuracy.
+
 ## Controlled CI is not field evidence
 
 The labelled compatibility workflow may run tests and privacy/stability checks
