@@ -1,12 +1,12 @@
 # Forkit AI Footprints macOS Field Test
 
-This is a private experimental test. Forkit AI Footprints is not production software,
-is not published on npm, and has no uploader. Do not test it on a machine where
+This is a metadata-only Apple Silicon macOS field test. Forkit AI Footprints has
+no uploader. Do not test it on a machine where
 you are unable to review the local metadata it will inspect.
 
 ## What the test reads
 
-Census reads process metadata, known application/configuration-path existence,
+AI Footprints reads process metadata, known application/configuration-path existence,
 supported model-file metadata, known MCP configuration entry counts, and
 supported loopback runtime APIs. It does not read model bytes, retain raw
 commands, emit full paths or MCP values, authenticate, or contact Forkit.dev.

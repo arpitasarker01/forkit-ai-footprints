@@ -36,7 +36,7 @@ interface ParsedOptions {
 
 const HELP = `Forkit AI Footprints
 Private, metadata-only local AI inventory.
-macOS-only experimental release candidate.
+Apple Silicon macOS local release.
 
 Usage:
   forkit-ai-footprints

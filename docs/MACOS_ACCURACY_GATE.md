@@ -1,14 +1,15 @@
 # macOS Accuracy and Release Gate
 
-Forkit AI Footprints must remain unpublished and `future/investigate` until this gate
-is reviewed. Passing local tests is necessary but is not field accuracy.
+Forkit AI Footprints must not claim a global accuracy percentage or broaden its
+platform support until this gate is reviewed. Passing local tests is necessary
+but is not field accuracy.
 
 ## Current supported claim
 
 - operating system: macOS only;
 - current real-device evidence: one Apple Silicon Mac;
 - Intel Mac: not yet field validated;
-- distribution: local source/tarball testing only;
+- distribution: public npm bootstrap for Apple Silicon macOS;
 - network: loopback runtime APIs only, with no uploader or Forkit.dev client.
 
 ## Evidence classes
