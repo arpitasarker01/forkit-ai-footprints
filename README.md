@@ -9,7 +9,7 @@ different safety boundary: AI Footprints does not authenticate to Forkit.dev and
 no passport, Mint, registry-write, Runtime_C2-write, or production deployment
 path.
 
-Product status: `future/investigate`
+Product status: `current` for the approved Apple Silicon macOS release
 
 Current support target: **macOS only**. The real-device validation so far is on
 Apple Silicon. Ubuntu, Windows, Android, and Intel Mac are not part of the
@@ -17,7 +17,7 @@ current release claim.
 
 ## Install on macOS
 
-No public channel is live yet. The prepared free global command is:
+The free global installation command is:
 
 ```bash
 npx --yes forkit-ai-footprints@latest
@@ -27,8 +27,8 @@ Mac users who already have Node can run it directly. Homebrew users can first
 run `brew install node`; users with neither can use the official Node LTS
 installer and verify `node`, `npm`, and `npx`. A Forkit-specific Homebrew formula
 and direct download are deliberately not advertised because those channels do
-not exist. The website may present the `npx` command as available only after the
-exact tested package is published and the release manifest verifies it. See
+not exist. The website presents the command only when the exact tested package
+and release metadata agree. See
 [`docs/GLOBAL_DISTRIBUTION.md`](./docs/GLOBAL_DISTRIBUTION.md).
 
 The future click installer remains blocked until it can be Developer ID-signed
@@ -62,16 +62,15 @@ npm install -g ./forkit-ai-footprints-0.2.0.tgz
 forkit-ai-footprints serve
 ```
 
-The package is not published to npm. Do not treat the command below as available
-from the public registry until a founder authorizes publication:
+The equivalent persistent global CLI installation is:
 
 ```bash
 npm install -g forkit-ai-footprints
 forkit-ai-footprints serve
 ```
 
-npm is a global developer channel after an authorized publication; it is not a
-replacement for the simpler Homebrew recommendation on macOS.
+npm is the approved public bootstrap channel for this release. Homebrew remains
+a future optional channel.
 
 ## Commands
 

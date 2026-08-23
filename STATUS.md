@@ -4,10 +4,11 @@ Last updated: 2026-08-23
 
 Version: `0.2.0`
 
-Production classification: `future/investigate`
+Production classification: `current` for Apple Silicon macOS
 
-Release state: complete local macOS/Apple Silicon candidate; not published,
-pushed, deployed, signed, notarized, or production-promoted.
+Release state: founder-approved public v0.2.0 npm-first release. The npm
+bootstrap installs a persistent unsigned local app; Developer ID signing and
+notarization remain future work.
 
 ## What is implemented
 
@@ -51,10 +52,9 @@ pushed, deployed, signed, notarized, or production-promoted.
   separate; upload transport remains disabled.
 - A 1080×1080 local share card with Share, Save PNG, Copy Image, and Copy
   Caption controls. It contains only measured totals and supported tool names.
-- A single Forkit.dev `/ai-footprint` page with an honest unavailable/prelaunch
-  state, a verified global-pulse design, and three macOS paths leading to the
-  same future `npx --yes forkit-ai-footprints@latest` command. Unpublished
-  Forkit Homebrew/download channels are not claimed.
+- A single Forkit.dev `/ai-footprint` page with an honest benchmark-forming
+  state and one npm path using `npx --yes forkit-ai-footprints@latest`.
+  Unpublished Forkit Homebrew/download channels are not claimed.
 - One release version sourced from `package.json`, release-coherence checks,
   package smoke tooling, a bundled official Node runtime, official Forkit app
   and menu-bar assets, and an unsigned local `.app`/`.pkg` candidate.
@@ -109,8 +109,7 @@ pushed, deployed, signed, notarized, or production-promoted.
 
 - No upload, verified global contribution, public ranking, account, registry
   write, passport, Mint, Runtime_C2 write, telemetry, or production deployment.
-- No npm publication, Homebrew tap, GitHub Release, public download, or website
-  availability claim.
+- No Homebrew tap, signed direct download, or click installer.
 - No Developer ID signature, notarization, stapling, Gatekeeper distribution
   test, or clean external-Mac installation test.
 - No representative multi-device macOS field-accuracy result and no Intel Mac
@@ -132,8 +131,6 @@ time in a supported process tree and nothing more.
 
 ## Smallest release gate
 
-Founder review should approve the local UI wording, schema `2.0` allowlist, and
-unsigned npm-first distribution candidate. After that, run the final clean-tree
-release suite, publish the exact tested package through founder-controlled npm
-trusted publishing, verify the registry version, and only then mark the website
-channel available. Apple signing remains a later independent gate.
+Future expansion requires representative multi-device field accuracy, Intel Mac
+validation, and Apple signing/notarization. Global contribution remains closed
+until its separate server-side verification and abuse-control gate passes.

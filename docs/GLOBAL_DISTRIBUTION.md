@@ -1,7 +1,6 @@
 # Forkit AI Footprints global distribution
 
-Status: local release design only. Nothing described here is published or
-production-approved.
+Status: v0.2.0 npm-first Apple Silicon macOS release approved.
 
 ## Goal
 
@@ -24,8 +23,8 @@ does not publish anything.
 
 | Channel | Audience | Cost to users | Current state |
 |---|---|---:|---|
-| GitHub Release | canonical immutable artifacts and checksums | Free | Not published |
-| npm public registry | primary Apple Silicon bootstrap; installs a persistent app in `~/Applications` | Free | Package not published |
+| GitHub Release | canonical immutable source/release identity | Free | v0.2.0 release |
+| npm public registry | primary Apple Silicon bootstrap; installs a persistent app in `~/Applications` | Free | v0.2.0 |
 | Homebrew tap | optional future package-manager channel | Free | Tap not created |
 | Signed `.pkg` | future click installation | Free to users | Blocked on paid Apple identity and notarization |
 
@@ -43,8 +42,9 @@ field validation exists.
 3. Build the npm tarball and candidate release manifest on a clean hosted runner.
 4. Create one draft GitHub Release for `v<version>` and attach the tarball,
    manifest, checksum, SBOM, and provenance evidence.
-5. After founder approval, publish the exact tested package to npm through npm
-   trusted publishing (GitHub Actions OIDC), not a long-lived npm token.
+5. After founder approval, publish the exact tested package. A brand-new npm
+   package requires one interactive first publication before its trusted
+   publisher can be configured; all later releases use GitHub Actions OIDC.
 6. Update the Homebrew tap from the immutable release URL and SHA-256.
 7. Mark a channel `available` in the release manifest only after its registry
    resolves to the same version and checksum.

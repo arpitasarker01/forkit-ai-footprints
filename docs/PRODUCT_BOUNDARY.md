@@ -2,7 +2,7 @@
 
 Sector: CLI discovery and local inventory
 
-Status: `future/investigate`
+Status: `current` for the approved Apple Silicon macOS npm release
 
 Forkit AI Footprints is the public name for the experimental metadata-only
 inventory CLI. Its prepared package and command are `forkit-ai-footprints`,
@@ -38,7 +38,7 @@ with `forkit-census` retained temporarily as a developer compatibility alias.
 - diagnose local AI Footprints readiness;
 - prepare a consent-gated, aggregate-only anonymous contribution preview without
   transmitting it;
-- package and test an experimental macOS-only release candidate.
+- package and publish the approved macOS-only release through npm;
 - display optional cooperating-app chat/workspace metadata locally only, without
   extracting window titles, folder names, prompts, or command text;
 
@@ -55,13 +55,13 @@ support claim until separately validated and promoted.
 - telemetry or Global AI Footprints upload;
 - remote endpoint inspection;
 - mobile packaging;
-- npm publication or production deployment.
+- website or backend deployment from this standalone repository.
 
 ## Promotion gate
 
-AI Footprints remains `future/investigate` until founders intentionally update
-`docs/PRODUCTION_LOCK.md` in `arpitasarker01/forkit_dev_base`.
+AI Footprints is public for Apple Silicon macOS only after founders intentionally
+promote `docs/PRODUCTION_LOCK.md` in `arpitasarker01/forkit_dev_base`.
 
-The standalone repository cannot promote itself. A future promotion must define
-its relationship to Forkit Connect, website copy, privacy/legal review, package
-ownership, support expectations, and release gates.
+The standalone repository cannot broaden its own production scope. Forkit
+Connect, website copy, privacy/legal review, package ownership, support
+expectations, and release gates remain controlled by the Forkit.dev lock.

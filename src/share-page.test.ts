@@ -38,7 +38,8 @@ test('one-page app puts truthful activity before footprint and comparison', asyn
   assert.match(html, /Start Monitoring/);
   assert.match(html, /OPEN \/ IDLE/);
   assert.match(html, /NOT RUNNING/);
-  assert.match(html, /Guess, then reveal/);
+  assert.doesNotMatch(html, /Guess, then reveal/);
+  assert.match(html, /Your AI Footprint/);
   assert.match(html, /Optional global comparison/);
   assert.match(html, /Is your AI activity unusually high\?/);
   assert.match(html, /See where you stand among participating Forkit observations/);
@@ -75,7 +76,7 @@ test('share output excludes private context even when supported tool names are a
   });
   assert.match(html, new RegExp(sentinel));
   const shareFunction = html.slice(html.indexOf('function shareWords'), html.indexOf('function draw'));
-  const drawFunction = html.slice(html.indexOf('function draw'), html.indexOf("$('guess-form')"));
+  const drawFunction = html.slice(html.indexOf('function draw'), html.indexOf("for(const next of ['en','de'])"));
   assert.doesNotMatch(shareFunction, /local_details|context|chat|workspace|device_label/);
   assert.doesNotMatch(drawFunction, /local_details|context|chat|workspace|device_label/);
   assert.doesNotMatch(shareFunction, new RegExp(sentinel));

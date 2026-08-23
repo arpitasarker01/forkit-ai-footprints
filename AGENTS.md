@@ -6,8 +6,8 @@ Before changing code:
 2. Read `docs/PRODUCT_BOUNDARY.md`, `PRIVACY.md`, and `STATUS.md`.
 3. State the affected surface: runtime discovery, model discovery, agent
    discovery, reporting, privacy, packaging, CI, or docs.
-4. Treat the product status as `future/investigate` and the active validation
-   scope as macOS only.
+4. Treat the product status as `current` for the approved npm-first Apple
+   Silicon macOS release. Other operating systems remain `future/investigate`.
 
 ## Non-negotiable rules
 
@@ -19,8 +19,8 @@ Before changing code:
   bytes, prompts, responses, credentials, or account identity.
 - Detection creates reviewable inventory suggestions only.
 - Do not claim measured accuracy without a labeled benchmark.
-- Do not publish npm or market Census as production without founder approval and
-  an intentional Forkit.dev production-lock promotion.
+- Publish only an exact founder-approved version after the Forkit.dev
+  production lock is intentionally promoted and every release gate passes.
 
 ## Required validation
 
