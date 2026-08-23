@@ -91,7 +91,7 @@ test('comparison never renders a fabricated percentile or worldwide-user claim',
   });
   assert.doesNotMatch(html, /Top \d+%/i);
   assert.doesNotMatch(html, /AI users worldwide/i);
-  assert.match(html, /Global transport remains disabled/);
+  assert.match(html, /Global contribution is not available in this version/);
   const clickHandler = html.slice(html.indexOf("$('review-payload').addEventListener('click'"));
   assert.match(clickHandler, /config\.contribution_preview_endpoint/);
 });
