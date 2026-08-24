@@ -19,7 +19,9 @@ function durationLabel(value: number, locale: UiLocale): string {
   const seconds = Math.max(0, Math.round(value));
   if (seconds < 60) return locale === 'de' ? `${seconds} Sek` : `${seconds}s`;
   if (seconds < 3600) return locale === 'de' ? `${Math.floor(seconds / 60)} Min ${seconds % 60} Sek` : `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
-  return locale === 'de' ? `${Math.floor(seconds / 3600)} Std ${Math.floor((seconds % 3600) / 60)} Min` : `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
+  return locale === 'de'
+    ? `${Math.floor(seconds / 3600)} Std ${Math.floor((seconds % 3600) / 60)} Min ${seconds % 60} Sek`
+    : `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m ${seconds % 60}s`;
 }
 
 function longestActiveSeconds(timeline: ActivityTimelineSegment[], gapToleranceMs: number): number {

@@ -1,4 +1,5 @@
 import { classifyAgentProcessTrees, listSystemProcesses, type ClassifiedAgentProcess } from './agents';
+import type { DevicePresence } from './device-presence';
 import type { ProcessEntry } from './types';
 
 export type AiActivityState = 'working-now' | 'open-idle' | 'not-running';
@@ -57,6 +58,7 @@ export interface MonitorSnapshot {
   sample_interval_ms: number;
   history_limit: number;
   evidence: 'repeated-process-tree-cpu-time-deltas';
+  presence: DevicePresence;
   limitation: string;
 }
 
@@ -83,6 +85,7 @@ export interface ActivityMonitorOptions {
   excludedRootPid?: number | null;
   context?: (signature: string) => ActivityContext | Promise<ActivityContext>;
   classifyProcesses?: (processes: ProcessEntry[]) => ClassifiedAgentProcess[] | Promise<ClassifiedAgentProcess[]>;
+  devicePresence?: () => DevicePresence | Promise<DevicePresence>;
 }
 
 const DEFAULT_INTERVAL_MS = 1000;
@@ -139,6 +142,7 @@ export class ActivityMonitor {
   private readonly excludedRootPid: number | null;
   private readonly context: (signature: string) => ActivityContext | Promise<ActivityContext>;
   private readonly classifyProcesses: (processes: ProcessEntry[]) => ClassifiedAgentProcess[] | Promise<ClassifiedAgentProcess[]>;
+  private readonly devicePresence: () => DevicePresence | Promise<DevicePresence>;
   private lifecycle: MonitorLifecycle = 'stopped';
   private startedAt: number | null = null;
   private stoppedAt: number | null = null;
@@ -155,6 +159,7 @@ export class ActivityMonitor {
   private nodeCpuAt: number | null = null;
   private overheadCpuSamples: number[] = [];
   private overheadMemorySamples: number[] = [];
+  private presence: DevicePresence = { state: 'active', idle_seconds: 0, observation_eligible: true };
 
   constructor(options: ActivityMonitorOptions = {}) {
     this.sampleProcesses = options.sampleProcesses ?? listSystemProcesses;
@@ -164,6 +169,7 @@ export class ActivityMonitor {
     this.excludedRootPid = options.excludedRootPid === undefined ? process.pid : options.excludedRootPid;
     this.context = options.context ?? (() => localContextFromEnvironment());
     this.classifyProcesses = options.classifyProcesses ?? ((entries) => classifyAgentProcessTrees(entries, this.excludedRootPid));
+    this.devicePresence = options.devicePresence ?? (() => ({ state: 'active', idle_seconds: 0, observation_eligible: true }));
   }
 
   async start(options: { schedule?: boolean } = {}): Promise<MonitorSnapshot> {
@@ -189,10 +195,16 @@ export class ActivityMonitor {
     if (this.lifecycle !== 'monitoring' || this.sampling) return this.snapshot();
     this.sampling = true;
     try {
-      const entries = await this.sampleProcesses();
+      const [entries, sampledPresence] = await Promise.all([this.sampleProcesses(), this.devicePresence()]);
       const now = this.now();
+      const previousPresenceEligible = this.presence.observation_eligible;
+      this.presence = sampledPresence;
       const elapsed = this.previousAt === null ? 0 : Math.max(0, now - this.previousAt);
-      const validElapsed = elapsed > 0 && elapsed <= this.intervalMs * 3 ? elapsed : 0;
+      const elapsedContinuous = elapsed > 0 && elapsed <= this.intervalMs * 3;
+      const continuityBroken = this.previousAt !== null
+        && (!elapsedContinuous || !previousPresenceEligible || !sampledPresence.observation_eligible);
+      if (continuityBroken && previousPresenceEligible) this.observationId += 1;
+      const validElapsed = elapsedContinuous && previousPresenceEligible && sampledPresence.observation_eligible ? elapsed : 0;
       const grouped = groupProcesses(await this.classifyProcesses(entries));
       const signatures = new Set([...this.products.keys(), ...grouped.keys()]);
 
@@ -209,13 +221,15 @@ export class ActivityMonitor {
           deltaCount += 1;
         }
         const measuredDelta = deltaCount > 0 ? cpuDeltaMs : null;
-        const strongSignal = current.length > 0
+        const strongSignal = sampledPresence.observation_eligible
+          && current.length > 0
           && validElapsed > 0
           && measuredDelta !== null
           && measuredDelta >= Math.max(20, validElapsed * 0.02);
-        const signals = [...(previous?.signals ?? []), strongSignal].slice(-3);
+        const signals = [...(continuityBroken ? [] : previous?.signals ?? []), strongSignal].slice(-3);
         let state: AiActivityState;
-        if (current.length === 0) state = 'not-running';
+        if (!sampledPresence.observation_eligible) state = current.length === 0 ? 'not-running' : 'open-idle';
+        else if (current.length === 0) state = 'not-running';
         else if (previous?.state === 'working-now') state = signals.every((value) => !value) ? 'open-idle' : 'working-now';
         else state = signals.slice(-2).length === 2 && signals.slice(-2).every(Boolean) ? 'working-now' : 'open-idle';
         const activeMs = (previous?.activeMs ?? 0) + (validElapsed > 0 && state === 'working-now' ? validElapsed : 0);
@@ -242,7 +256,7 @@ export class ActivityMonitor {
         this.observedMs += validElapsed;
         if ([...this.products.values()].some((product) => product.state === 'working-now')) this.activeMs += validElapsed;
       }
-      this.updateTimeline(now);
+      if (sampledPresence.observation_eligible) this.updateTimeline(now);
       this.previousCpuTimes = new Map(entries.flatMap((entry) => Number.isFinite(entry.cpu_time_ms)
         ? [[entry.pid, Number(entry.cpu_time_ms)] as const]
         : []));
@@ -349,7 +363,8 @@ export class ActivityMonitor {
       sample_interval_ms: this.intervalMs,
       history_limit: this.historyLimit,
       evidence: 'repeated-process-tree-cpu-time-deltas' as const,
-      limitation: 'Active now means sustained recent CPU time in a supported local AI-app process tree; it is not prompt, task, local-model inference, token, energy, or cost attribution.',
+      presence: { ...this.presence },
+      limitation: 'Active now means sustained recent CPU time in a supported local AI-app process tree while this Mac is awake, unlocked, and recently used; it is not prompt, task, token, energy, or cost attribution.',
     };
     const memory = this.overheadMemorySamples.at(-1) ?? process.memoryUsage().rss;
     return {

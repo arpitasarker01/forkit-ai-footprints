@@ -13,6 +13,9 @@ Forkit AI Footprints (`forkit-ai-footprints`) is metadata-only by design.
 - cumulative CPU time, current CPU percentage, and resident memory for supported
   process trees, held locally for repeated activity classification; raw process
   entries are never exported;
+- the macOS console-lock flag and aggregate HID idle duration, used only to
+  pause observation while the device is locked or has not recently been used;
+  no keys, pointer movements, or input content are recorded;
 - directory entries and file metadata for supported model extensions;
 - loopback runtime API responses from explicitly supported local endpoints.
 - known AI-tool installation/configuration path existence;
@@ -79,7 +82,10 @@ scan count. It is never placed in the Census report, rescan snapshot, share
 image, saved share page, or anonymous/global contribution. The local monitor
 stream is same-origin and session-token protected. Sampling runs at a one-second
 target interval; durations exclude stopped time and gaps longer than three
-intervals. The stream makes no external request.
+intervals. Observation also pauses while macOS is locked or after 60 seconds
+without user input, and resumes with a new continuous activity block. The lock
+and idle signals remain local and are excluded from reports, share artifacts,
+and global aggregates. The stream makes no external request.
 
 The packaged app uses a native launcher to query Apple DeviceCheck capability.
 The status check makes no network request and writes no key. On a future

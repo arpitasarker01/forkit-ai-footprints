@@ -59,6 +59,42 @@ test('process existence alone never becomes working and sleep gaps are excluded'
   assert.equal(snapshot.products[0]?.state, 'open-idle');
   assert.equal(snapshot.observed_seconds, 1);
   assert.equal(snapshot.active_seconds, 0);
+  assert.equal(snapshot.timeline.length, 2);
+  assert.notEqual(snapshot.timeline[0]?.observation_id, snapshot.timeline[1]?.observation_id);
+});
+
+test('locked or inactive device time is paused and breaks activity continuity', async () => {
+  let now = 0;
+  let cpuTime = 10;
+  let eligible = true;
+  const monitor = new ActivityMonitor({
+    now: () => now,
+    intervalMs: 1000,
+    excludedRootPid: null,
+    devicePresence: async () => ({ state: eligible ? 'active' : 'idle', idle_seconds: eligible ? 2 : 61, observation_eligible: eligible }),
+    sampleProcesses: async () => [codex(10, cpuTime)],
+  });
+  await monitor.start({ schedule: false });
+  now += 1000; cpuTime += 40; await monitor.sampleNow();
+  now += 1000; cpuTime += 40; await monitor.sampleNow();
+  const beforePause = monitor.snapshot();
+  assert.equal(beforePause.observed_seconds, 2);
+  assert.equal(beforePause.active_seconds, 1);
+  eligible = false;
+  now += 1000; cpuTime += 400; await monitor.sampleNow();
+  now += 1000; cpuTime += 400; await monitor.sampleNow();
+  const paused = monitor.snapshot();
+  assert.equal(paused.observed_seconds, 2);
+  assert.equal(paused.active_seconds, 1);
+  assert.equal(paused.presence.state, 'idle');
+  assert.equal(paused.products[0]?.state, 'open-idle');
+  eligible = true;
+  now += 1000; cpuTime += 400; await monitor.sampleNow();
+  assert.equal(monitor.snapshot().observed_seconds, 2);
+  now += 1000; cpuTime += 40; await monitor.sampleNow();
+  const resumed = monitor.stop();
+  assert.equal(resumed.observed_seconds, 3);
+  assert.notEqual(resumed.timeline[0]?.observation_id, resumed.timeline.at(-1)?.observation_id);
 });
 
 test('monitor includes supported descendants but excludes its own process tree', async () => {

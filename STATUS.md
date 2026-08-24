@@ -1,6 +1,6 @@
 # Forkit AI Footprints Status
 
-Last updated: 2026-08-23
+Last updated: 2026-08-24
 
 Version: `0.2.0`
 
@@ -18,9 +18,13 @@ notarization remain future work.
   payload.
 - Explicit Start/Stop Monitoring with repeated one-second macOS process-tree
   sampling, cumulative CPU-time deltas, two-sample entry and three-sample exit
-  hysteresis, and sleep-gap exclusion.
+  hysteresis, and sleep-gap exclusion. Observation pauses while macOS is locked
+  or after 60 seconds without user input; every invalid interval starts a new
+  continuous activity block when valid observation resumes.
 - Clear states: **Active now**, **Ready**, **Monitoring**, and **Stopped**.
   Process presence alone never becomes active activity.
+- Durations retain seconds at every scale, including observations longer than
+  one hour.
 - One to three deterministic insights from valid measured time: local AI-app
   activity share, longest continuous active block, supported-tool workflow,
   mostly-idle state, and stored local model records. Stop/restart boundaries
@@ -95,6 +99,9 @@ notarization remain future work.
 ## Validation completed locally
 
 - TypeScript build and the complete local test suite.
+- Deterministic active → idle/locked → resumed lifecycle coverage confirms that
+  paused time changes neither observed nor AI-active seconds and cannot bridge
+  the longest continuous activity block.
 - Curated agent detector corpus: **58/58** fixtures, 26 positive and 32 negative,
   with zero fixture errors. This is conformance evidence, not field accuracy.
 - Isolated packed-package installation/import/CLI smoke.
@@ -121,6 +128,10 @@ notarization remain future work.
   test, or clean external-Mac installation test.
 - No representative multi-device macOS field-accuracy result and no Intel Mac
   release claim.
+- The live Mac exposed the real console-lock and HID-idle fields, but did not
+  remain physically untouched for the full 60-second idle threshold during the
+  final check; the resulting paused UI state is therefore test-validated, not
+  claimed as physically reproduced in that session.
 - App Attest reports unsupported on this macOS 26 device, so this Mac cannot
   produce a verified global contribution under the proposed proof policy.
 - No prompt, task, token, energy, cost, GPU, disk-I/O, or per-process network

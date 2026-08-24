@@ -13,6 +13,7 @@ import { buildLocalInsights } from './insights';
 import type { CensusReport } from './types';
 import { normalizeLocale, uiText, type UiLocale } from './localization';
 import { createLocalWorkflowContextProvider } from './workflow-context';
+import { createMacosDevicePresenceProvider } from './device-presence';
 
 export interface AiFootprintsServerOptions {
   hostname?: '127.0.0.1';
@@ -80,6 +81,7 @@ export async function startAiFootprintsServer(options: AiFootprintsServerOptions
   let loadedRuntimeCacheAt = 0;
   const monitor = options.monitor ?? new ActivityMonitor({
     context: createLocalWorkflowContextProvider(),
+    devicePresence: createMacosDevicePresenceProvider(),
     classifyProcesses: async (entries) => {
       const now = Date.now();
       if (now - loadedRuntimeCacheAt >= 3000) {

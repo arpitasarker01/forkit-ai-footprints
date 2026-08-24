@@ -19,6 +19,7 @@ function monitor(overrides: Partial<MonitorSnapshot> = {}): MonitorSnapshot {
       context: { chat: 'Private chat', workspace: 'Private workspace', source: 'cooperating-app-metadata' },
     }],
     timeline: [], sample_interval_ms: 1000, history_limit: 900,
+    presence: { state: 'active', idle_seconds: 0, observation_eligible: true },
     evidence: 'repeated-process-tree-cpu-time-deltas', limitation: 'local only',
     overhead: { current_cpu_percent: 1, current_memory_bytes: 10, history_bytes: 20, sample_count: 3, median_cpu_percent: 1, p95_cpu_percent: 2, max_memory_bytes: 12, measurement: 'forkit-process-tree' },
     ...overrides,

@@ -10,6 +10,7 @@ function snapshot(overrides: Partial<MonitorSnapshot> = {}): MonitorSnapshot {
     products: [{ signature: 'codex', name: 'Codex', kind: 'coding-agent', state: 'open-idle', process_count: 1, cpu_percent: 0, memory_percent: 1, memory_bytes: 10_000_000, recent_cpu_time_delta_ms: 0, active_seconds: 492, context: { chat: null, workspace: null, source: null } }],
     timeline: [{ started_at: '2026-08-23T10:00:00.000Z', ended_at: '2026-08-23T10:08:12.000Z', state: 'working-now', product_signatures: ['codex'] }],
     overhead: { current_cpu_percent: 0.1, current_memory_bytes: 1, history_bytes: 1, sample_count: 1, median_cpu_percent: 0.1, p95_cpu_percent: 0.1, max_memory_bytes: 1, measurement: 'forkit-process-tree' },
+    presence: { state: 'active', idle_seconds: 0, observation_eligible: true },
     sample_interval_ms: 1000, history_limit: 900, evidence: 'repeated-process-tree-cpu-time-deltas', limitation: 'test', ...overrides,
   };
 }
@@ -58,4 +59,11 @@ test('longest block never crosses an explicit Stop and restart boundary', () => 
     { started_at: '2026-08-23T10:01:01.000Z', ended_at: '2026-08-23T10:01:41.000Z', state: 'working-now', product_signatures: ['codex'], observation_id: 2 },
   ] }), { model_record_count: 0, confirmed_running_model_count: 0 });
   assert.equal(result[1]?.text, 'Your longest continuous AI-app activity signal lasted 1m 0s.');
+});
+
+test('hour-long insight durations retain seconds', () => {
+  const result = buildLocalInsights(snapshot({
+    timeline: [{ started_at: '2026-08-23T10:00:00.000Z', ended_at: '2026-08-23T11:02:03.000Z', state: 'working-now', product_signatures: ['codex'], observation_id: 1 }],
+  }), { model_record_count: 0, confirmed_running_model_count: 0 });
+  assert.equal(result[1]?.text, 'Your longest continuous AI-app activity signal lasted 1h 2m 3s.');
 });
