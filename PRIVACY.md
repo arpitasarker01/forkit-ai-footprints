@@ -88,6 +88,12 @@ generate one App Attest key and store only its opaque key identifier in the
 device-only Keychain. The current UI and CLI do not invoke enrollment,
 attestation, assertion generation, or upload.
 
+On first launch, the native app asks whether aggregate measurements may be
+prepared for global comparison. The answer is stored locally in macOS user
+defaults as two booleans (asked and allowed). It is not a device identifier and
+is never transmitted. A user who chose “Not now” can reopen the same permission
+from the comparison view.
+
 ## Filesystem identity
 
 Filesystem model identity is derived from metadata such as relative location,
@@ -123,7 +129,8 @@ used as automatic evidence of ownership, safety, provenance, or passport status.
 ## Anonymous contribution boundary
 
 The local app can create an allowlisted schema `2.0` preview only after at least
-600 valid observed seconds. Preview and consent are separate actions. It
+600 valid observed seconds. First-launch permission and exact payload review are
+separate actions. The preview
 contains valid seconds, AI-active seconds, activity ratio, supported app count
 and categories, model/loaded/runtime counts, recognized model-file bytes,
 macOS major, architecture, and scanner/runtime schema versions. It excludes

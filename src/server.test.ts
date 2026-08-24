@@ -12,6 +12,7 @@ test('local server owns one monitor independently of browser streams', async () 
   const service = await startAiFootprintsServer({
     port: 0,
     nativeToken,
+    globalPermission: 'granted',
     monitor,
     scan: async () => {
       scanCount += 1;
@@ -29,6 +30,7 @@ test('local server owns one monitor independently of browser streams', async () 
     assert.match(html, /Start Monitoring/);
     assert.match(html, /AI activity now/);
     assert.match(html, /Optional global comparison/);
+    assert.match(html, /"global_permission":"granted"/);
     assert.doesNotMatch(html, />Discover</);
     assert.doesNotMatch(html, />Observe</);
     assert.doesNotMatch(html, />Evolution</);

@@ -44,8 +44,9 @@ test('one-page app puts truthful activity before footprint and comparison', asyn
   assert.match(html, /How does your AI activity compare\?/);
   assert.match(html, /Explore your position among participating Forkit observations/);
   assert.match(html, /See my global position/);
-  assert.match(html, /Share aggregates &amp; compare/);
-  assert.match(html, /Keep everything local/);
+  assert.match(html, /Allow aggregate comparison/);
+  assert.doesNotMatch(html, /Keep everything local/);
+  assert.doesNotMatch(html, /id="global-consent"[^>]*disabled/);
   assert.match(html, /Technical details/);
   assert.match(html, /How Forkit measures/);
   assert.match(html, /AI activity/);
@@ -94,9 +95,10 @@ test('comparison never renders a fabricated percentile or worldwide-user claim',
   });
   assert.doesNotMatch(html, /Top \d+%/i);
   assert.doesNotMatch(html, /AI users worldwide/i);
-  assert.match(html, /Global contribution is not available in this version/);
+  assert.match(html, /Global benchmark is forming/);
   const clickHandler = html.slice(html.indexOf("$('review-payload').addEventListener('click'"));
   assert.match(clickHandler, /config\.contribution_preview_endpoint/);
+  assert.doesNotMatch(clickHandler, /keep-local/);
 });
 
 test('saved aggregate page is self-contained and exposes no item names', async () => {

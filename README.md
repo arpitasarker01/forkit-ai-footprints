@@ -184,7 +184,8 @@ forkit-ai-footprints scan --no-mcp
 
 CLI flags cannot bypass the required monitoring session. The local UI enables
 an exact schema `2.0` aggregate preview only after 600 valid observed seconds;
-preview and consent remain separate, and no upload transport exists. The
+the installed app asks once on first launch whether aggregate comparison is
+allowed, and no upload transport exists. The
 payload excludes app/model names, process counts, CPU/RAM, chat, workspace,
 repository, device, guess, Census, and account identifiers.
 

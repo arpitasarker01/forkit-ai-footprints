@@ -252,7 +252,7 @@ export async function main(args = process.argv.slice(2)): Promise<number> {
   }
   if (options.command === 'install') {
     const destination = await installPersistentMacApp();
-    process.stdout.write(`Forkit AI Footprint is installed at ${destination}\nOpen it later from Applications or Spotlight; Terminal is no longer required.\nYour AI activity stays on this device by default. After seeing your results, you can optionally review aggregate measurements for global comparison.\n`);
+    process.stdout.write(`Forkit AI Footprint is installed at ${destination}\nOpen it later from Applications or Spotlight; Terminal is no longer required.\nOn first launch, Forkit asks whether aggregate-only measurements may be prepared for global comparison. No contribution is sent unless verified collection is available.\n`);
     return 0;
   }
   if (options.command === 'serve') {

@@ -30,6 +30,9 @@ notarization remain future work.
 - A persistent native AppKit/WebKit app installed into the current user's
   Applications folder by a one-time npm bootstrap. Later launches use normal
   macOS surfaces and do not require Terminal.
+- A one-time native first-launch permission for aggregate global comparison,
+  stored only in macOS user defaults. The comparison view has no redundant
+  local-dismiss control or permanently disabled share action.
 - A native AppKit/WebKit window and retained menu-bar controller with Open,
   Start/Stop, and Quit actions. Closing hides the window without quitting; Quit
   stops the service and has a process-exit fallback so the bundled Node service

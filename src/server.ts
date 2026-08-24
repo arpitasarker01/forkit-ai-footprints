@@ -21,6 +21,7 @@ export interface AiFootprintsServerOptions {
   recordScan?: (generatedAt: string) => Promise<LocalDeviceJournal>;
   monitor?: ActivityMonitor;
   nativeToken?: string | null;
+  globalPermission?: 'granted' | 'declined' | 'unset';
 }
 
 export interface AiFootprintsServer {
@@ -63,6 +64,9 @@ export async function startAiFootprintsServer(options: AiFootprintsServerOptions
   const recordScan = options.recordScan ?? ((generatedAt: string) => recordLocalScan({ now: () => new Date(generatedAt) }));
   const sessionToken = crypto.randomBytes(24).toString('hex');
   const nativeToken = options.nativeToken ?? process.env.FORKIT_AI_FOOTPRINTS_NATIVE_TOKEN ?? null;
+  const globalPermission = options.globalPermission
+    ?? (process.env.FORKIT_AI_FOOTPRINTS_GLOBAL_PERMISSION === 'granted' ? 'granted'
+      : process.env.FORKIT_AI_FOOTPRINTS_GLOBAL_PERMISSION === 'declined' ? 'declined' : 'unset');
   const runtimeProviders = createDefaultProviders();
   let loadedRuntimeCache = new Set<string>();
   let loadedRuntimeCacheAt = 0;
@@ -144,6 +148,7 @@ export async function startAiFootprintsServer(options: AiFootprintsServerOptions
           contribution_preview_endpoint: '/api/contribution/preview',
           locale_endpoint: '/api/ui/locale',
           session_token: sessionToken,
+          global_permission: globalPermission,
         },
       }));
       return;

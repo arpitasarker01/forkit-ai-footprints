@@ -9,6 +9,8 @@ import WebKit
 
 private let keychainService = "dev.forkit.ai-footprints.app-attest"
 private let keychainAccount = "verified-installation"
+private let globalPermissionAskedKey = "ForkitFootprintsGlobalPermissionAsked"
+private let globalPermissionAllowedKey = "ForkitFootprintsGlobalPermissionAllowed"
 
 private enum LauncherError: Error {
     case appAttestUnavailable, invalidHash, keyMissing, resourceMissing
@@ -110,8 +112,25 @@ private final class FootprintsAppDelegate: NSObject, NSApplicationDelegate, NSWi
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
         setupStatusItem()
-        do { try startNodeService() }
+        let globalPermission = requestGlobalPermission()
+        do { try startNodeService(globalPermission: globalPermission) }
         catch { showFatalError(copy("fatalService")) }
+    }
+
+    private func requestGlobalPermission(force: Bool = false) -> Bool {
+        let defaults = UserDefaults.standard
+        if defaults.bool(forKey: globalPermissionAskedKey) && !force {
+            return defaults.bool(forKey: globalPermissionAllowedKey)
+        }
+        let alert = NSAlert()
+        alert.messageText = copy("globalPermissionTitle")
+        alert.informativeText = copy("globalPermissionBody")
+        alert.addButton(withTitle: copy("globalPermissionAllow"))
+        alert.addButton(withTitle: copy("globalPermissionNotNow"))
+        let allowed = alert.runModal() == .alertFirstButtonReturn
+        defaults.set(true, forKey: globalPermissionAskedKey)
+        defaults.set(allowed, forKey: globalPermissionAllowedKey)
+        return allowed
     }
 
     private func setupStatusItem() {
@@ -147,7 +166,7 @@ private final class FootprintsAppDelegate: NSObject, NSApplicationDelegate, NSWi
         }
     }
 
-    private func startNodeService() throws {
+    private func startNodeService(globalPermission: Bool) throws {
         guard let resources = Bundle.main.resourceURL else { throw LauncherError.resourceMissing }
         let process = Process(); process.executableURL = resources.appendingPathComponent("runtime/node")
         process.arguments = [resources.appendingPathComponent("app/dist/cli.js").path, "serve"] + arguments
@@ -155,6 +174,7 @@ private final class FootprintsAppDelegate: NSObject, NSApplicationDelegate, NSWi
         environment["FORKIT_AI_FOOTPRINTS_APP_BUNDLE"] = "1"
         environment["FORKIT_AI_FOOTPRINTS_NO_OPEN"] = "1"
         environment["FORKIT_AI_FOOTPRINTS_NATIVE_TOKEN"] = nativeToken
+        environment["FORKIT_AI_FOOTPRINTS_GLOBAL_PERMISSION"] = globalPermission ? "granted" : "declined"
         process.environment = environment
         let pipe = Pipe(); outputPipe = pipe; process.standardOutput = pipe; process.standardError = FileHandle.standardError
         process.terminationHandler = { [weak self] task in
@@ -199,8 +219,10 @@ private final class FootprintsAppDelegate: NSObject, NSApplicationDelegate, NSWi
         return (data, image)
     }
 
-    private func notifyShareResult(_ action: String, _ message: String) {
-        guard let data = try? JSONSerialization.data(withJSONObject: ["action": action, "message": message]),
+    private func notifyShareResult(_ action: String, _ message: String, allowed: Bool? = nil) {
+        var payload: [String: Any] = ["action": action, "message": message]
+        if let allowed { payload["allowed"] = allowed }
+        guard let data = try? JSONSerialization.data(withJSONObject: payload),
               let value = String(data: data, encoding: .utf8) else { return }
         webView?.evaluateJavaScript("window.forkitNativeShareResult?.(\(value))")
     }
@@ -211,6 +233,11 @@ private final class FootprintsAppDelegate: NSObject, NSApplicationDelegate, NSWi
               message.frameInfo.securityOrigin.port == serverURL?.port,
               let body = message.body as? [String: Any],
               let action = body["action"] as? String else { return }
+        if action == "global-permission" {
+            let allowed = requestGlobalPermission(force: true)
+            notifyShareResult(action, copy(allowed ? "permissionGranted" : "permissionDeclined"), allowed: allowed)
+            return
+        }
         if action == "copy-caption" {
             guard let caption = body["caption"] as? String, caption.utf8.count <= 8_000 else { return }
             NSPasteboard.general.clearContents(); NSPasteboard.general.setString(caption, forType: .string)
