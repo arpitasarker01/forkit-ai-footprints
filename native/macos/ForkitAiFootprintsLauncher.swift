@@ -4,6 +4,7 @@ import Darwin
 import DeviceCheck
 import Foundation
 import Security
+import UniformTypeIdentifiers
 import WebKit
 
 private let keychainService = "dev.forkit.ai-footprints.app-attest"
@@ -71,7 +72,7 @@ private func runAppAttestCommand(_ arguments: [String]) async throws {
 }
 
 @MainActor
-private final class FootprintsAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
+private final class FootprintsAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMessageHandler {
     private let arguments: [String]
     private let nativeToken = UUID().uuidString + UUID().uuidString
     private var nodeProcess: Process?
@@ -80,6 +81,7 @@ private final class FootprintsAppDelegate: NSObject, NSApplicationDelegate, NSWi
     private var serverURL: URL?
     private var window: NSWindow?
     private var webView: WKWebView?
+    private var sharingPicker: NSSharingServicePicker?
     private var statusItem: NSStatusItem?
     private var headerLine: NSMenuItem?
     private var statusLine: NSMenuItem?
@@ -175,6 +177,7 @@ private final class FootprintsAppDelegate: NSObject, NSApplicationDelegate, NSWi
 
     private func openWindow(_ url: URL) {
         let configuration = WKWebViewConfiguration()
+        configuration.userContentController.add(self, name: "forkitShare")
         let view = WKWebView(frame: .zero, configuration: configuration)
         let controller = NSViewController(); controller.view = view
         let window = NSWindow(contentViewController: controller)
@@ -182,6 +185,60 @@ private final class FootprintsAppDelegate: NSObject, NSApplicationDelegate, NSWi
         window.center(); window.delegate = self; window.isReleasedWhenClosed = false
         self.webView = view; self.window = window
         view.load(URLRequest(url: url)); showFootprint()
+    }
+
+    private func shareImage(_ body: [String: Any]) -> (Data, NSImage)? {
+        guard let encoded = body["png"] as? String,
+              encoded.hasPrefix("data:image/png;base64,"),
+              encoded.count <= 14_000_000,
+              let data = Data(base64Encoded: String(encoded.dropFirst("data:image/png;base64,".count))),
+              data.count <= 10_000_000,
+              let bitmap = NSBitmapImageRep(data: data),
+              bitmap.pixelsWide == 1080, bitmap.pixelsHigh == 1080,
+              let image = NSImage(data: data) else { return nil }
+        return (data, image)
+    }
+
+    private func notifyShareResult(_ action: String, _ message: String) {
+        guard let data = try? JSONSerialization.data(withJSONObject: ["action": action, "message": message]),
+              let value = String(data: data, encoding: .utf8) else { return }
+        webView?.evaluateJavaScript("window.forkitNativeShareResult?.(\(value))")
+    }
+
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        guard message.name == "forkitShare",
+              message.frameInfo.securityOrigin.host == "127.0.0.1",
+              message.frameInfo.securityOrigin.port == serverURL?.port,
+              let body = message.body as? [String: Any],
+              let action = body["action"] as? String else { return }
+        if action == "copy-caption" {
+            guard let caption = body["caption"] as? String, caption.utf8.count <= 8_000 else { return }
+            NSPasteboard.general.clearContents(); NSPasteboard.general.setString(caption, forType: .string)
+            notifyShareResult(action, copy("captionCopied")); return
+        }
+        guard let (data, image) = shareImage(body) else { notifyShareResult(action, copy("shareFailed")); return }
+        if action == "copy-image" {
+            NSPasteboard.general.clearContents(); NSPasteboard.general.setData(data, forType: .png)
+            notifyShareResult(action, copy("imageCopied")); return
+        }
+        if action == "save" {
+            let panel = NSSavePanel(); panel.allowedContentTypes = [.png]; panel.nameFieldStringValue = "my-forkit-ai-footprint.png"
+            panel.canCreateDirectories = true
+            let save: (NSApplication.ModalResponse) -> Void = { [weak self] response in
+                guard response == .OK, let destination = panel.url else { return }
+                do { try data.write(to: destination, options: .atomic); self?.notifyShareResult(action, self?.copy("imageSaved") ?? "Saved") }
+                catch { self?.notifyShareResult(action, self?.copy("shareFailed") ?? "Could not save") }
+            }
+            if let window { panel.beginSheetModal(for: window, completionHandler: save) } else { save(panel.runModal()) }
+            return
+        }
+        if action == "share" {
+            let caption = (body["caption"] as? String).flatMap { $0.utf8.count <= 8_000 ? $0 : nil } ?? ""
+            guard let host = window?.contentView else { return }
+            let picker = NSSharingServicePicker(items: caption.isEmpty ? [image] : [image, caption])
+            sharingPicker = picker; picker.show(relativeTo: host.bounds, of: host, preferredEdge: .minY)
+            notifyShareResult(action, copy("shareReady"))
+        }
     }
 
     private func beginStatusPolling() {

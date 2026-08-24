@@ -106,6 +106,12 @@ test('saved aggregate page is self-contained and exposes no item names', async (
   const html = renderCensusSharePage(report);
   assert.match(html, /Forkit AI Footprint/);
   assert.match(html, /canvas[^>]+width="1080" height="1080"/);
+  assert.match(html, /1080 × 1080 PNG · 1:1 square/);
+  assert.match(html, /messageHandlers\?\.forkitShare/);
+  assert.match(html, /nativeAction\('save'/);
+  assert.match(html, /nativeAction\('copy-image'/);
+  assert.match(html, /nativeAction\('copy-caption'/);
+  assert.match(html, /nativeAction\('share'/);
   assert.doesNotMatch(html, new RegExp(sentinel));
   assert.doesNotMatch(html, /https?:\/\//i);
   assert.doesNotMatch(html, /[a-f0-9]{48}/);
@@ -121,6 +127,7 @@ test('German GUI and square share export are localized from the same product cop
   assert.match(html, /PNG speichern/);
   assert.match(html, /Bild kopieren/);
   assert.match(html, /width="1080" height="1080"/);
+  assert.match(html, /1080 × 1080 PNG · quadratisch 1:1/);
 });
 
 test('local controls reject external endpoints and weak tokens', async () => {

@@ -12,6 +12,7 @@ import { buildAnonymousAiFootprintPreview } from './sharing';
 import { buildLocalInsights } from './insights';
 import type { CensusReport } from './types';
 import { normalizeLocale, type UiLocale } from './localization';
+import { createLocalWorkflowContextProvider } from './workflow-context';
 
 export interface AiFootprintsServerOptions {
   hostname?: '127.0.0.1';
@@ -66,6 +67,7 @@ export async function startAiFootprintsServer(options: AiFootprintsServerOptions
   let loadedRuntimeCache = new Set<string>();
   let loadedRuntimeCacheAt = 0;
   const monitor = options.monitor ?? new ActivityMonitor({
+    context: createLocalWorkflowContextProvider(),
     classifyProcesses: async (entries) => {
       const now = Date.now();
       if (now - loadedRuntimeCacheAt >= 3000) {

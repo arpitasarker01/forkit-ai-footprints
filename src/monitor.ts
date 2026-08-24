@@ -7,7 +7,7 @@ export type MonitorLifecycle = 'stopped' | 'monitoring';
 export interface ActivityContext {
   chat: string | null;
   workspace: string | null;
-  source: 'cooperating-app-metadata' | null;
+  source: 'cooperating-app-metadata' | 'codex-local-metadata' | null;
 }
 
 export interface AiActivityProduct {
@@ -70,6 +70,7 @@ interface ProductTracker {
   cpuPercent: number | null;
   memoryPercent: number | null;
   cpuDeltaMs: number | null;
+  context: ActivityContext;
 }
 
 export interface ActivityMonitorOptions {
@@ -78,7 +79,7 @@ export interface ActivityMonitorOptions {
   intervalMs?: number;
   historyLimit?: number;
   excludedRootPid?: number | null;
-  context?: () => ActivityContext;
+  context?: (signature: string) => ActivityContext | Promise<ActivityContext>;
   classifyProcesses?: (processes: ProcessEntry[]) => ClassifiedAgentProcess[] | Promise<ClassifiedAgentProcess[]>;
 }
 
@@ -134,7 +135,7 @@ export class ActivityMonitor {
   private readonly intervalMs: number;
   private readonly historyLimit: number;
   private readonly excludedRootPid: number | null;
-  private readonly context: () => ActivityContext;
+  private readonly context: (signature: string) => ActivityContext | Promise<ActivityContext>;
   private readonly classifyProcesses: (processes: ProcessEntry[]) => ClassifiedAgentProcess[] | Promise<ClassifiedAgentProcess[]>;
   private lifecycle: MonitorLifecycle = 'stopped';
   private startedAt: number | null = null;
@@ -159,7 +160,7 @@ export class ActivityMonitor {
     this.intervalMs = Math.max(500, options.intervalMs ?? DEFAULT_INTERVAL_MS);
     this.historyLimit = Math.max(10, options.historyLimit ?? DEFAULT_HISTORY_LIMIT);
     this.excludedRootPid = options.excludedRootPid === undefined ? process.pid : options.excludedRootPid;
-    this.context = options.context ?? localContextFromEnvironment;
+    this.context = options.context ?? (() => localContextFromEnvironment());
     this.classifyProcesses = options.classifyProcesses ?? ((entries) => classifyAgentProcessTrees(entries, this.excludedRootPid));
   }
 
@@ -228,6 +229,7 @@ export class ActivityMonitor {
           cpuPercent: sum(current.map((entry) => entry.cpu_percent)),
           memoryPercent: sum(current.map((entry) => entry.memory_percent)),
           cpuDeltaMs: measuredDelta,
+          context: await this.context(signature),
         });
       }
 
@@ -326,7 +328,7 @@ export class ActivityMonitor {
       memory_percent: product.memoryPercent,
       recent_cpu_time_delta_ms: product.cpuDeltaMs,
       active_seconds: rounded(product.activeMs / 1000),
-      context: this.context(),
+      context: product.context,
     })).sort((left, right) => left.name.localeCompare(right.name));
     const base = {
       schema_version: '1.0' as const,

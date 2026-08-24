@@ -12,8 +12,9 @@ notarization remain future work.
 
 ## What is implemented
 
-- One local experience: AI activity first, Guess → Reveal, an aggregate share
-  card, optional exact global-payload review, Scan again, and technical details.
+- One local experience: AI activity first, deterministic personal insights,
+  optional global comparison with exact payload review, a square aggregate share
+  card, Scan again, and technical details.
 - Explicit Start/Stop Monitoring with repeated one-second macOS process-tree
   sampling, cumulative CPU-time deltas, two-sample entry and three-sample exit
   hysteresis, and sleep-gap exclusion.
@@ -35,9 +36,10 @@ notarization remain future work.
   cannot remain orphaned.
 - One English/German localization source drives the app, deterministic insights,
   share caption, menu-bar menu, and close/quit notices.
-- Local-only optional chat/workspace display when a cooperating app explicitly
-  supplies those values. No inference from window titles, folders, prompts, or
-  commands is attempted.
+- Local-only optional workflow/project display. Cooperating apps may explicitly
+  supply it; Codex can also use its most recent private local catalog title and
+  project folder basename. No window-title, prompt, response, or command-text
+  inspection is attempted, and the context never enters share/global artifacts.
 - Forkit's own process tree is excluded from detected AI activity. Its CPU,
   RAM, and bounded-history overhead are measured and labelled separately.
 - Exact recognized logical model-file bytes for supported roots, with hard-link,

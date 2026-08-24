@@ -118,14 +118,13 @@ Census ID. Its copy/share controls include only the visible aggregate summary
 and run only after a user click.
 
 `serve` binds only to `127.0.0.1`, keeps the report and monitor in memory, and
-opens the AI activity → Guess → Reveal → Share experience. `Scan again` calls a random-token-protected local
+opens the AI activity → Insights → Optional comparison → Share experience. `Scan again` calls a random-token-protected local
 endpoint. The protected local page can name detected runtimes, models, AI apps,
 and tools. The explicitly created local share image may include the supported
 active tool product name; saved HTML and anonymous/global payloads remain
 aggregate-only.
-The guess remains in the browser page and is never sent to the local server or
-Forkit.dev. Start/Stop controls monitoring explicitly; browser/window closure
-does not stop it, while native Quit stops the monitor and loopback service.
+Start/Stop controls monitoring explicitly; browser/window closure does not stop
+it, while native Quit stops the monitor and loopback service.
 
 The local app also keeps an owner-only device journal containing the sanitized
 Mac display name, first/last scan timestamps, and scan count. This lets the Mac
@@ -134,6 +133,11 @@ page, image, anonymous preview, or website payload. The single result view uses
 a token-protected local stream with a one-second target interval. Repeated
 cumulative CPU-time deltas and hysteresis distinguish Working now from Open /
 idle; process presence alone is never activity. It is near-real-time, not zero delay.
+
+For Codex, the local view can also show the most recent workflow title and the
+final folder name from Codex's private local catalog. This is contextual local
+metadata, not prompt inspection or per-workflow resource attribution. It never
+enters the share image, caption, saved share page, or global payload.
 
 The revealed resource view reports deduplicated recognized logical model-file
 bytes and provider-native loaded-model evidence. The activity view uses private
@@ -146,11 +150,12 @@ sustained recent work inside a supported process tree, which may be foreground
 or background. The result does not measure GPU, energy, tokens, cost, disk I/O,
 or per-process network usage.
 
-After revealing the result, `Create share card` renders a 1200×630 PNG entirely
-in the browser. Its result-based line and cards use measured local insights,
+`Create share card` renders a 1080×1080 (1:1) PNG entirely on the device. Its
+result-based line and cards use measured local insights,
 model-record count, recognized model storage, activity ratio, and the supported
-active tool product name. It can be downloaded or passed to the operating
-system share sheet after an explicit click; no model names, chat/workspace
+active tool product name. Browser controls download or copy it; the installed
+app uses native macOS save, clipboard, and share-sheet actions after an explicit
+click. No model names, chat/workspace
 context, paths, device identity, or scan records are placed in the image or
 uploaded by AI Footprints.
 

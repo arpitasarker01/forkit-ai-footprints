@@ -21,7 +21,9 @@ Forkit AI Footprints (`forkit-ai-footprints`) is metadata-only by design.
   supported active tool product name, while model names and all item names are
   excluded from saved HTML and anonymous/global payloads;
 - optional chat/workspace labels supplied explicitly by a cooperating app for
-  local display only; absent cooperation, the fields remain empty;
+  local display only; for Codex, the most recent local catalog display title,
+  recency, and project path may be read, with only the project folder basename
+  retained in memory;
 - macOS major version, CPU architecture, and Node major in aggregate field-test
   results;
 - aggregate counts, exact recognized model-file bytes, architecture, Node major, product version,
@@ -62,7 +64,9 @@ Runtime_C2-write, billing, telemetry-upload, or deployment client.
 requires the same page origin and a random in-memory session token. The route
 may return local runtime, model, AI-app, and AI-tool display names to that
 protected local page. It never returns full paths, raw commands, endpoints,
-configuration values, prompts, chat titles, workspace names, or account data.
+configuration values, prompts, or account data. A supported app's recent local
+workflow title and project folder basename may appear only in this protected
+local page and are never written to a report or share/global artifact.
 The numeric guess is compared inside the browser and is not submitted to the
 local server. Start, Stop, Clear history, Scan again, and contribution preview
 all require the same-origin random session token. Closing a browser or native
@@ -148,3 +152,6 @@ process counts, device/account identifiers, workspace/chat titles, or external
 assets.
 Downloading it or opening the operating system share sheet requires a separate
 user click; AI Footprints does not receive the image.
+Inside the native macOS app, Save PNG, Copy Image, Copy Caption, and Share use a
+loopback-page-to-AppKit bridge restricted to the current local service port. The
+bridge accepts only a validated 1080×1080 PNG and a bounded aggregate caption.

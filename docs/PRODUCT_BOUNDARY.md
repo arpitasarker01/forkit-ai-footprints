@@ -39,8 +39,10 @@ with `forkit-census` retained temporarily as a developer compatibility alias.
 - prepare a consent-gated, aggregate-only anonymous contribution preview without
   transmitting it;
 - package and publish the approved macOS-only release through npm;
-- display optional cooperating-app chat/workspace metadata locally only, without
-  extracting window titles, folder names, prompts, or command text;
+- display optional cooperating-app chat/workspace metadata locally only; for
+  Codex, read only the latest local catalog display title, recency, and project
+  path, reduce the path to its final folder name, and keep that context in
+  memory; never inspect window titles, prompts, responses, or command text;
 
 Ubuntu, Windows, Android, and other operating systems are outside the current
 support claim until separately validated and promoted.
