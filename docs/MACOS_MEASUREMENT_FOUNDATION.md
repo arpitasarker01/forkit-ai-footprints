@@ -27,11 +27,11 @@ reports, saved/shareable artifacts, and every anonymous/global schema.
 ## Activity freshness and states
 
 The local service samples the macOS process tree at a one-second target interval
-and streams snapshots to a same-origin token-protected page. **Working now**
+and streams snapshots to a same-origin token-protected page. **Active now**
 requires two consecutive samples with a cumulative CPU-time delta of at least
 20 ms and at least 2% of the valid interval. Three negative samples return a
-present process tree to **Open / idle**. No supported process becomes **Not
-running**. Gaps longer than three sample intervals are excluded from observed
+present process tree to **Ready**. An absent supported process remains outside
+active activity. Gaps longer than three sample intervals are excluded from observed
 and active duration.
 
 This is bounded near-real-time, not zero delay. A transition normally appears

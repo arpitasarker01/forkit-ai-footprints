@@ -12,18 +12,19 @@ notarization remain future work.
 
 ## What is implemented
 
-- One local experience: AI activity first, deterministic personal insights,
-  optional global comparison with exact payload review, a square aggregate share
-  card, Scan again, and technical details.
+- One local experience: local AI-app activity first, deterministic personal
+  insights, a user-initiated link to the Forkit global vision, a square aggregate
+  share card, Scan again, and technical details. The link sends no observation
+  payload.
 - Explicit Start/Stop Monitoring with repeated one-second macOS process-tree
   sampling, cumulative CPU-time deltas, two-sample entry and three-sample exit
   hysteresis, and sleep-gap exclusion.
-- Clear states: **Working now**, **Open / idle**, **Not running**, and **Stopped**.
-  Process presence alone never becomes working activity.
-- One to three deterministic insights from valid measured time: activity share,
-  longest continuous active block, supported-tool workflow, mostly-idle state,
-  and available-but-unused local models. Stop/restart boundaries cannot inflate
-  the longest block.
+- Clear states: **Active now**, **Ready**, **Monitoring**, and **Stopped**.
+  Process presence alone never becomes active activity.
+- One to three deterministic insights from valid measured time: local AI-app
+  activity share, longest continuous active block, supported-tool workflow,
+  mostly-idle state, and stored local model records. Stop/restart boundaries
+  cannot inflate the longest block.
 - The monitor is owned by the local service, not a browser tab. Closing the
   window does not end a session; stopping preserves the summary; clearing is a
   separate explicit action.
@@ -31,8 +32,9 @@ notarization remain future work.
   Applications folder by a one-time npm bootstrap. Later launches use normal
   macOS surfaces and do not require Terminal.
 - A one-time native first-launch permission for aggregate global comparison,
-  stored only in macOS user defaults. The comparison view has no redundant
-  local-dismiss control or permanently disabled share action.
+  stored only in macOS user defaults. The in-app global action opens the public
+  Forkit global-vision section after the observation gate and does not transmit
+  the local result.
 - A native AppKit/WebKit window and retained menu-bar controller with Open,
   Start/Stop, and Quit actions. Closing hides the window without quitting; Quit
   stops the service and has a process-exit fallback so the bundled Node service
@@ -82,10 +84,10 @@ notarization remain future work.
   p95 CPU**, about **53.3 MB current RAM**, **117.1 MB maximum RAM**, and **627
   bytes** of bounded serialized history at the final payload sample.
 - A final source-identical bundled-app observation reached **63.3 seconds** of
-  valid time and **62.1 seconds** AI-active (ratio **0.981**), producing: “Codex
-  was working during 98% of your observation.”, “Your longest continuous
-  AI-active period was 1m 1s.”, and “5 local models are available, but none ran
-  during this observation.”
+  valid time and **62.1 seconds** AI-active (ratio **0.981**). With the current
+  evidence labels, those measurements produce: “Codex app activity was observed
+  during 98% of your observation.”, “Your longest continuous AI-app activity
+  signal lasted 1m 1s.”, and “5 local model records are stored on this device.”
 - A separate real session crossed the 10-minute gate at exactly **600 valid
   seconds** and **598 AI-active seconds**. Only then did the local comparison
   preview become available; no transport was enabled.
@@ -131,8 +133,9 @@ runner matches and verified runtime identities are strong implementation rules,
 but one real Mac and a curated fixture corpus cannot establish a global
 precision/recall percentage. Model storage is exact only for recognized files
 inside supported roots when `storage_complete=true`; it is not whole-disk AI
-storage or APFS physical allocation. **Working now** means sustained recent CPU
-time in a supported process tree and nothing more.
+storage or APFS physical allocation. **Active now** means sustained recent CPU
+time in a supported local AI-app process tree and nothing more; it does not
+claim that a cloud model is running locally.
 
 ## Smallest release gate
 

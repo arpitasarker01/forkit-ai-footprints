@@ -343,7 +343,7 @@ export class ActivityMonitor {
       sample_interval_ms: this.intervalMs,
       history_limit: this.historyLimit,
       evidence: 'repeated-process-tree-cpu-time-deltas' as const,
-      limitation: 'Working now means sustained recent work in a supported app process tree; it is not prompt, task, token, energy, or cost attribution.',
+      limitation: 'Active now means sustained recent CPU time in a supported local AI-app process tree; it is not prompt, task, local-model inference, token, energy, or cost attribution.',
     };
     const memory = this.overheadMemorySamples.at(-1) ?? process.memoryUsage().rss;
     return {

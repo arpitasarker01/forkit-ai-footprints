@@ -118,7 +118,7 @@ Census ID. Its copy/share controls include only the visible aggregate summary
 and run only after a user click.
 
 `serve` binds only to `127.0.0.1`, keeps the report and monitor in memory, and
-opens the AI activity → Insights → Optional comparison → Share experience. `Scan again` calls a random-token-protected local
+opens the local AI-app activity → Insights → Global vision → Share experience. `Scan again` calls a random-token-protected local
 endpoint. The protected local page can name detected runtimes, models, AI apps,
 and tools. The explicitly created local share image may include the supported
 active tool product name; saved HTML and anonymous/global payloads remain
@@ -131,8 +131,8 @@ Mac display name, first/last scan timestamps, and scan count. This lets the Mac
 resume its local state without placing the device name in a report, saved share
 page, image, anonymous preview, or website payload. The single result view uses
 a token-protected local stream with a one-second target interval. Repeated
-cumulative CPU-time deltas and hysteresis distinguish Working now from Open /
-idle; process presence alone is never activity. It is near-real-time, not zero delay.
+cumulative CPU-time deltas and hysteresis distinguish Active now from Ready;
+process presence alone is never activity. It is near-real-time, not zero delay.
 
 For Codex, the local view can also show the most recent workflow title and the
 final folder name from Codex's private local catalog. This is contextual local
@@ -145,10 +145,10 @@ process-tree CPU-time deltas and separately displays Forkit's measured CPU,
 resident memory, and bounded-history overhead. None is an energy, token, cost,
 or lifetime-usage measurement.
 
-AI Footprints does not claim prompt or task ownership. **Working now** means
-sustained recent work inside a supported process tree, which may be foreground
-or background. The result does not measure GPU, energy, tokens, cost, disk I/O,
-or per-process network usage.
+AI Footprints does not claim prompt, task, or local-model inference ownership.
+**Active now** means sustained recent CPU time inside a supported local AI-app
+process tree, which may be foreground or background. The result does not
+measure GPU, energy, tokens, cost, disk I/O, or per-process network usage.
 
 `Create share card` renders a 1080×1080 (1:1) PNG entirely on the device. Its
 result-based line and cards use measured local insights,

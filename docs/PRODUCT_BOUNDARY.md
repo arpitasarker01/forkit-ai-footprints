@@ -38,6 +38,8 @@ with `forkit-census` retained temporarily as a developer compatibility alias.
 - diagnose local AI Footprints readiness;
 - prepare a consent-gated, aggregate-only anonymous contribution preview without
   transmitting it;
+- open the public Forkit AI Footprint global-vision page only after an explicit
+  user click; opening the page sends no local observation payload;
 - package and publish the approved macOS-only release through npm;
 - display optional cooperating-app chat/workspace metadata locally only; for
   Codex, read only the latest local catalog display title, recency, and project

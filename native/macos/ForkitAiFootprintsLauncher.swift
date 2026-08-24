@@ -233,6 +233,14 @@ private final class FootprintsAppDelegate: NSObject, NSApplicationDelegate, NSWi
               message.frameInfo.securityOrigin.port == serverURL?.port,
               let body = message.body as? [String: Any],
               let action = body["action"] as? String else { return }
+        if action == "open-global" {
+            let globalPath = uiLocale == "de" ? "de/ai-footprint" : "ai-footprint"
+            guard let url = URL(string: "https://www.forkit.dev/\(globalPath)#global-vision"),
+                  NSWorkspace.shared.open(url) else {
+                notifyShareResult(action, copy("globalOpenFailed")); return
+            }
+            notifyShareResult(action, copy("globalOpened")); return
+        }
         if action == "global-permission" {
             let allowed = requestGlobalPermission(force: true)
             notifyShareResult(action, copy(allowed ? "permissionGranted" : "permissionDeclined"), allowed: allowed)

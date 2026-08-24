@@ -33,7 +33,7 @@ test('one-page app puts truthful activity before footprint and comparison', asyn
       session_token: 'a'.repeat(48),
     },
   });
-  assert.match(html, /AI activity now/);
+  assert.match(html, /AI app activity on this device/);
   assert.match(html, /Ready to observe/);
   assert.match(html, /Start Monitoring/);
   assert.match(html, /Your Footprint is taking shape/);
@@ -44,9 +44,11 @@ test('one-page app puts truthful activity before footprint and comparison', asyn
   assert.match(html, /How does your AI activity compare\?/);
   assert.match(html, /Explore your position among participating Forkit observations/);
   assert.match(html, /See my global position/);
-  assert.match(html, /Allow aggregate comparison/);
+  assert.match(html, /https:\/\/www\.forkit\.dev\/ai-footprint#global-vision/);
+  assert.match(html, /nativeAction\('open-global'\)/);
   assert.doesNotMatch(html, /Keep everything local/);
-  assert.doesNotMatch(html, /id="global-consent"[^>]*disabled/);
+  assert.doesNotMatch(html, /id="global-consent"/);
+  assert.doesNotMatch(html, /id="payload"/);
   assert.match(html, /Technical details/);
   assert.match(html, /How Forkit measures/);
   assert.match(html, /AI activity/);
@@ -97,7 +99,9 @@ test('comparison never renders a fabricated percentile or worldwide-user claim',
   assert.doesNotMatch(html, /AI users worldwide/i);
   assert.match(html, /Global benchmark is forming/);
   const clickHandler = html.slice(html.indexOf("$('review-payload').addEventListener('click'"));
-  assert.match(clickHandler, /config\.contribution_preview_endpoint/);
+  assert.match(clickHandler, /nativeAction\('open-global'\)/);
+  assert.match(clickHandler, /location\.assign\(globalUrl\)/);
+  assert.doesNotMatch(clickHandler, /config\.contribution_preview_endpoint/);
   assert.doesNotMatch(clickHandler, /keep-local/);
 });
 
@@ -122,7 +126,7 @@ test('saved aggregate page is self-contained and exposes no item names', async (
 test('German GUI and square share export are localized from the same product copy', async () => {
   const html = renderCensusSharePage(await emptyReport(), { locale: 'de' });
   assert.match(html, /lang="de"/);
-  assert.match(html, /KI-Aktivität jetzt/);
+  assert.match(html, /KI-App-Aktivität auf diesem Gerät/);
   assert.match(html, /Monitoring starten/);
   assert.match(html, /Wie lässt sich Ihre KI-Aktivität vergleichen\?/);
   assert.match(html, /Ihr Footprint nimmt Gestalt an/);

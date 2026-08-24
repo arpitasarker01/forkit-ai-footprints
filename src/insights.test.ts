@@ -16,17 +16,17 @@ function snapshot(overrides: Partial<MonitorSnapshot> = {}): MonitorSnapshot {
 
 test('high activity produces measured, deterministic personal insights', () => {
   assert.deepEqual(buildLocalInsights(snapshot(), { model_record_count: 5, confirmed_running_model_count: 0 }), [
-    { kind: 'activity-share', text: 'Codex was working during 82% of your observation.' },
-    { kind: 'longest-block', text: 'Your longest continuous AI-active period was 8m 12s.' },
-    { kind: 'local-models-unused', text: '5 local models are ready for a future session.' },
+    { kind: 'activity-share', text: 'Codex app activity was observed during 82% of your observation.' },
+    { kind: 'longest-block', text: 'Your longest continuous AI-app activity signal lasted 8m 12s.' },
+    { kind: 'local-models-unused', text: '5 local model records are stored on this device.' },
   ]);
 });
 
 test('light activity is described plainly without invented praise', () => {
   const result = buildLocalInsights(snapshot({ activity_ratio: 0.08, active_seconds: 48, timeline: [] }), { model_record_count: 0, confirmed_running_model_count: 0 });
   assert.deepEqual(result, [
-    { kind: 'mostly-idle', text: 'This observation captured a light AI activity pattern.' },
-    { kind: 'workflow', text: 'All observed AI activity came from Codex.' },
+    { kind: 'mostly-idle', text: 'This observation captured a light local AI-app activity pattern.' },
+    { kind: 'workflow', text: 'All observed AI-app activity came from Codex.' },
   ]);
 });
 
@@ -35,8 +35,8 @@ test('multi-tool activity reports the measured supported-tool count', () => {
   const result = buildLocalInsights(snapshot({
     products: [codex, { ...codex, signature: 'claude', name: 'Claude Code', active_seconds: 120 }],
   }), { model_record_count: 5, confirmed_running_model_count: 0 });
-  assert.equal(result[0]?.text, 'Supported AI tools were working during 82% of your observation.');
-  assert.equal(result[2]?.text, 'Active AI work was observed across 2 supported tools.');
+  assert.equal(result[0]?.text, 'Supported AI app activity was observed during 82% of your observation.');
+  assert.equal(result[2]?.text, 'Local AI-app activity was observed across 2 supported tools.');
 });
 
 test('insights remain hidden until enough valid observed time exists', () => {
@@ -46,9 +46,9 @@ test('insights remain hidden until enough valid observed time exists', () => {
 test('German insights use the same deterministic measurements', () => {
   const result = buildLocalInsights(snapshot(), { model_record_count: 5, confirmed_running_model_count: 0 }, 60, 'de');
   assert.deepEqual(result, [
-    { kind: 'activity-share', text: 'Codex arbeitete während 82 % Ihrer Beobachtung.' },
-    { kind: 'longest-block', text: 'Ihr längster durchgehender KI-aktiver Zeitraum dauerte 8 Min 12 Sek.' },
-    { kind: 'local-models-unused', text: '5 lokale Modelle sind für eine zukünftige Sitzung bereit.' },
+    { kind: 'activity-share', text: 'Codex-App-Aktivität wurde während 82 % Ihrer Beobachtung erkannt.' },
+    { kind: 'longest-block', text: 'Ihr längstes durchgehendes KI-App-Aktivitätssignal dauerte 8 Min 12 Sek.' },
+    { kind: 'local-models-unused', text: '5 lokale Modelldatensätze sind auf diesem Gerät gespeichert.' },
   ]);
 });
 
@@ -57,5 +57,5 @@ test('longest block never crosses an explicit Stop and restart boundary', () => 
     { started_at: '2026-08-23T10:00:00.000Z', ended_at: '2026-08-23T10:01:00.000Z', state: 'working-now', product_signatures: ['codex'], observation_id: 1 },
     { started_at: '2026-08-23T10:01:01.000Z', ended_at: '2026-08-23T10:01:41.000Z', state: 'working-now', product_signatures: ['codex'], observation_id: 2 },
   ] }), { model_record_count: 0, confirmed_running_model_count: 0 });
-  assert.equal(result[1]?.text, 'Your longest continuous AI-active period was 1m 0s.');
+  assert.equal(result[1]?.text, 'Your longest continuous AI-app activity signal lasted 1m 0s.');
 });
