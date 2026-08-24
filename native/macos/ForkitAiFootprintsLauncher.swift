@@ -113,6 +113,7 @@ private final class FootprintsAppDelegate: NSObject, NSApplicationDelegate, NSWi
         NSApp.setActivationPolicy(.regular)
         setupStatusItem()
         let globalPermission = requestGlobalPermission()
+        openOpeningWindow()
         do { try startNodeService(globalPermission: globalPermission) }
         catch { showFatalError(copy("fatalService")) }
     }
@@ -195,7 +196,17 @@ private final class FootprintsAppDelegate: NSObject, NSApplicationDelegate, NSWi
         }
     }
 
-    private func openWindow(_ url: URL) {
+    private func openingHTML() -> String {
+        let title = copy("openingTitle")
+        let detail = copy("openingCopy")
+        return """
+        <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><style>
+        :root{color-scheme:light dark;--bg:#f3eee5;--card:#fffdf8;--ink:#282624;--muted:#716c64;--teal:#007f82}@media(prefers-color-scheme:dark){:root{--bg:#171817;--card:#232422;--ink:#f2ecdf;--muted:#aaa49a;--teal:#67beb8}}*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at 0 0,rgba(223,140,39,.15),transparent 32rem),radial-gradient(circle at 100% 0,rgba(0,128,128,.14),transparent 34rem),var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.card{width:min(680px,100%);padding:42px;border:1px solid rgba(40,38,36,.12);border-radius:28px;background:var(--card);box-shadow:0 24px 70px rgba(36,32,28,.1)}.mark{display:grid;width:48px;height:48px;place-items:center;border-radius:15px;color:white;background:linear-gradient(145deg,var(--teal),#df8c27);font-size:20px;font-weight:900}.eyebrow{margin:28px 0 10px;color:var(--teal);font-size:11px;font-weight:850;letter-spacing:.16em;text-transform:uppercase}h1{margin:0;font-size:52px;line-height:1;letter-spacing:-.05em}p{margin:18px 0 0;color:var(--muted);font-size:15px;line-height:1.6}.progress{height:7px;margin-top:28px;overflow:hidden;border-radius:999px;background:rgba(40,38,36,.1)}.progress i{display:block;width:38%;height:100%;border-radius:inherit;background:var(--teal);animation:move 1.15s ease-in-out infinite alternate}@keyframes move{to{transform:translateX(165%)}}
+        </style></head><body><main class="card"><div class="mark">F</div><p class="eyebrow">Forkit AI Footprint</p><h1>\(title)</h1><p>\(detail)</p><div class="progress"><i></i></div></main></body></html>
+        """
+    }
+
+    private func openOpeningWindow() {
         let configuration = WKWebViewConfiguration()
         configuration.userContentController.add(self, name: "forkitShare")
         let view = WKWebView(frame: .zero, configuration: configuration)
@@ -204,7 +215,12 @@ private final class FootprintsAppDelegate: NSObject, NSApplicationDelegate, NSWi
         window.title = copy("appTitle"); window.setContentSize(NSSize(width: 1120, height: 780)); window.minSize = NSSize(width: 760, height: 620)
         window.center(); window.delegate = self; window.isReleasedWhenClosed = false
         self.webView = view; self.window = window
-        view.load(URLRequest(url: url)); showFootprint()
+        view.loadHTMLString(openingHTML(), baseURL: nil); showFootprint()
+    }
+
+    private func openWindow(_ url: URL) {
+        if webView == nil || window == nil { openOpeningWindow() }
+        webView?.load(URLRequest(url: url)); showFootprint()
     }
 
     private func shareImage(_ body: [String: Any]) -> (Data, NSImage)? {

@@ -46,6 +46,7 @@ if (appAttestEnvironment && applicationIdentity === '-') throw new Error('App At
 fs.rmSync(outputRoot, { recursive: true, force: true });
 fs.mkdirSync(cacheRoot, { recursive: true });
 fs.mkdirSync(macosDir, { recursive: true });
+fs.writeFileSync(path.join(outputRoot, '.metadata_never_index'), '');
 fs.mkdirSync(appResources, { recursive: true });
 fs.mkdirSync(runtimeDir, { recursive: true });
 

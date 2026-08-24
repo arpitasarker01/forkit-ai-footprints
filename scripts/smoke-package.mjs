@@ -62,6 +62,16 @@ try {
   if (!installedInfo.includes('dev.forkit.ai-footprints') || !fs.existsSync(path.join(installedApp, 'Contents', 'Resources', 'ForkitAIFootprint.icns'))) {
     throw new Error('One-time package bootstrap did not install a persistent branded app.');
   }
+  const duplicateApp = path.join(environment.FORKIT_AI_FOOTPRINTS_APPLICATIONS_DIR, 'Forkit AI Footprints.app');
+  const unrelatedApp = path.join(environment.FORKIT_AI_FOOTPRINTS_APPLICATIONS_DIR, 'Unrelated Forkit.app');
+  fs.cpSync(installedApp, duplicateApp, { recursive: true });
+  fs.cpSync(installedApp, unrelatedApp, { recursive: true });
+  const unrelatedInfoPath = path.join(unrelatedApp, 'Contents', 'Info.plist');
+  fs.writeFileSync(unrelatedInfoPath, fs.readFileSync(unrelatedInfoPath, 'utf8').replace('dev.forkit.ai-footprints', 'dev.example.unrelated'));
+  run('npx', ['forkit-ai-footprints'], { cwd: install, env: environment });
+  if (fs.existsSync(duplicateApp) || !fs.existsSync(unrelatedApp) || !fs.existsSync(installedApp)) {
+    throw new Error('In-place update did not keep one canonical Forkit app without touching an unrelated app.');
+  }
   run('npx', ['forkit-census', '--version'], { cwd: install, env: environment });
   const apiSmoke = path.join(install, 'api-smoke.cjs');
   fs.writeFileSync(apiSmoke, [

@@ -56,5 +56,6 @@ run('codesign', ['--force', '--deep', '--timestamp=none', '--sign', '-', target]
 run('codesign', ['--verify', '--deep', '--strict', target]);
 fs.mkdirSync(path.dirname(finalTarget), { recursive: true });
 fs.renameSync(target, finalTarget);
+fs.writeFileSync(path.join(path.dirname(finalTarget), '.metadata_never_index'), '');
 fs.rmSync(path.dirname(target), { recursive: true, force: true });
 process.stdout.write(`${finalTarget}\n`);

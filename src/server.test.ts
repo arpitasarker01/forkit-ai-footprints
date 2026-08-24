@@ -74,3 +74,39 @@ test('local server owns one monitor independently of browser streams', async () 
     assert.equal(service.server.listening, false);
   }
 });
+
+test('native app opens a local loading view before the first full scan completes', async () => {
+  let releaseScan!: () => void;
+  const scanGate = new Promise<void>((resolve) => { releaseScan = resolve; });
+  const service = await startAiFootprintsServer({
+    port: 0,
+    deferInitialScan: true,
+    scan: async () => {
+      await scanGate;
+      return runCensus({ includeRuntimes: false, includeFilesystem: false, includeAgents: false, includeTools: false, includeMcp: false, platform: 'darwin' });
+    },
+    recordScan: async (generatedAt) => ({ schema_version: '1.0', device_label: 'Local Test Mac', device_label_source: 'generic-mac', first_scan_at: generatedAt, last_scan_at: generatedAt, scan_count: 1 }),
+  });
+  const origin = service.url.slice(0, -1);
+  const headers = { origin, 'x-forkit-footprints-session': service.sessionToken };
+  try {
+    const opening = await fetch(service.url);
+    assert.equal(opening.status, 200);
+    assert.match(await opening.text(), /Opening your AI Footprint/);
+    const pending = await fetch(`${service.url}api/ready`, { method: 'POST', headers });
+    assert.deepEqual(await pending.json(), { ready: false, failed: false });
+
+    releaseScan();
+    let ready = false;
+    for (let attempt = 0; attempt < 20 && !ready; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      const response = await fetch(`${service.url}api/ready`, { method: 'POST', headers });
+      ready = Boolean((await response.json() as { ready: boolean }).ready);
+    }
+    assert.equal(ready, true);
+    assert.match(await (await fetch(service.url)).text(), /Start Monitoring/);
+  } finally {
+    releaseScan();
+    await service.close();
+  }
+});

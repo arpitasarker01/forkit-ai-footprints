@@ -173,33 +173,91 @@ export function parseArgs(args: string[]): ParsedOptions {
   };
 }
 
+const FORKIT_APP_NAME = 'Forkit AI Footprint.app';
+const FORKIT_BUNDLE_IDENTIFIER = 'dev.forkit.ai-footprints';
+const LAUNCH_SERVICES = '/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister';
+
+async function isForkitApp(appPath: string): Promise<boolean> {
+  const info = await fs.readFile(path.join(appPath, 'Contents', 'Info.plist'), 'utf8').catch(() => '');
+  return info.includes(FORKIT_BUNDLE_IDENTIFIER);
+}
+
+async function recognizedForkitApps(applicationsDirectory: string): Promise<string[]> {
+  const entries = await fs.readdir(applicationsDirectory, { withFileTypes: true }).catch(() => []);
+  const apps: string[] = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory() || !entry.name.endsWith('.app') || entry.name.startsWith('.')) continue;
+    const candidate = path.join(applicationsDirectory, entry.name);
+    if (await isForkitApp(candidate)) apps.push(candidate);
+  }
+  return apps;
+}
+
+function stopRunningForkitApps(appPaths: string[]): void {
+  const snapshot = spawnSync('/bin/ps', ['-axo', 'pid=,ppid=,comm='], { encoding: 'utf8', shell: false });
+  if (snapshot.status !== 0 || !snapshot.stdout) return;
+  const processes = snapshot.stdout.split('\n').map((line) => {
+    const match = line.trim().match(/^(\d+)\s+(\d+)\s+(.+)$/);
+    return match ? { pid: Number(match[1]), parent: Number(match[2]), command: match[3]! } : null;
+  }).filter((entry): entry is { pid: number; parent: number; command: string } => Boolean(entry));
+  const matching = processes.filter((entry) => appPaths.some((appPath) => entry.command.startsWith(`${appPath}/Contents/`)));
+  if (matching.length === 0) return;
+  const matchingPids = new Set(matching.map((entry) => entry.pid));
+  const ordered = [...matching].sort((left, right) => Number(matchingPids.has(right.parent)) - Number(matchingPids.has(left.parent)));
+  for (const entry of ordered) {
+    try { process.kill(entry.pid, 'SIGTERM'); } catch { /* process already ended */ }
+  }
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 800);
+  for (const entry of ordered) {
+    try { process.kill(entry.pid, 0); process.kill(entry.pid, 'SIGKILL'); } catch { /* process ended cleanly */ }
+  }
+}
+
+function unregisterApp(appPath: string): void {
+  spawnSync(LAUNCH_SERVICES, ['-u', appPath], { stdio: 'ignore', shell: false });
+}
+
+function registerApp(appPath: string): void {
+  spawnSync(LAUNCH_SERVICES, ['-f', appPath], { stdio: 'ignore', shell: false });
+}
+
 export async function installPersistentMacApp(options: { applicationsDirectory?: string; open?: boolean } = {}): Promise<string> {
   if (process.platform !== 'darwin' || process.arch !== 'arm64') throw new Error('The persistent GUI currently supports Apple Silicon macOS only.');
-  const source = path.join(__dirname, 'bootstrap', 'Forkit AI Footprint.app');
+  const source = path.join(__dirname, 'bootstrap', FORKIT_APP_NAME);
   try { await fs.access(path.join(source, 'Contents', 'Info.plist')); }
   catch { throw new Error('This package does not contain the macOS GUI bootstrap. Install from the packed release candidate.'); }
+  if (!(await isForkitApp(source))) throw new Error('The packaged macOS app has an unexpected identity.');
   const applicationsDirectory = options.applicationsDirectory
     ?? process.env.FORKIT_AI_FOOTPRINTS_APPLICATIONS_DIR
     ?? path.join(os.homedir(), 'Applications');
-  const destination = path.join(applicationsDirectory, 'Forkit AI Footprint.app');
+  const destination = path.join(applicationsDirectory, FORKIT_APP_NAME);
   const staging = path.join(applicationsDirectory, `.Forkit AI Footprint.installing-${process.pid}.app`);
   const previous = path.join(applicationsDirectory, `.Forkit AI Footprint.previous-${process.pid}.app`);
+  const shouldOpen = options.open !== false && process.env.FORKIT_AI_FOOTPRINTS_NO_OPEN !== '1';
   await fs.mkdir(applicationsDirectory, { recursive: true, mode: 0o700 });
+  const recognizedApps = await recognizedForkitApps(applicationsDirectory);
+  stopRunningForkitApps(recognizedApps);
   await fs.rm(staging, { recursive: true, force: true });
   await fs.cp(source, staging, { recursive: true, preserveTimestamps: true });
   let hadPrevious = false;
   try {
     const existingInfo = await fs.readFile(path.join(destination, 'Contents', 'Info.plist'), 'utf8').catch(() => '');
-    if (existingInfo && !existingInfo.includes('dev.forkit.ai-footprints')) throw new Error('The destination contains a different application.');
-    if (existingInfo) { await fs.rename(destination, previous); hadPrevious = true; }
+    if (existingInfo && !existingInfo.includes(FORKIT_BUNDLE_IDENTIFIER)) throw new Error('The destination contains a different application.');
+    if (existingInfo) { unregisterApp(destination); await fs.rename(destination, previous); hadPrevious = true; }
     await fs.rename(staging, destination);
     if (hadPrevious) await fs.rm(previous, { recursive: true, force: true });
+    for (const duplicate of recognizedApps) {
+      if (duplicate === destination) continue;
+      unregisterApp(duplicate);
+      await fs.rm(duplicate, { recursive: true, force: true });
+    }
+    if (shouldOpen) registerApp(destination);
   } catch (error) {
     await fs.rm(staging, { recursive: true, force: true });
     if (hadPrevious) await fs.rename(previous, destination).catch(() => undefined);
     throw error;
   }
-  if (options.open !== false && process.env.FORKIT_AI_FOOTPRINTS_NO_OPEN !== '1') {
+  if (shouldOpen) {
     const launched = spawnSync('/usr/bin/open', [destination], { stdio: 'ignore', shell: false });
     if (launched.status !== 0) throw new Error('Forkit was installed, but macOS could not open it.');
   }
