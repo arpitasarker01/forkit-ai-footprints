@@ -47,6 +47,7 @@ export function classifyLoadedRuntimeProcesses(
       kind: 'local-model-runtime', confidence: 'high', relationship: 'direct',
       cpu_percent: Number.isFinite(entry.cpu_percent) ? Number(entry.cpu_percent) : null,
       memory_percent: Number.isFinite(entry.memory_percent) ? Number(entry.memory_percent) : null,
+      memory_bytes: Number.isFinite(entry.rss_bytes) ? Number(entry.rss_bytes) : null,
       cpu_time_ms: Number.isFinite(entry.cpu_time_ms) ? Number(entry.cpu_time_ms) : null,
     });
   }

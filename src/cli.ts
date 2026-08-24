@@ -223,22 +223,31 @@ function registerApp(appPath: string): void {
 
 export async function installPersistentMacApp(options: { applicationsDirectory?: string; open?: boolean } = {}): Promise<string> {
   if (process.platform !== 'darwin' || process.arch !== 'arm64') throw new Error('The persistent GUI currently supports Apple Silicon macOS only.');
-  const source = path.join(__dirname, 'bootstrap', FORKIT_APP_NAME);
-  try { await fs.access(path.join(source, 'Contents', 'Info.plist')); }
+  const source = path.join(__dirname, 'bootstrap', `${FORKIT_APP_NAME}.zip`);
+  try { await fs.access(source); }
   catch { throw new Error('This package does not contain the macOS GUI bootstrap. Install from the packed release candidate.'); }
-  if (!(await isForkitApp(source))) throw new Error('The packaged macOS app has an unexpected identity.');
   const applicationsDirectory = options.applicationsDirectory
     ?? process.env.FORKIT_AI_FOOTPRINTS_APPLICATIONS_DIR
     ?? path.join(os.homedir(), 'Applications');
   const destination = path.join(applicationsDirectory, FORKIT_APP_NAME);
   const staging = path.join(applicationsDirectory, `.Forkit AI Footprint.installing-${process.pid}.app`);
   const previous = path.join(applicationsDirectory, `.Forkit AI Footprint.previous-${process.pid}.app`);
+  const extraction = path.join(applicationsDirectory, `.Forkit AI Footprint.extracting-${process.pid}`);
   const shouldOpen = options.open !== false && process.env.FORKIT_AI_FOOTPRINTS_NO_OPEN !== '1';
   await fs.mkdir(applicationsDirectory, { recursive: true, mode: 0o700 });
   const recognizedApps = await recognizedForkitApps(applicationsDirectory);
   stopRunningForkitApps(recognizedApps);
   await fs.rm(staging, { recursive: true, force: true });
-  await fs.cp(source, staging, { recursive: true, preserveTimestamps: true });
+  await fs.rm(extraction, { recursive: true, force: true });
+  await fs.mkdir(extraction, { recursive: true, mode: 0o700 });
+  const unpacked = spawnSync('/usr/bin/ditto', ['-x', '-k', source, extraction], { stdio: 'ignore', shell: false });
+  const extractedApp = path.join(extraction, FORKIT_APP_NAME);
+  if (unpacked.status !== 0 || !(await isForkitApp(extractedApp))) {
+    await fs.rm(extraction, { recursive: true, force: true });
+    throw new Error('The packaged macOS app has an unexpected identity.');
+  }
+  await fs.rename(extractedApp, staging);
+  await fs.rm(extraction, { recursive: true, force: true });
   let hadPrevious = false;
   try {
     const existingInfo = await fs.readFile(path.join(destination, 'Contents', 'Info.plist'), 'utf8').catch(() => '');
@@ -254,6 +263,7 @@ export async function installPersistentMacApp(options: { applicationsDirectory?:
     if (shouldOpen) registerApp(destination);
   } catch (error) {
     await fs.rm(staging, { recursive: true, force: true });
+    await fs.rm(extraction, { recursive: true, force: true });
     if (hadPrevious) await fs.rename(previous, destination).catch(() => undefined);
     throw error;
   }

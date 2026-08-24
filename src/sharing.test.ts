@@ -14,7 +14,7 @@ function monitor(overrides: Partial<MonitorSnapshot> = {}): MonitorSnapshot {
     observed_seconds: 600, active_seconds: 120, activity_ratio: 0.2,
     products: [{
       signature: 'private-signature', name: 'Private App Name', kind: 'coding-agent',
-      state: 'open-idle', process_count: 4, cpu_percent: 0, memory_percent: 1,
+      state: 'open-idle', process_count: 4, cpu_percent: 0, memory_percent: 1, memory_bytes: 10_000_000,
       recent_cpu_time_delta_ms: 0, active_seconds: 120,
       context: { chat: 'Private chat', workspace: 'Private workspace', source: 'cooperating-app-metadata' },
     }],

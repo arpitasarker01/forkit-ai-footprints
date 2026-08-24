@@ -18,6 +18,7 @@ export interface AiActivityProduct {
   process_count: number;
   cpu_percent: number | null;
   memory_percent: number | null;
+  memory_bytes: number | null;
   recent_cpu_time_delta_ms: number | null;
   active_seconds: number;
   context: ActivityContext;
@@ -69,6 +70,7 @@ interface ProductTracker {
   processCount: number;
   cpuPercent: number | null;
   memoryPercent: number | null;
+  memoryBytes: number | null;
   cpuDeltaMs: number | null;
   context: ActivityContext;
 }
@@ -226,8 +228,11 @@ export class ActivityMonitor {
           signals,
           activeMs,
           processCount: current.length,
-          cpuPercent: sum(current.map((entry) => entry.cpu_percent)),
+          cpuPercent: measuredDelta !== null && validElapsed > 0
+            ? rounded((measuredDelta / validElapsed) * 100)
+            : sum(current.map((entry) => entry.cpu_percent)),
           memoryPercent: sum(current.map((entry) => entry.memory_percent)),
+          memoryBytes: sum(current.map((entry) => entry.memory_bytes)),
           cpuDeltaMs: measuredDelta,
           context: await this.context(signature),
         });
@@ -326,6 +331,7 @@ export class ActivityMonitor {
       process_count: product.processCount,
       cpu_percent: product.cpuPercent,
       memory_percent: product.memoryPercent,
+      memory_bytes: product.memoryBytes,
       recent_cpu_time_delta_ms: product.cpuDeltaMs,
       active_seconds: rounded(product.activeMs / 1000),
       context: product.context,

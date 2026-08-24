@@ -127,6 +127,7 @@ const appAttestCapability = JSON.parse(run(executablePath, ['--app-attest', 'sta
 if (appAttestCapability.network_request_made !== false) throw new Error('App Attest capability smoke made an unexpected network request.');
 
 const releaseReady = applicationIdentity !== '-' && Boolean(installerIdentity);
+spawnSync('/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister', ['-u', appPath], { stdio: 'ignore' });
 process.stdout.write(`${JSON.stringify({
   appPath,
   packagePath,

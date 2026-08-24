@@ -7,7 +7,8 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const metadata = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
-const finalTarget = path.join(root, 'dist', 'bootstrap', 'Forkit AI Footprint.app');
+const finalDirectory = path.join(root, 'dist', 'bootstrap');
+const finalArchive = path.join(finalDirectory, 'Forkit AI Footprint.app.zip');
 const target = path.join(os.tmpdir(), `forkit-ai-footprint-bootstrap-${process.pid}`, 'Forkit AI Footprint.app');
 const contents = path.join(target, 'Contents');
 const macos = path.join(contents, 'MacOS');
@@ -23,7 +24,7 @@ function run(command, args) {
 
 if (process.platform !== 'darwin' || process.arch !== 'arm64') throw new Error('The npm GUI bootstrap currently supports Apple Silicon macOS only.');
 fs.rmSync(path.dirname(target), { recursive: true, force: true });
-fs.rmSync(path.dirname(finalTarget), { recursive: true, force: true });
+fs.rmSync(finalDirectory, { recursive: true, force: true });
 fs.mkdirSync(macos, { recursive: true });
 fs.mkdirSync(appResources, { recursive: true });
 fs.mkdirSync(runtime, { recursive: true });
@@ -54,8 +55,8 @@ run('xattr', ['-cr', target]);
 run('codesign', ['--force', '--timestamp=none', '--sign', '-', path.join(runtime, 'node')]);
 run('codesign', ['--force', '--deep', '--timestamp=none', '--sign', '-', target]);
 run('codesign', ['--verify', '--deep', '--strict', target]);
-fs.mkdirSync(path.dirname(finalTarget), { recursive: true });
-fs.renameSync(target, finalTarget);
-fs.writeFileSync(path.join(path.dirname(finalTarget), '.metadata_never_index'), '');
+fs.mkdirSync(finalDirectory, { recursive: true });
+fs.writeFileSync(path.join(finalDirectory, '.metadata_never_index'), '');
+run('ditto', ['-c', '-k', '--sequesterRsrc', '--keepParent', target, finalArchive]);
 fs.rmSync(path.dirname(target), { recursive: true, force: true });
-process.stdout.write(`${finalTarget}\n`);
+process.stdout.write(`${finalArchive}\n`);

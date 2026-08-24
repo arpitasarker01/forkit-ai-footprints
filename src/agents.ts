@@ -32,6 +32,7 @@ export interface ClassifiedAgentProcess {
   relationship: 'direct' | 'descendant';
   cpu_percent: number | null;
   memory_percent: number | null;
+  memory_bytes: number | null;
   cpu_time_ms: number | null;
 }
 
@@ -193,6 +194,7 @@ export function classifyAgentProcessTrees(
       relationship,
       cpu_percent: Number.isFinite(entry.cpu_percent) ? Math.max(0, Number(entry.cpu_percent)) : null,
       memory_percent: Number.isFinite(entry.memory_percent) ? Math.max(0, Number(entry.memory_percent)) : null,
+      memory_bytes: Number.isFinite(entry.rss_bytes) ? Math.max(0, Number(entry.rss_bytes)) : null,
       cpu_time_ms: Number.isFinite(entry.cpu_time_ms) ? Math.max(0, Number(entry.cpu_time_ms)) : null,
     });
   }

@@ -4,7 +4,7 @@ import { ActivityMonitor } from './monitor';
 import type { ProcessEntry } from './types';
 
 function codex(pid: number, cpuTime: number, cpu = 0): ProcessEntry {
-  return { pid, ppid: 1, name: 'codex', cmd: '/opt/codex app-server', cpu_time_ms: cpuTime, cpu_percent: cpu, memory_percent: 1 };
+  return { pid, ppid: 1, name: 'codex', cmd: '/opt/codex app-server', cpu_time_ms: cpuTime, cpu_percent: cpu, memory_percent: 1, rss_bytes: 50_000_000 };
 }
 
 test('monitor requires repeated CPU-time deltas before working-now and uses hysteresis', async () => {
@@ -29,6 +29,8 @@ test('monitor requires repeated CPU-time deltas before working-now and uses hyst
   assert.equal(monitor.snapshot().products[0]?.state, 'open-idle');
   now += 1000; await monitor.sampleNow();
   assert.equal(monitor.snapshot().products[0]?.state, 'working-now');
+  assert.equal(monitor.snapshot().products[0]?.cpu_percent, 4);
+  assert.equal(monitor.snapshot().products[0]?.memory_bytes, 50_000_000);
   now += 1000; await monitor.sampleNow();
   assert.equal(monitor.snapshot().products[0]?.state, 'working-now');
   now += 1000; await monitor.sampleNow();
@@ -62,8 +64,8 @@ test('process existence alone never becomes working and sleep gaps are excluded'
 test('monitor includes supported descendants but excludes its own process tree', async () => {
   let now = 0;
   const frame = (rootTime: number, childTime: number): ProcessEntry[] => [
-    { pid: 100, ppid: 1, name: 'codex', cmd: '/opt/codex', cpu_time_ms: rootTime },
-    { pid: 101, ppid: 100, name: 'helper', cmd: '/opt/helper', cpu_time_ms: childTime },
+    { pid: 100, ppid: 1, name: 'codex', cmd: '/opt/codex', cpu_time_ms: rootTime, rss_bytes: 20_000_000 },
+    { pid: 101, ppid: 100, name: 'helper', cmd: '/opt/helper', cpu_time_ms: childTime, rss_bytes: 30_000_000 },
     { pid: 200, ppid: 1, name: 'node', cmd: '/opt/forkit', cpu_time_ms: 100 },
     { pid: 201, ppid: 200, name: 'codex', cmd: '/opt/codex diagnostics', cpu_time_ms: 1000 },
   ];
@@ -80,6 +82,8 @@ test('monitor includes supported descendants but excludes its own process tree',
   const product = monitor.stop().products[0];
   assert.equal(product?.process_count, 2);
   assert.equal(product?.recent_cpu_time_delta_ms, 40);
+  assert.equal(product?.cpu_percent, 4);
+  assert.equal(product?.memory_bytes, 50_000_000);
   assert.equal(product?.state, 'working-now');
 });
 
