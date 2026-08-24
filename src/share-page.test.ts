@@ -41,8 +41,13 @@ test('one-page app puts truthful activity before footprint and comparison', asyn
   assert.doesNotMatch(html, /Guess, then reveal/);
   assert.match(html, /Your AI Footprint/);
   assert.match(html, /Optional global comparison/);
-  assert.match(html, /Supported AI agents working now/);
+  assert.match(html, /Active AI systems/);
   assert.match(html, /agent-resource-list/);
+  assert.match(html, /activity-chart/);
+  assert.match(html, /Activity over time/);
+  assert.match(html, /renderObservationChart/);
+  assert.match(html, /systemModelRuntime/);
+  assert.match(html, /resourceScope/);
   assert.match(html, /How does your AI activity compare\?/);
   assert.match(html, /Explore your position among participating Forkit observations/);
   assert.match(html, /See my global position/);

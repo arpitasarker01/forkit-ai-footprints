@@ -7,7 +7,7 @@ import { buildLocalScanView, renderCensusSharePage } from './share-page';
 import { recordLocalScan, type LocalDeviceJournal } from './local-device';
 import { ActivityMonitor, type MonitorSnapshot } from './monitor';
 import { createDefaultProviders } from './providers';
-import { classifyLoadedRuntimeProcesses, loadedRuntimeSignatures } from './runtime-activity';
+import { classifyLoadedRuntimeProcesses, loadedRuntimeModels } from './runtime-activity';
 import { buildAnonymousAiFootprintPreview } from './sharing';
 import { buildLocalInsights } from './insights';
 import type { CensusReport } from './types';
@@ -76,14 +76,14 @@ export async function startAiFootprintsServer(options: AiFootprintsServerOptions
       : process.env.FORKIT_AI_FOOTPRINTS_GLOBAL_PERMISSION === 'declined' ? 'declined' : 'unset');
   const deferInitialScan = options.deferInitialScan ?? process.env.FORKIT_AI_FOOTPRINTS_APP_BUNDLE === '1';
   const runtimeProviders = createDefaultProviders();
-  let loadedRuntimeCache = new Set<string>();
+  let loadedRuntimeCache = new Map<string, string[]>();
   let loadedRuntimeCacheAt = 0;
   const monitor = options.monitor ?? new ActivityMonitor({
     context: createLocalWorkflowContextProvider(),
     classifyProcesses: async (entries) => {
       const now = Date.now();
       if (now - loadedRuntimeCacheAt >= 3000) {
-        loadedRuntimeCache = await loadedRuntimeSignatures(runtimeProviders, new Date(now).toISOString());
+        loadedRuntimeCache = await loadedRuntimeModels(runtimeProviders, new Date(now).toISOString());
         loadedRuntimeCacheAt = now;
       }
       return [

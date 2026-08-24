@@ -8,4 +8,8 @@ test('runtime process is monitored only while provider reports a loaded model', 
   const loaded = classifyLoadedRuntimeProcesses(processes, new Set(['ollama']), null);
   assert.equal(loaded[0]?.signature, 'runtime:ollama');
   assert.equal(loaded[0]?.name, 'Ollama');
+  const named = classifyLoadedRuntimeProcesses(processes, new Map([['ollama', ['qwen3:8b']]]), null);
+  assert.equal(named[0]?.name, 'qwen3:8b · Ollama');
+  const grouped = classifyLoadedRuntimeProcesses(processes, new Map([['ollama', ['qwen3:8b', 'gemma3:4b']]]), null);
+  assert.equal(grouped[0]?.name, '2 loaded models · Ollama');
 });
