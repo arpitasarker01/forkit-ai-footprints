@@ -2,11 +2,11 @@
 
 Last updated: 2026-08-24
 
-Version: `0.2.0`
+Version: `0.2.1`
 
 Production classification: `current` for Apple Silicon macOS
 
-Release state: founder-approved public v0.2.0 npm-first release. The npm
+Release state: local v0.2.1 npm-first release candidate. The npm
 bootstrap installs a persistent unsigned local app; Developer ID signing and
 notarization remain future work.
 

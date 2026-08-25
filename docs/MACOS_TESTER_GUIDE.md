@@ -15,14 +15,14 @@ commands, emit full paths or MCP values, authenticate, or contact Forkit.dev.
 
 - a Mac you are authorized to inspect;
 - Node.js 20, 22, or 24 and npm;
-- the provided `forkit-ai-footprints-0.2.0.tgz` test artifact;
+- the provided `forkit-ai-footprints-0.2.1.tgz` test artifact;
 - its SHA-256 checksum from the test coordinator.
 
 Verify and install the artifact:
 
 ```bash
-shasum -a 256 ./forkit-ai-footprints-0.2.0.tgz
-npm install -g ./forkit-ai-footprints-0.2.0.tgz
+shasum -a 256 ./forkit-ai-footprints-0.2.1.tgz
+npm install -g ./forkit-ai-footprints-0.2.1.tgz
 forkit-ai-footprints doctor
 ```
 
