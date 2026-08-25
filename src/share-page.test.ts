@@ -58,7 +58,7 @@ test('one-page app puts truthful activity before footprint and comparison', asyn
   assert.match(html, /Supported AI app activity, local models found, and local models running/);
   assert.match(html, /Local models are available, but none ran during this observation/);
   assert.match(html, /Your AI Footprint/);
-  assert.match(html, /Optional global comparison/);
+  assert.match(html, /Global AI mirror/);
   assert.doesNotMatch(html, /Your personal AI rhythm/);
   assert.doesNotMatch(html, /forkit-footprints-rhythm-v1/);
   assert.match(html, /forkit-footprints-colors-v1/);
@@ -91,9 +91,12 @@ test('one-page app puts truthful activity before footprint and comparison', asyn
   assert.match(html, /renderDetails\(\)/);
   assert.match(html, /systemModelRuntime/);
   assert.match(html, /resourceScope/);
-  assert.match(html, /How does your AI activity compare\?/);
-  assert.match(html, /Explore your position among participating Forkit observations/);
-  assert.match(html, /See my global position/);
+  assert.match(html, /Ready to add your signal\?/);
+  assert.match(html, /Forkit can prepare one private aggregate from this observation/);
+  assert.match(html, /Local signal/);
+  assert.match(html, /Permission/);
+  assert.match(html, /Verified sync/);
+  assert.match(html, /View global AI mirror/);
   assert.match(html, /https:\/\/www\.forkit\.dev\/ai-footprint#global-vision/);
   assert.match(html, /nativeAction\('open-global'\)/);
   assert.doesNotMatch(html, /Keep everything local/);
@@ -151,6 +154,7 @@ test('comparison never renders a fabricated percentile or worldwide-user claim',
   assert.doesNotMatch(html, /Top \d+%/i);
   assert.doesNotMatch(html, /AI users worldwide/i);
   assert.match(html, /Global benchmark is forming/);
+  assert.match(html, /Verified sync is still closed|Allow aggregate preparation first/);
   const clickHandler = html.slice(html.indexOf("$('review-payload').addEventListener('click'"));
   assert.match(clickHandler, /nativeAction\('open-global'\)/);
   assert.match(clickHandler, /location\.assign\(globalUrl\)/);
@@ -188,7 +192,8 @@ test('German GUI and square share export are localized from the same product cop
   assert.match(html, /KI-aktiver Anteil/);
   assert.match(html, /Was Forkit bemerkt hat/);
   assert.match(html, /Hosted vs\. lokale KI/);
-  assert.match(html, /Wie lässt sich Ihre KI-Aktivität vergleichen\?/);
+  assert.match(html, /Bereit, Ihr Signal beizutragen\?/);
+  assert.match(html, /Globalen KI-Spiegel ansehen/);
   assert.match(html, /KI-Arbeit sichtbar gemacht/);
   assert.match(html, /Lokal gemessen\. Nur freiwillig geteilt/);
   assert.match(html, /PNG speichern/);

@@ -23,8 +23,8 @@ does not publish anything.
 
 | Channel | Audience | Cost to users | Current state |
 |---|---|---:|---|
-| GitHub Release | canonical immutable source/release identity | Free | v0.2.1 candidate |
-| npm public registry | primary Apple Silicon bootstrap; installs a persistent app in `~/Applications` | Free | v0.2.1 candidate |
+| GitHub Release | canonical immutable source/release identity | Free | Target repo not created |
+| npm public registry | primary Apple Silicon bootstrap; installs a persistent app in `~/Applications` | Free | v0.2.1 candidate; live npm remains v0.2.0 until approved publish |
 | Homebrew tap | optional future package-manager channel | Free | Tap not created |
 | Signed `.pkg` | future click installation | Free to users | Blocked on paid Apple identity and notarization |
 
@@ -34,6 +34,10 @@ the current user's Applications folder and opens it. Later use is through
 Applications, Spotlight, Dock, or the Forkit menu-bar icon without Terminal.
 The current product support claim is still macOS on Apple Silicon until broader
 field validation exists.
+
+Public GitHub handoff is tracked in `docs/PUBLIC_GITHUB_HANDOFF.md`. The target
+repository must exist and resolve before the GitHub channel can be marked
+available.
 
 ## Release order
 

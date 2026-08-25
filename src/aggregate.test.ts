@@ -15,7 +15,7 @@ function evaluation(architecture: string, macosMajor: number, truePositive: numb
   return {
     evaluation: 'macos-local-labelled-device',
     schema_version: '1.0',
-    product_version: '0.2.0',
+    product_version: '0.2.1',
     environment: { platform: 'darwin', architecture, macos_major: macosMajor, node_major: 22 },
     metrics: { agents: metric, tools: metric, runtimes: metric, models: metric, mcp: metric },
     uploaded: false,
@@ -29,7 +29,7 @@ test('macOS field aggregation combines counts, coverage, and Wilson intervals', 
     evaluation('x64', 15, 2, 1, 0),
   ]);
   assert.equal(result.evaluation_count, 2);
-  assert.equal(result.product_version, '0.2.0');
+  assert.equal(result.product_version, '0.2.1');
   assert.deepEqual(result.coverage.architecture, { arm64: 1, x64: 1 });
   assert.deepEqual(result.coverage.macos_major, { '15': 1, '26': 1 });
   assert.equal(result.metrics.agents.true_positive, 5);

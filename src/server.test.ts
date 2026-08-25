@@ -34,7 +34,7 @@ test('local server owns one monitor independently of browser streams', async () 
     assert.match(page.headers.get('content-security-policy') ?? '', /img-src data:/);
     assert.match(html, /Start Monitoring/);
     assert.match(html, /AI Activity Now/);
-    assert.match(html, /Optional global comparison/);
+    assert.match(html, /Global AI mirror/);
     assert.match(html, /"global_permission":"granted"/);
     assert.doesNotMatch(html, />Discover</);
     assert.doesNotMatch(html, />Observe</);
