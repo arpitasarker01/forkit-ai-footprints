@@ -2,7 +2,7 @@
 
 Forkit AI Footprints is a private, metadata-only view of the models, runtimes,
 and AI agents present on a Mac. The prepared package and command are
-`forkit-ai-footprints`; `forkit-census` remains a temporary binary alias.
+`forkit-ai-footprints`.
 
 It is derived from the discovery lessons in Forkit Connect, but it has a
 different safety boundary: AI Footprints does not authenticate to Forkit.dev and has
@@ -54,8 +54,8 @@ Requirements:
 - npm
 
 ```bash
-git clone https://github.com/arpitasarker01/forkit-census.git
-cd forkit-census
+git clone https://github.com/arpitasarker01/forkit-ai-footprints.git
+cd forkit-ai-footprints
 npm ci
 npm pack
 npm install -g ./forkit-ai-footprints-0.2.0.tgz
@@ -114,7 +114,7 @@ claims disabled. See [`docs/MACOS_TESTER_GUIDE.md`](./docs/MACOS_TESTER_GUIDE.md
 `share-page` performs the same local scan and writes a self-contained,
 aggregate-only HTML snapshot. It loads no external assets and contains no model
 names, paths, commands, endpoints, configuration values, account identity, or
-Census ID. Its copy/share controls include only the visible aggregate summary
+local scan ID. Its copy/share controls include only the visible aggregate summary
 and run only after a user click.
 
 `serve` binds only to `127.0.0.1`, keeps the report and monitor in memory, and
@@ -187,23 +187,16 @@ an exact schema `2.0` aggregate preview only after 600 valid observed seconds;
 the installed app asks once on first launch whether aggregate comparison is
 allowed, and no upload transport exists. The
 payload excludes app/model names, process counts, CPU/RAM, chat, workspace,
-repository, device, guess, Census, and account identifiers.
+repository, device, guess, local scan, and account identifiers.
 
 ## Shared core API
 
-Forkit Connect should delegate to the package's public, read-only core rather
-than copy its detector implementation:
-
-```js
-const { runCensus } = require('forkit-ai-footprints');
-
-const report = await runCensus();
-```
-
-The package root also exports the individual metadata detectors, formatters,
-provider adapters, endpoint validation, anonymous-preview builder, and TypeScript
-types. A fresh-install smoke test imports the package root and verifies that an
-all-disabled core scan makes zero external requests and writes no local state.
+Forkit Connect should delegate to this package's public, read-only core rather
+than copy its detector implementation. The package root exports the local scan
+runner, individual metadata detectors, formatters, provider adapters, endpoint
+validation, anonymous-preview builder, and TypeScript types. A fresh-install
+smoke test imports the package root and verifies that an all-disabled core scan
+makes zero external requests and writes no local state.
 
 ## What AI Footprints reports
 

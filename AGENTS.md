@@ -1,4 +1,4 @@
-# Forkit Census Agent Instructions
+# Forkit AI Footprints Agent Instructions
 
 Before changing code:
 
@@ -11,7 +11,7 @@ Before changing code:
 
 ## Non-negotiable rules
 
-- Census is read-only and metadata-only.
+- AI Footprints is read-only and metadata-only.
 - Never add Forkit.dev authentication, passport Mint, registry writes,
   Runtime_C2 mutation, telemetry upload, billing, or deployment behavior.
 - Reject non-loopback runtime endpoints.

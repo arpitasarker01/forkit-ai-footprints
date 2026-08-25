@@ -5,11 +5,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/arpitasarker01/forkit-census.git"
+    "url": "git+https://github.com/arpitasarker01/forkit-ai-footprints.git"
   },
-  "homepage": "https://github.com/arpitasarker01/forkit-census#readme",
+  "homepage": "https://github.com/arpitasarker01/forkit-ai-footprints#readme",
   "bugs": {
-    "url": "https://github.com/arpitasarker01/forkit-census/issues"
+    "url": "https://github.com/arpitasarker01/forkit-ai-footprints/issues"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -60,8 +60,7 @@
     "prepublishOnly": "npm test && npm run validate:macos"
   },
   "bin": {
-    "forkit-ai-footprints": "dist/cli.js",
-    "forkit-census": "dist/cli.js"
+    "forkit-ai-footprints": "dist/cli.js"
   },
   "dependencies": {
     "ps-list": "^9.0.0"

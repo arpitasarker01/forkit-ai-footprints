@@ -5,8 +5,8 @@ Sector: CLI discovery and local inventory
 Status: `current` for the approved Apple Silicon macOS npm release
 
 Forkit AI Footprints is the public name for the experimental metadata-only
-inventory CLI. Its prepared package and command are `forkit-ai-footprints`,
-with `forkit-census` retained temporarily as a developer compatibility alias.
+inventory CLI. Its prepared package and only public command are
+`forkit-ai-footprints`.
 
 ## Allowed MVP
 

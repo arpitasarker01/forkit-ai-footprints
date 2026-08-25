@@ -6,7 +6,7 @@ import test from 'node:test';
 import { getDefaultModelRoots, scanFilesystemModels } from './filesystem';
 
 test('filesystem census reports model metadata without absolute paths or file content', async () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'forkit-census-models-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'forkit-ai-footprints-models-'));
   const modelDir = path.join(root, 'models--acme--tiny-model', 'snapshots', 'one');
   fs.mkdirSync(modelDir, { recursive: true });
   fs.writeFileSync(path.join(modelDir, 'model.safetensors'), Buffer.alloc(32));
@@ -28,7 +28,7 @@ test('filesystem census reports model metadata without absolute paths or file co
 });
 
 test('filesystem census ignores small and unsupported files', async () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'forkit-census-models-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'forkit-ai-footprints-models-'));
   fs.writeFileSync(path.join(root, 'small.gguf'), Buffer.alloc(4));
   fs.writeFileSync(path.join(root, 'large.txt'), Buffer.alloc(64));
   try {
@@ -74,7 +74,7 @@ test('Hugging Face environment roots follow HF_HOME, HF_HUB_CACHE, and XDG cache
 });
 
 test('Hugging Face snapshots count a shared blob once across revisions', async () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'forkit-census-hf-cache-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'forkit-ai-footprints-hf-cache-'));
   const repo = path.join(root, 'models--acme--shared-model');
   const blob = path.join(repo, 'blobs', 'content-hash');
   const firstSnapshot = path.join(repo, 'snapshots', 'revision-a');
@@ -98,7 +98,7 @@ test('Hugging Face snapshots count a shared blob once across revisions', async (
 });
 
 test('Ollama content-addressed files contribute exact storage without creating a fake model record', async () => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'forkit-census-ollama-'));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'forkit-ai-footprints-ollama-'));
   const root = path.join(home, '.ollama', 'models');
   const blobs = path.join(root, 'blobs');
   const manifests = path.join(root, 'manifests', 'registry.ollama.ai', 'library', 'tiny');
@@ -118,7 +118,7 @@ test('Ollama content-addressed files contribute exact storage without creating a
 });
 
 test('storage ledger counts one physical file once across hard links and overlapping roots', async () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'forkit-census-storage-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'forkit-ai-footprints-storage-'));
   const nested = path.join(root, 'models');
   fs.mkdirSync(nested);
   const original = path.join(nested, 'weights.safetensors');

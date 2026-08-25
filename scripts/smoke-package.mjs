@@ -72,7 +72,6 @@ try {
   if (fs.existsSync(duplicateApp) || !fs.existsSync(unrelatedApp) || !fs.existsSync(installedApp)) {
     throw new Error('In-place update did not keep one canonical Forkit app without touching an unrelated app.');
   }
-  run('npx', ['forkit-census', '--version'], { cwd: install, env: environment });
   const apiSmoke = path.join(install, 'api-smoke.cjs');
   fs.writeFileSync(apiSmoke, [
     "const assert = require('node:assert/strict');",
@@ -96,7 +95,7 @@ try {
   ], { cwd: install, env: environment });
   const report = JSON.parse(output);
   if (report.schema_version !== '1.3' || report.privacy?.external_requests_made !== 0 || report.privacy?.backend_contacted !== false || report.privacy?.local_state_scope !== 'device-journal-only') {
-    throw new Error('Installed Census privacy contract failed.');
+    throw new Error('Installed AI Footprints privacy contract failed.');
   }
   const truthPath = path.join(work, 'local-truth.json');
   const sentinel = 'PRIVATE_TESTER_LABEL_DO_NOT_EMIT';
@@ -115,7 +114,7 @@ try {
   ], { cwd: install, env: environment });
   const evaluation = JSON.parse(evaluationOutput);
   if (evaluation.uploaded !== false || evaluation.field_accuracy_claim_allowed !== false || evaluationOutput.includes(sentinel)) {
-    throw new Error('Installed Census field-evaluation privacy contract failed.');
+    throw new Error('Installed AI Footprints field-evaluation privacy contract failed.');
   }
   const resultsDirectory = path.join(work, 'macos-field-results');
   fs.mkdirSync(resultsDirectory);
@@ -125,7 +124,7 @@ try {
   ], { cwd: install, env: environment });
   const aggregate = JSON.parse(aggregateOutput);
   if (aggregate.evaluation_count !== 1 || aggregate.uploaded !== false || aggregate.field_accuracy_claim_allowed !== false) {
-    throw new Error('Installed Census field-aggregation contract failed.');
+    throw new Error('Installed AI Footprints field-aggregation contract failed.');
   }
   const sharePagePath = path.join(work, 'ai-footprint.html');
   run('npx', [
@@ -140,7 +139,7 @@ try {
   if (!fs.existsSync(journalPath) || (fs.statSync(journalPath).mode & 0o777) !== 0o600) {
     throw new Error('Installed AI Footprints did not keep its declared owner-only device journal.');
   }
-  if (fs.existsSync(path.join(home, '.forkit-connect')) || fs.existsSync(path.join(home, '.forkit-census'))) {
+  if (fs.existsSync(path.join(home, '.forkit-connect'))) {
     throw new Error('Installed AI Footprints wrote undeclared persistent local state.');
   }
   fs.rmSync(tarball, { force: true });

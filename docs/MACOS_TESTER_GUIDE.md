@@ -15,15 +15,15 @@ commands, emit full paths or MCP values, authenticate, or contact Forkit.dev.
 
 - a Mac you are authorized to inspect;
 - Node.js 20, 22, or 24 and npm;
-- the provided `forkit-census-0.2.0.tgz` test artifact;
+- the provided `forkit-ai-footprints-0.2.0.tgz` test artifact;
 - its SHA-256 checksum from the test coordinator.
 
 Verify and install the artifact:
 
 ```bash
-shasum -a 256 ./forkit-census-0.2.0.tgz
-npm install -g ./forkit-census-0.2.0.tgz
-forkit-census doctor
+shasum -a 256 ./forkit-ai-footprints-0.2.0.tgz
+npm install -g ./forkit-ai-footprints-0.2.0.tgz
+forkit-ai-footprints doctor
 ```
 
 Stop if the checksum differs or `doctor` does not identify macOS.
@@ -31,7 +31,7 @@ Stop if the checksum differs or `doctor` does not identify macOS.
 ## Create independent truth
 
 Copy `examples/macos-truth.template.json` outside the repository and fill it in
-after manually checking the Mac. Do this before looking at the Census scan so
+after manually checking the Mac. Do this before looking at the AI Footprint scan so
 the tool does not define its own truth.
 
 - `agent_signatures`: supported agent processes actually running now. Supported
@@ -56,7 +56,7 @@ truth file private; it may contain model names.
 ## Run and review
 
 ```bash
-forkit-census evaluate \
+forkit-ai-footprints evaluate \
   --truth /absolute/path/to/local-truth.json \
   --output ./macos-evaluation.json
 ```
@@ -74,7 +74,7 @@ history, configuration files, or screenshots containing private names.
 Place explicitly shared evaluation JSON files in one directory and run:
 
 ```bash
-forkit-census aggregate \
+forkit-ai-footprints aggregate \
   --results /absolute/path/to/macos-field-results \
   --output ./macos-field-aggregate.json
 ```
@@ -85,4 +85,4 @@ against `docs/MACOS_ACCURACY_GATE.md` is required before any accuracy claim or
 release decision. The coordinator must independently track one result per Mac;
 the result format deliberately contains no persistent device identifier and
 therefore cannot automatically detect repeated submissions from one machine.
-Results from different Census versions are rejected rather than pooled.
+Results from different AI Footprints versions are rejected rather than pooled.

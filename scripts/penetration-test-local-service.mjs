@@ -93,7 +93,7 @@ if (token) {
   const previewAllowedStatus = preview.response.status === 200 || preview.response.status === 409;
   record('contribution preview remains gated', previewAllowedStatus, `status=${preview.response.status}`);
   if (preview.response.status === 200) {
-    const forbidden = ['chat', 'workspace', 'process_count', 'cpu_percent', 'memory_bytes', 'device_label', 'census_id', 'generated_at', 'Forkit Census', 'Forkit_Dev_OS_worktree'];
+    const forbidden = ['chat', 'workspace', 'process_count', 'cpu_percent', 'memory_bytes', 'device_label', 'census_id', 'generated_at', 'Forkit AI Footprints', 'Forkit_Dev_OS_worktree'];
     const leaked = forbidden.filter((value) => preview.text.includes(value));
     record('aggregate preview excludes private context', leaked.length === 0, leaked.join(', '));
   }

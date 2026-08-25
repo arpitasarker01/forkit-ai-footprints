@@ -36,7 +36,7 @@ Forkit AI Footprints (`forkit-ai-footprints`) is metadata-only by design.
 
 ## Prohibited collection or export
 
-Census must not retain or emit:
+AI Footprints must not retain or emit:
 
 - raw process commands;
 - process IDs;
@@ -44,7 +44,7 @@ Census must not retain or emit:
 - full filesystem paths;
 - prompts, responses, terminal logs, or source-code content;
 - credentials, cookies, tokens, API keys, or passwords;
-- hostname or Mac display name in Census reports, saved share pages, anonymous
+- hostname or Mac display name in AI Footprints reports, saved share pages, anonymous
   contributions, or global payloads; username, email, and Forkit.dev account
   identity are prohibited everywhere.
 - MCP server names, commands, URLs, environment keys, or environment values;
@@ -53,14 +53,14 @@ Census must not retain or emit:
 
 ## Network boundary
 
-Census may call HTTP(S) endpoints only when the hostname is one of:
+AI Footprints may call HTTP(S) endpoints only when the hostname is one of:
 
 - `localhost`
 - `127.0.0.1`
 - `::1`
 
 Remote endpoints and endpoints containing embedded credentials are rejected.
-Census contains no Forkit.dev login, registry-write, passport-publish,
+AI Footprints contains no Forkit.dev login, registry-write, passport-publish,
 Runtime_C2-write, billing, telemetry-upload, or deployment client.
 
 `forkit-ai-footprints serve` binds only to `127.0.0.1`. Its rescan route
@@ -78,7 +78,7 @@ window does not stop monitoring; native Quit stops the monitor and local service
 The interactive app keeps `device-journal.json` under the user's macOS
 Application Support directory with directory mode `0700` and file mode `0600`.
 It contains only the sanitized Mac display name, first/last scan timestamps, and
-scan count. It is never placed in the Census report, rescan snapshot, share
+scan count. It is never placed in the AI Footprints report, rescan snapshot, share
 image, saved share page, or anonymous/global contribution. The local monitor
 stream is same-origin and session-token protected. Sampling runs at a one-second
 target interval; durations exclude stopped time and gaps longer than three
@@ -104,7 +104,7 @@ from the comparison view.
 
 Filesystem model identity is derived from metadata such as relative location,
 name, size, and modification time. The absolute path participates only inside a
-local one-way root fingerprint helper and is not included in a Census Report.
+local one-way root fingerprint helper and is not included in an AI Footprints report.
 Model bytes are never read for hashing.
 
 ## Model storage measurement
@@ -140,7 +140,7 @@ separate actions. The preview
 contains valid seconds, AI-active seconds, activity ratio, supported app count
 and categories, model/loaded/runtime counts, recognized model-file bytes,
 macOS major, architecture, and scanner/runtime schema versions. It excludes
-names, process counts, CPU/RAM values, guess, device identity, local Census ID,
+names, process counts, CPU/RAM values, guess, device identity, local scan ID,
 timestamps, and all item-level records. The CLI and app still have no uploader. A
 separate Forkit.dev aggregate endpoint candidate exists with contribution writes
 disabled by default. That candidate now fails closed without Apple App Attest
@@ -153,7 +153,7 @@ either remains a founder/security release gate.
 `forkit-ai-footprints share-page --output ...` saves a self-contained HTML result only
 after the user supplies an output path. The page contains aggregate counts and
 limitations, not item names, paths, commands, endpoints, configuration values,
-account identity, or the local Census ID. It loads no external assets and makes
+account identity, or the local scan ID. It loads no external assets and makes
 no automatic network requests. Its copy/share controls act only after a user
 click and use aggregate text.
 

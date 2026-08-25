@@ -8,13 +8,13 @@ test('Codex context uses the freshest local title and only the project folder na
     homeDir: '/Users/example', now: () => now, cacheMs: 1_000,
     readSqlite: async (database) => database.endsWith('codex-dev.db')
       ? JSON.stringify([{ chat: 'German Version', cwd: '/Users/example/work/Forkit_Dev_OS_worktree', recency_ms: now - 4_000 }])
-      : JSON.stringify([{ chat: 'Forkit Census', cwd: '/Users/example/work/Forkit_Dev_OS_worktree', recency_ms: now - 2_000 }]),
+      : JSON.stringify([{ chat: 'Forkit AI Footprints', cwd: '/Users/example/work/Forkit_Dev_OS_worktree', recency_ms: now - 2_000 }]),
     runGit: async (_cwd, args) => args[0] === 'status'
       ? '## syedofc/harden-macos-accuracy...origin/syedofc/harden-macos-accuracy [ahead 7]\n M src/server.ts\n'
       : '10\t4\tsrc/server.ts\n2\t1\tsrc/share-page.ts\n',
   });
   assert.deepEqual(await provider('codex'), {
-    chat: 'Forkit Census', workspace: 'Forkit_Dev_OS_worktree', branch: 'syedofc/harden-macos-accuracy',
+    chat: 'Forkit AI Footprints', workspace: 'Forkit_Dev_OS_worktree', branch: 'syedofc/harden-macos-accuracy',
     changes_added: 12, changes_removed: 5, checks: null, source: 'codex-local-metadata',
   });
 });
@@ -23,13 +23,13 @@ test('embedded ChatGPT Codex context uses the same local Codex metadata boundary
   const now = 1_800_000_000_000;
   const provider = createLocalWorkflowContextProvider({
     homeDir: '/Users/example', now: () => now, cacheMs: 1_000,
-    readSqlite: async () => JSON.stringify([{ chat: 'Forkit Census', cwd: '/Users/example/work/Forkit_Dev_OS_worktree', recency_ms: now - 2_000 }]),
+    readSqlite: async () => JSON.stringify([{ chat: 'Forkit AI Footprints', cwd: '/Users/example/work/Forkit_Dev_OS_worktree', recency_ms: now - 2_000 }]),
     runGit: async (_cwd, args) => args[0] === 'status'
       ? '## syedofc/harden-macos-accuracy\n'
       : '',
   });
   assert.deepEqual(await provider('chatgpt-codex'), {
-    chat: 'Forkit Census', workspace: 'Forkit_Dev_OS_worktree', branch: 'syedofc/harden-macos-accuracy',
+    chat: 'Forkit AI Footprints', workspace: 'Forkit_Dev_OS_worktree', branch: 'syedofc/harden-macos-accuracy',
     changes_added: 0, changes_removed: 0, checks: null, source: 'codex-local-metadata',
   });
 });

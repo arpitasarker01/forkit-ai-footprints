@@ -9,7 +9,7 @@ technical truth boundary, not marketing copy.
 
 The app detects the user-visible macOS Computer Name and keeps it with first
 scan, last scan, and scan count in an owner-only local journal. The device name
-is useful only for the person looking at their Mac. It is excluded from Census
+is useful only for the person looking at their Mac. It is excluded from AI Footprints
 reports, saved/shareable artifacts, and every anonymous/global schema.
 
 ## Model storage

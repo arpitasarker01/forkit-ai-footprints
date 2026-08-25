@@ -2,7 +2,7 @@
   "schema_version": "1.0",
   "product": "forkit-ai-footprints",
   "version_source": "package.json",
-  "repository": "arpitasarker01/forkit-census",
+  "repository": "arpitasarker01/forkit-ai-footprints",
   "support": {
     "operating_system": "macOS",
     "architecture": "Apple Silicon",

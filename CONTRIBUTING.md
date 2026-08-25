@@ -1,6 +1,6 @@
 # Contributing
 
-Forkit Census accepts focused changes to metadata-only local discovery,
+Forkit AI Footprints accepts focused changes to metadata-only local discovery,
 cross-platform reliability, report readability, and detector accuracy.
 
 ## Setup

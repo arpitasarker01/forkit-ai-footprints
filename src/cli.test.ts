@@ -87,7 +87,7 @@ test('argument parser accepts the local AI Footprints server and a safe port', (
 });
 
 test('CLI evaluation emits aggregate metrics without labelled item names', () => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'forkit-census-evaluate-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'forkit-ai-footprints-evaluate-'));
   const truthPath = path.join(directory, 'truth.json');
   const sentinel = 'PRIVATE_TESTER_LABEL_DO_NOT_EMIT';
   fs.writeFileSync(truthPath, JSON.stringify({

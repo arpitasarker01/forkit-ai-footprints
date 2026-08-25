@@ -59,7 +59,7 @@ notarization remain future work.
   valid `/api/ps` response.
 - A schema `2.0` candidate global aggregate based on valid observed seconds and
   AI-active seconds. It excludes names, process counts, paths, commands, chat,
-  workspace, device identity, guess, and Census ID. Review and consent are
+  workspace, device identity, guess, and local scan ID. Review and consent are
   separate; upload transport remains disabled.
 - A 1080×1080 local share card with Share, Save PNG, Copy Image, and Copy
   Caption controls. It contains only measured totals and supported tool names.
