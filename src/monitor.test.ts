@@ -123,6 +123,33 @@ test('monitor includes supported descendants but excludes its own process tree',
   assert.equal(product?.state, 'working-now');
 });
 
+test('signal-ineligible helper CPU stays in resources but cannot mark AI working', async () => {
+  let now = 0;
+  const monitor = new ActivityMonitor({
+    now: () => now,
+    intervalMs: 1000,
+    excludedRootPid: null,
+    sampleProcesses: async () => [],
+    classifyProcesses: async () => [
+      {
+        pid: 310, ppid: 300, signature: 'chatgpt-codex', name: 'ChatGPT · Codex', kind: 'ai-app',
+        confidence: 'high', relationship: 'descendant', cpu_percent: 80, memory_percent: 1,
+        memory_bytes: 120_000_000, cpu_time_ms: now, activity_signal: false,
+      },
+    ],
+  });
+  await monitor.start({ schedule: false });
+  now += 1000; await monitor.sampleNow();
+  now += 1000; await monitor.sampleNow();
+  const product = monitor.stop().products[0];
+  assert.equal(product?.state, 'open-idle');
+  assert.equal(product?.process_count, 1);
+  assert.equal(product?.memory_bytes, 120_000_000);
+  assert.equal(product?.cpu_percent, 80);
+  assert.equal(product?.recent_cpu_time_delta_ms, null);
+  assert.equal(monitor.snapshot().active_seconds, 0);
+});
+
 test('clearHistory removes durations and bounded timeline data', async () => {
   let now = 0;
   let frame: ProcessEntry[] = [codex(10, 0)];
@@ -134,4 +161,31 @@ test('clearHistory removes durations and bounded timeline data', async () => {
   assert.equal(cleared.active_seconds, 0);
   assert.deepEqual(cleared.products, []);
   assert.deepEqual(cleared.timeline, []);
+});
+
+test('start attaches to an existing active observation instead of creating a new one', async () => {
+  let now = 0;
+  const monitor = new ActivityMonitor({ now: () => now, excludedRootPid: null, sampleProcesses: async () => [codex(10, 10)] });
+  const first = await monitor.start({ schedule: false });
+  now += 1000; await monitor.sampleNow();
+  const beforeReconnect = monitor.snapshot();
+  const reconnected = await monitor.start({ schedule: false });
+  assert.equal(reconnected.lifecycle, 'monitoring');
+  assert.equal(reconnected.observation_id, beforeReconnect.observation_id);
+  assert.equal(reconnected.started_at, first.started_at);
+  assert.equal(reconnected.observed_seconds, beforeReconnect.observed_seconds);
+});
+
+test('restoreStoppedSnapshot keeps previous summary without silently restarting monitoring', async () => {
+  let now = 0;
+  let frame: ProcessEntry[] = [codex(10, 10)];
+  const monitor = new ActivityMonitor({ now: () => now, excludedRootPid: null, sampleProcesses: async () => frame });
+  await monitor.start({ schedule: false });
+  now += 1000; frame = [codex(10, 60)]; await monitor.sampleNow();
+  const saved = monitor.stop();
+  const restored = new ActivityMonitor({ now: () => now, excludedRootPid: null, sampleProcesses: async () => [] }).restoreStoppedSnapshot(saved);
+  assert.equal(restored.lifecycle, 'stopped');
+  assert.equal(restored.observation_id, saved.observation_id);
+  assert.equal(restored.observed_seconds, saved.observed_seconds);
+  assert.deepEqual(restored.timeline, saved.timeline);
 });

@@ -14,6 +14,7 @@ import type { CensusReport } from './types';
 import { normalizeLocale, uiText, type UiLocale } from './localization';
 import { createLocalWorkflowContextProvider } from './workflow-context';
 import { createMacosDevicePresenceProvider } from './device-presence';
+import { clearLocalObservationState, loadLocalObservationState, saveLocalObservationState, type LastStoppedSummary } from './local-observation-state';
 
 export interface AiFootprintsServerOptions {
   hostname?: '127.0.0.1';
@@ -24,6 +25,7 @@ export interface AiFootprintsServerOptions {
   nativeToken?: string | null;
   globalPermission?: 'granted' | 'declined' | 'unset';
   deferInitialScan?: boolean;
+  localStateDirectory?: string;
 }
 
 export interface AiFootprintsServer {
@@ -76,6 +78,7 @@ export async function startAiFootprintsServer(options: AiFootprintsServerOptions
     ?? (process.env.FORKIT_AI_FOOTPRINTS_GLOBAL_PERMISSION === 'granted' ? 'granted'
       : process.env.FORKIT_AI_FOOTPRINTS_GLOBAL_PERMISSION === 'declined' ? 'declined' : 'unset');
   const deferInitialScan = options.deferInitialScan ?? process.env.FORKIT_AI_FOOTPRINTS_APP_BUNDLE === '1';
+  const localStateDirectory = options.localStateDirectory;
   const runtimeProviders = createDefaultProviders();
   let loadedRuntimeCache = new Map<string, string[]>();
   let loadedRuntimeCacheAt = 0;
@@ -94,7 +97,11 @@ export async function startAiFootprintsServer(options: AiFootprintsServerOptions
       ];
     },
   });
+  const savedObservation = await loadLocalObservationState(localStateDirectory);
+  if (savedObservation?.snapshot) monitor.restoreStoppedSnapshot(savedObservation.snapshot);
   let currentReport: CensusReport | null = null;
+  let lastObservation: LastStoppedSummary | null = savedObservation?.last_stopped_summary ?? null;
+  let userStoppedMonitoring = savedObservation?.user_stopped ?? false;
   let localDevice: LocalDeviceJournal | null = null;
   let initialScanFailed = false;
   let scanning = deferInitialScan;
@@ -130,13 +137,33 @@ export async function startAiFootprintsServer(options: AiFootprintsServerOptions
     streams.clear();
   }
 
-  function browserSnapshot(snapshot: MonitorSnapshot = monitor.snapshot()): MonitorSnapshot & { insights: string[] } {
+  async function persistObservation(snapshot: MonitorSnapshot, insights: string[], options: { userStopped?: boolean } = {}): Promise<void> {
+    try {
+      if (typeof options.userStopped === 'boolean') userStoppedMonitoring = options.userStopped;
+      else if (snapshot.lifecycle === 'monitoring') userStoppedMonitoring = false;
+      const state = await saveLocalObservationState(snapshot, {
+        latestInsights: insights,
+        localModelsFound: currentReport?.summary.model_count ?? 0,
+        localModelsRunning: currentReport?.summary.confirmed_running_model_count ?? 0,
+        userStopped: userStoppedMonitoring,
+        ...(localStateDirectory ? { stateDirectory: localStateDirectory } : {}),
+      });
+      lastObservation = state.last_stopped_summary ?? lastObservation;
+    } catch {
+      // Persistence is local convenience only; monitor streaming must continue.
+    }
+  }
+
+  function browserSnapshot(snapshot: MonitorSnapshot = monitor.snapshot()): MonitorSnapshot & { insights: string[]; last_observation: LastStoppedSummary | null } {
+    const insights = buildLocalInsights(snapshot, {
+      model_record_count: currentReport?.summary.model_count ?? 0,
+      confirmed_running_model_count: currentReport?.summary.confirmed_running_model_count ?? 0,
+    }, 60, currentLocale).map((insight) => insight.text);
+    void persistObservation(snapshot, insights);
     return {
       ...snapshot,
-      insights: buildLocalInsights(snapshot, {
-        model_record_count: currentReport?.summary.model_count ?? 0,
-        confirmed_running_model_count: currentReport?.summary.confirmed_running_model_count ?? 0,
-      }, 60, currentLocale).map((insight) => insight.text),
+      insights,
+      last_observation: lastObservation,
     };
   }
 
@@ -225,6 +252,7 @@ export async function startAiFootprintsServer(options: AiFootprintsServerOptions
     if (request.method === 'POST' && startPath) {
       if (!(browserControl || nativeControl)) { sendJson(response, 403, { error: 'LOCAL_SESSION_REQUIRED' }); return; }
       try {
+        userStoppedMonitoring = false;
         const snapshot = await monitor.start();
         sendJson(response, 200, nativeControl ? snapshot : browserSnapshot(snapshot));
       }
@@ -235,13 +263,23 @@ export async function startAiFootprintsServer(options: AiFootprintsServerOptions
     const stopPath = pathname === '/api/monitor/stop' || pathname === '/api/native/stop';
     if (request.method === 'POST' && stopPath) {
       if (!(browserControl || nativeControl)) { sendJson(response, 403, { error: 'LOCAL_SESSION_REQUIRED' }); return; }
+      userStoppedMonitoring = true;
       const snapshot = monitor.stop();
+      if (nativeControl) {
+        await persistObservation(snapshot, buildLocalInsights(snapshot, {
+          model_record_count: currentReport?.summary.model_count ?? 0,
+          confirmed_running_model_count: currentReport?.summary.confirmed_running_model_count ?? 0,
+        }, 60, currentLocale).map((insight) => insight.text), { userStopped: true });
+      }
       sendJson(response, 200, nativeControl ? snapshot : browserSnapshot(snapshot));
       return;
     }
 
     if (request.method === 'POST' && pathname === '/api/monitor/clear') {
       if (!browserControl) { sendJson(response, 403, { error: 'LOCAL_SESSION_REQUIRED' }); return; }
+      await clearLocalObservationState(localStateDirectory);
+      lastObservation = null;
+      userStoppedMonitoring = false;
       sendJson(response, 200, browserSnapshot(monitor.clearHistory()));
       return;
     }
@@ -281,6 +319,10 @@ export async function startAiFootprintsServer(options: AiFootprintsServerOptions
     if (request.method === 'POST' && pathname === '/api/native/quit') {
       if (!nativeControl) { sendJson(response, 403, { error: 'NATIVE_CONTROL_REQUIRED' }); return; }
       const summary: MonitorSnapshot = monitor.stop();
+      await persistObservation(summary, buildLocalInsights(summary, {
+        model_record_count: currentReport?.summary.model_count ?? 0,
+        confirmed_running_model_count: currentReport?.summary.confirmed_running_model_count ?? 0,
+      }, 60, currentLocale).map((insight) => insight.text), { userStopped: true });
       sendJson(response, 200, summary);
       setImmediate(() => { void closeService(); });
       return;
@@ -317,11 +359,18 @@ export async function startAiFootprintsServer(options: AiFootprintsServerOptions
   if (deferInitialScan) {
     void refreshReport().catch(() => { initialScanFailed = true; }).finally(() => { scanning = false; });
   }
+  if (!userStoppedMonitoring && monitor.snapshot().lifecycle !== 'monitoring') {
+    void monitor.start().catch(() => undefined);
+  }
 
   function closeService(): Promise<void> {
     if (closing) return closing;
     closing = new Promise<void>((resolve, reject) => {
-      monitor.stop();
+      const stopped = monitor.stop();
+      void persistObservation(stopped, buildLocalInsights(stopped, {
+        model_record_count: currentReport?.summary.model_count ?? 0,
+        confirmed_running_model_count: currentReport?.summary.confirmed_running_model_count ?? 0,
+      }, 60, currentLocale).map((insight) => insight.text), { userStopped: true });
       stopStreams();
       if (!server.listening) { resolve(); return; }
       server.close((error) => error ? reject(error) : resolve());

@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import { runCensus } from './census';
 import { ActivityMonitor } from './monitor';
 import { startAiFootprintsServer } from './server';
@@ -7,6 +10,7 @@ import { startAiFootprintsServer } from './server';
 test('local server owns one monitor independently of browser streams', async () => {
   let scanCount = 0;
   let now = 0;
+  const localStateDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'forkit-footprints-server-test-'));
   const monitor = new ActivityMonitor({ now: () => now, excludedRootPid: null, sampleProcesses: async () => [], intervalMs: 1000 });
   const nativeToken = 'n'.repeat(48);
   const service = await startAiFootprintsServer({
@@ -14,6 +18,7 @@ test('local server owns one monitor independently of browser streams', async () 
     nativeToken,
     globalPermission: 'granted',
     monitor,
+    localStateDirectory,
     scan: async () => {
       scanCount += 1;
       return runCensus({ includeRuntimes: false, includeFilesystem: false, includeAgents: false, includeTools: false, includeMcp: false, platform: 'darwin' });
@@ -28,7 +33,7 @@ test('local server owns one monitor independently of browser streams', async () 
     assert.equal(page.status, 200);
     assert.match(page.headers.get('content-security-policy') ?? '', /img-src data:/);
     assert.match(html, /Start Monitoring/);
-    assert.match(html, /AI app activity on this device/);
+    assert.match(html, /AI Activity Now/);
     assert.match(html, /Optional global comparison/);
     assert.match(html, /"global_permission":"granted"/);
     assert.doesNotMatch(html, />Discover</);
@@ -36,6 +41,7 @@ test('local server owns one monitor independently of browser streams', async () 
     assert.doesNotMatch(html, />Evolution</);
 
     assert.equal((await fetch(`${service.url}api/monitor/start`, { method: 'POST' })).status, 403);
+    assert.equal(service.monitor.snapshot().lifecycle, 'monitoring');
     const started = await fetch(`${service.url}api/monitor/start`, { method: 'POST', headers });
     assert.equal(started.status, 200);
     assert.equal((await started.json() as { lifecycle: string }).lifecycle, 'monitoring');
@@ -77,10 +83,12 @@ test('local server owns one monitor independently of browser streams', async () 
 
 test('native app opens a local loading view before the first full scan completes', async () => {
   let releaseScan!: () => void;
+  const localStateDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'forkit-footprints-opening-test-'));
   const scanGate = new Promise<void>((resolve) => { releaseScan = resolve; });
   const service = await startAiFootprintsServer({
     port: 0,
     deferInitialScan: true,
+    localStateDirectory,
     scan: async () => {
       await scanGate;
       return runCensus({ includeRuntimes: false, includeFilesystem: false, includeAgents: false, includeTools: false, includeMcp: false, platform: 'darwin' });
@@ -105,6 +113,7 @@ test('native app opens a local loading view before the first full scan completes
     }
     assert.equal(ready, true);
     assert.match(await (await fetch(service.url)).text(), /Start Monitoring/);
+    assert.equal(service.monitor.snapshot().lifecycle, 'monitoring');
   } finally {
     releaseScan();
     await service.close();

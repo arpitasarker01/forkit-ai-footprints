@@ -8,6 +8,7 @@ type SqliteReader = (databasePath: string, query: string) => Promise<string>;
 interface ContextCandidate {
   chat: string;
   workspace: string;
+  cwd: string;
   recency_ms: number;
 }
 
@@ -17,6 +18,7 @@ export interface CodexWorkflowContextOptions {
   maxAgeMs?: number;
   cacheMs?: number;
   readSqlite?: SqliteReader;
+  runGit?: (cwd: string, args: string[]) => Promise<string>;
 }
 
 const execFileAsync = promisify(execFile);
@@ -38,7 +40,7 @@ function parseCandidates(value: string): ContextCandidate[] {
       const recency = Number(row.recency_ms);
       if (!chat || !cwd || !Number.isFinite(recency) || recency <= 0) return [];
       const workspace = cleanLabel(path.basename(cwd));
-      return workspace ? [{ chat, workspace, recency_ms: recency }] : [];
+      return workspace ? [{ chat, workspace, cwd, recency_ms: recency }] : [];
     });
   } catch {
     return [];
@@ -62,12 +64,60 @@ async function readIfAvailable(readSqlite: SqliteReader, databasePath: string, q
   }
 }
 
+async function systemGitReader(cwd: string, args: string[]): Promise<string> {
+  const { stdout } = await execFileAsync('/usr/bin/git', ['-C', cwd, ...args], {
+    encoding: 'utf8',
+    timeout: 2_000,
+    maxBuffer: 1_000_000,
+    env: { ...process.env, LC_ALL: 'C', LANG: 'C' },
+  });
+  return stdout;
+}
+
+function parseBranch(status: string): string | null {
+  const first = status.split('\n')[0] ?? '';
+  const match = /^##\s+(.+?)(?:\.\.\.|$)/.exec(first.trim());
+  return cleanLabel(match?.[1], 96);
+}
+
+function parseNumstat(value: string): { added: number; removed: number } {
+  let added = 0;
+  let removed = 0;
+  for (const line of value.split('\n')) {
+    const [left, right] = line.split('\t');
+    const add = Number(left);
+    const del = Number(right);
+    if (Number.isSafeInteger(add) && add > 0) added += add;
+    if (Number.isSafeInteger(del) && del > 0) removed += del;
+  }
+  return { added, removed };
+}
+
+async function readGitEnvironment(cwd: string, runGit: (cwd: string, args: string[]) => Promise<string>): Promise<Pick<ActivityContext, 'branch' | 'changes_added' | 'changes_removed' | 'checks'>> {
+  try {
+    const [status, numstat] = await Promise.all([
+      runGit(cwd, ['status', '--short', '--branch']),
+      runGit(cwd, ['diff', '--numstat']),
+    ]);
+    const changes = parseNumstat(numstat);
+    return {
+      branch: parseBranch(status),
+      changes_added: changes.added,
+      changes_removed: changes.removed,
+      checks: null,
+    };
+  } catch {
+    return { branch: null, changes_added: null, changes_removed: null, checks: null };
+  }
+}
+
 export function createLocalWorkflowContextProvider(options: CodexWorkflowContextOptions = {}): (signature: string) => Promise<ActivityContext> {
   const homeDir = options.homeDir ?? process.env.HOME ?? '';
   const now = options.now ?? Date.now;
   const maxAgeMs = Math.max(60_000, options.maxAgeMs ?? 15 * 60_000);
   const cacheMs = Math.max(1_000, options.cacheMs ?? 5_000);
   const readSqlite = options.readSqlite ?? systemSqliteReader;
+  const runGit = options.runGit ?? systemGitReader;
   let cachedAt = 0;
   let cachedContext: ActivityContext = EMPTY_CONTEXT;
 
@@ -77,7 +127,7 @@ export function createLocalWorkflowContextProvider(options: CodexWorkflowContext
     if (explicitChat || explicitWorkspace) {
       return { chat: explicitChat, workspace: explicitWorkspace, source: 'cooperating-app-metadata' };
     }
-    if (signature !== 'codex' || !homeDir) return EMPTY_CONTEXT;
+    if ((signature !== 'codex' && signature !== 'chatgpt-codex') || !homeDir) return EMPTY_CONTEXT;
     const currentTime = now();
     if (cachedAt > 0 && currentTime - cachedAt < cacheMs) return cachedContext;
     cachedAt = currentTime;
@@ -101,9 +151,8 @@ export function createLocalWorkflowContextProvider(options: CodexWorkflowContext
     const latest = [...catalogCandidates, ...stateCandidates]
       .sort((left, right) => right.recency_ms - left.recency_ms)[0];
     cachedContext = latest && currentTime - latest.recency_ms <= maxAgeMs
-      ? { chat: latest.chat, workspace: latest.workspace, source: 'codex-local-metadata' }
+      ? { chat: latest.chat, workspace: latest.workspace, ...(await readGitEnvironment(latest.cwd, runGit)), source: 'codex-local-metadata' }
       : EMPTY_CONTEXT;
     return cachedContext;
   };
 }
-

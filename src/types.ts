@@ -34,6 +34,7 @@ export interface CensusModel {
 }
 
 export type AgentKind =
+  | 'ai-app'
   | 'coding-agent'
   | 'ide-agent'
   | 'agent-framework'

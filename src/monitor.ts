@@ -8,6 +8,10 @@ export type MonitorLifecycle = 'stopped' | 'monitoring';
 export interface ActivityContext {
   chat: string | null;
   workspace: string | null;
+  branch?: string | null;
+  changes_added?: number | null;
+  changes_removed?: number | null;
+  checks?: string | null;
   source: 'cooperating-app-metadata' | 'codex-local-metadata' | null;
 }
 
@@ -46,6 +50,7 @@ export interface MonitorOverhead {
 
 export interface MonitorSnapshot {
   schema_version: '1.0';
+  observation_id: number;
   lifecycle: MonitorLifecycle;
   started_at: string | null;
   stopped_at: string | null;
@@ -211,9 +216,10 @@ export class ActivityMonitor {
       for (const signature of signatures) {
         const current = grouped.get(signature) ?? [];
         const previous = this.products.get(signature);
+        const signalEntries = current.filter((entry) => entry.activity_signal !== false);
         let cpuDeltaMs = 0;
         let deltaCount = 0;
-        for (const entry of current) {
+        for (const entry of signalEntries) {
           const currentTime = entry.cpu_time_ms;
           const previousTime = this.previousCpuTimes.get(entry.pid);
           if (currentTime === null || previousTime === undefined || currentTime < previousTime) continue;
@@ -222,7 +228,7 @@ export class ActivityMonitor {
         }
         const measuredDelta = deltaCount > 0 ? cpuDeltaMs : null;
         const strongSignal = sampledPresence.observation_eligible
-          && current.length > 0
+          && signalEntries.length > 0
           && validElapsed > 0
           && measuredDelta !== null
           && measuredDelta >= Math.max(20, validElapsed * 0.02);
@@ -293,6 +299,49 @@ export class ActivityMonitor {
     return this.snapshot();
   }
 
+  restoreStoppedSnapshot(snapshot: MonitorSnapshot): MonitorSnapshot {
+    if (this.timer) clearInterval(this.timer);
+    this.timer = null;
+    this.lifecycle = 'stopped';
+    this.observationId = Math.max(0, Math.floor(snapshot.observation_id ?? 0));
+    this.startedAt = snapshot.started_at ? Date.parse(snapshot.started_at) : null;
+    this.stoppedAt = snapshot.stopped_at ? Date.parse(snapshot.stopped_at) : this.startedAt;
+    this.previousAt = null;
+    this.previousCpuTimes.clear();
+    this.observedMs = Math.max(0, Number(snapshot.observed_seconds) || 0) * 1000;
+    this.activeMs = Math.max(0, Number(snapshot.active_seconds) || 0) * 1000;
+    this.products.clear();
+    for (const product of snapshot.products ?? []) {
+      this.products.set(product.signature, {
+        signature: product.signature,
+        name: product.name,
+        kind: product.kind,
+        state: product.state,
+        signals: [],
+        activeMs: Math.max(0, Number(product.active_seconds) || 0) * 1000,
+        processCount: 0,
+        cpuPercent: null,
+        memoryPercent: null,
+        memoryBytes: null,
+        cpuDeltaMs: null,
+        context: { chat: null, workspace: null, source: null },
+      });
+    }
+    this.timeline = (snapshot.timeline ?? []).slice(-this.historyLimit).map((segment) => ({
+      started_at: segment.started_at,
+      ended_at: segment.ended_at,
+      state: segment.state,
+      product_signatures: [...segment.product_signatures],
+      ...(segment.observation_id === undefined ? {} : { observation_id: segment.observation_id }),
+    }));
+    this.presence = snapshot.presence ?? { state: 'active', idle_seconds: 0, observation_eligible: true };
+    this.overheadCpuSamples = [];
+    this.overheadMemorySamples = [];
+    this.nodeCpuUsage = process.cpuUsage();
+    this.nodeCpuAt = this.now();
+    return this.snapshot();
+  }
+
   private updateTimeline(now: number): void {
     const working = [...this.products.values()].filter((product) => product.state === 'working-now');
     const running = [...this.products.values()].filter((product) => product.state !== 'not-running');
@@ -352,6 +401,7 @@ export class ActivityMonitor {
     })).sort((left, right) => left.name.localeCompare(right.name));
     const base = {
       schema_version: '1.0' as const,
+      observation_id: this.observationId,
       lifecycle: this.lifecycle,
       started_at: this.startedAt === null ? null : new Date(this.startedAt).toISOString(),
       stopped_at: this.stoppedAt === null ? null : new Date(this.stoppedAt).toISOString(),

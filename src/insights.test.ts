@@ -5,7 +5,7 @@ import type { MonitorSnapshot } from './monitor';
 
 function snapshot(overrides: Partial<MonitorSnapshot> = {}): MonitorSnapshot {
   return {
-    schema_version: '1.0', lifecycle: 'stopped', started_at: '2026-08-23T10:00:00.000Z', stopped_at: '2026-08-23T10:10:00.000Z',
+    schema_version: '1.0', observation_id: 1, lifecycle: 'stopped', started_at: '2026-08-23T10:00:00.000Z', stopped_at: '2026-08-23T10:10:00.000Z',
     observed_seconds: 600, active_seconds: 492, activity_ratio: 0.82,
     products: [{ signature: 'codex', name: 'Codex', kind: 'coding-agent', state: 'open-idle', process_count: 1, cpu_percent: 0, memory_percent: 1, memory_bytes: 10_000_000, recent_cpu_time_delta_ms: 0, active_seconds: 492, context: { chat: null, workspace: null, source: null } }],
     timeline: [{ started_at: '2026-08-23T10:00:00.000Z', ended_at: '2026-08-23T10:08:12.000Z', state: 'working-now', product_signatures: ['codex'] }],
@@ -17,17 +17,17 @@ function snapshot(overrides: Partial<MonitorSnapshot> = {}): MonitorSnapshot {
 
 test('high activity produces measured, deterministic personal insights', () => {
   assert.deepEqual(buildLocalInsights(snapshot(), { model_record_count: 5, confirmed_running_model_count: 0 }), [
-    { kind: 'activity-share', text: 'Codex app activity was observed during 82% of your observation.' },
-    { kind: 'longest-block', text: 'Your longest continuous AI-app activity signal lasted 8m 12s.' },
-    { kind: 'local-models-unused', text: '5 local model records are stored on this device.' },
+    { kind: 'workflow', text: 'Focused AI workflow: all observed activity came from Codex.' },
+    { kind: 'longest-block', text: 'Deep work block: your longest active period was 8m 12s.' },
+    { kind: 'hosted-local', text: 'Hosted-first workflow: Codex was active while local models stayed idle.' },
   ]);
 });
 
 test('light activity is described plainly without invented praise', () => {
   const result = buildLocalInsights(snapshot({ activity_ratio: 0.08, active_seconds: 48, timeline: [] }), { model_record_count: 0, confirmed_running_model_count: 0 });
   assert.deepEqual(result, [
-    { kind: 'mostly-idle', text: 'This observation captured a light local AI-app activity pattern.' },
-    { kind: 'workflow', text: 'All observed AI-app activity came from Codex.' },
+    { kind: 'mostly-idle', text: 'Mostly idle observation: supported AI was ready but not actively working.' },
+    { kind: 'workflow', text: 'Focused AI workflow: all observed activity came from Codex.' },
   ]);
 });
 
@@ -47,9 +47,9 @@ test('insights remain hidden until enough valid observed time exists', () => {
 test('German insights use the same deterministic measurements', () => {
   const result = buildLocalInsights(snapshot(), { model_record_count: 5, confirmed_running_model_count: 0 }, 60, 'de');
   assert.deepEqual(result, [
-    { kind: 'activity-share', text: 'Codex-App-Aktivität wurde während 82 % Ihrer Beobachtung erkannt.' },
-    { kind: 'longest-block', text: 'Ihr längstes durchgehendes KI-App-Aktivitätssignal dauerte 8 Min 12 Sek.' },
-    { kind: 'local-models-unused', text: '5 lokale Modelldatensätze sind auf diesem Gerät gespeichert.' },
+    { kind: 'workflow', text: 'Fokussierter KI-Workflow: Alle beobachtete Aktivität kam von Codex.' },
+    { kind: 'longest-block', text: 'Deep-Work-Block: Ihre längste aktive Phase dauerte 8 Min 12 Sek.' },
+    { kind: 'hosted-local', text: 'Hosted-first-Workflow: Codex war aktiv, während lokale Modelle inaktiv blieben.' },
   ]);
 });
 
@@ -58,12 +58,12 @@ test('longest block never crosses an explicit Stop and restart boundary', () => 
     { started_at: '2026-08-23T10:00:00.000Z', ended_at: '2026-08-23T10:01:00.000Z', state: 'working-now', product_signatures: ['codex'], observation_id: 1 },
     { started_at: '2026-08-23T10:01:01.000Z', ended_at: '2026-08-23T10:01:41.000Z', state: 'working-now', product_signatures: ['codex'], observation_id: 2 },
   ] }), { model_record_count: 0, confirmed_running_model_count: 0 });
-  assert.equal(result[1]?.text, 'Your longest continuous AI-app activity signal lasted 1m 0s.');
+  assert.equal(result[1]?.text, 'Deep work block: your longest active period was 1m 0s.');
 });
 
 test('hour-long insight durations retain seconds', () => {
   const result = buildLocalInsights(snapshot({
     timeline: [{ started_at: '2026-08-23T10:00:00.000Z', ended_at: '2026-08-23T11:02:03.000Z', state: 'working-now', product_signatures: ['codex'], observation_id: 1 }],
   }), { model_record_count: 0, confirmed_running_model_count: 0 });
-  assert.equal(result[1]?.text, 'Your longest continuous AI-app activity signal lasted 1h 2m 3s.');
+  assert.equal(result[1]?.text, 'Deep work block: your longest active period was 1h 2m 3s.');
 });

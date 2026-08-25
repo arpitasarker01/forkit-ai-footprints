@@ -34,11 +34,16 @@ export interface ClassifiedAgentProcess {
   memory_percent: number | null;
   memory_bytes: number | null;
   cpu_time_ms: number | null;
+  activity_signal?: boolean;
 }
 
 const execFileAsync = promisify(execFile);
 
 const SIGNATURES: AgentSignature[] = [
+  { signature: 'chatgpt', name: 'ChatGPT', kind: 'ai-app', terms: ['chatgpt'], executables: ['chatgpt'] },
+  { signature: 'jan', name: 'Jan', kind: 'ai-app', terms: ['jan'], executables: ['jan'] },
+  { signature: 'lm-studio', name: 'LM Studio', kind: 'ai-app', terms: ['lm-studio', 'lmstudio', 'lm studio'], executables: ['lm-studio', 'lmstudio', 'lm studio'] },
+  { signature: 'open-webui', name: 'Open WebUI', kind: 'ai-app', terms: ['open-webui', 'open_webui'], executables: ['open-webui', 'open_webui'] },
   { signature: 'codex', name: 'Codex', kind: 'coding-agent', terms: ['codex'], executables: ['codex'] },
   { signature: 'claude', name: 'Claude Code', kind: 'coding-agent', terms: ['claude', 'claude-code'], executables: ['claude'] },
   { signature: 'aider', name: 'Aider', kind: 'coding-agent', terms: ['aider'], executables: ['aider'] },
@@ -62,6 +67,14 @@ const SIGNATURES: AgentSignature[] = [
   { signature: 'smolagents', name: 'smolagents', kind: 'agent-framework', terms: ['smolagents'], executables: ['smolagents'] },
 ];
 
+const CHATGPT_CODEX_SIGNATURE: AgentSignature = {
+  signature: 'chatgpt-codex',
+  name: 'ChatGPT · Codex',
+  kind: 'ai-app',
+  terms: ['chatgpt-codex'],
+  executables: ['chatgpt', 'codex'],
+};
+
 function basename(value: string): string {
   const normalized = String(value || '').replaceAll('\\', '/');
   return path.posix.basename(normalized).toLowerCase().replace(/\.exe$/i, '');
@@ -71,6 +84,15 @@ function commandParts(value: string): string[] {
   return String(value || '')
     .match(/"[^"]*"|'[^']*'|\S+/g)
     ?.map((part) => part.replace(/^(?:"|')|(?:"|')$/g, '')) ?? [];
+}
+
+function macosAppExecutableName(command: string): string | null {
+  const marker = '.app/Contents/MacOS/';
+  const markerIndex = command.indexOf(marker);
+  if (markerIndex < 0) return null;
+  const tail = command.slice(markerIndex + marker.length);
+  const executable = tail.split(/\s--/)[0]?.trim();
+  return executable ? basename(executable) : null;
 }
 
 function moduleName(parts: string[]): string | null {
@@ -101,12 +123,37 @@ function nodeBinName(parts: string[]): string | null {
   return basename(script);
 }
 
+function isNonAiSupportProcess(processName: string, executable: string, command: string): boolean {
+  const supportText = `${processName} ${executable} ${command}`.toLowerCase();
+  return supportText.includes('browser_crashpad_handler')
+    || supportText.includes('crashpad_handler')
+    || processName === 'autoupdate'
+    || processName === 'updater'
+    || executable === 'autoupdate'
+    || executable === 'updater';
+}
+
+function isPassiveAppHelperProcess(entry: ProcessEntry): boolean {
+  const processText = `${entry.name ?? ''} ${entry.cmd ?? ''}`.toLowerCase();
+  return processText.includes('codex (renderer)')
+    || processText.includes('codex (service)')
+    || processText.includes('--type=renderer')
+    || processText.includes('--type=utility')
+    || processText.includes('--type=gpu-process')
+    || processText.includes('browser_crashpad_handler')
+    || processText.includes('crashpad_handler')
+    || processText.includes('/sparkle.framework/')
+    || /\bautoupdate\b/.test(processText)
+    || /\bupdater\b/.test(processText);
+}
+
 function classifyProcess(entry: ProcessEntry): AgentEvidence | null {
   const processName = basename(entry.name ?? '');
   const command = String(entry.cmd ?? '');
   const parts = commandParts(command);
   const firstCommandToken = parts[0] ?? '';
-  const executable = basename(firstCommandToken || processName) || 'unknown';
+  const executable = macosAppExecutableName(command) ?? (basename(firstCommandToken || processName) || 'unknown');
+  if (isNonAiSupportProcess(processName, executable, command)) return null;
   const invokedModule = moduleName(parts);
   const invokedPackage = packageRunnerName(parts) ?? nodeBinName(parts);
 
@@ -150,6 +197,62 @@ function descendantsOf(processes: ProcessEntry[], rootPid: number): Set<number> 
   return excluded;
 }
 
+function nearestDirectAncestor(
+  byPid: Map<number, ProcessEntry>,
+  direct: Map<number, AgentEvidence>,
+  start: ProcessEntry,
+  signature: string,
+): number | null {
+  const visited = new Set<number>();
+  let parentPid = start.ppid;
+  for (let depth = 0; parentPid !== undefined && parentPid > 0 && depth < 24; depth += 1) {
+    if (visited.has(parentPid)) break;
+    visited.add(parentPid);
+    const owner = direct.get(parentPid);
+    if (owner?.signature.signature === signature) return parentPid;
+    parentPid = byPid.get(parentPid)?.ppid;
+  }
+  return null;
+}
+
+function asEmbeddedChatGptCodex(evidence: AgentEvidence): AgentEvidence {
+  return {
+    ...evidence,
+    signature: CHATGPT_CODEX_SIGNATURE,
+    confidence: 'high',
+    reason: 'embedded_chatgpt_codex_process_tree',
+    evidenceHash: sha256(`${CHATGPT_CODEX_SIGNATURE.signature}:${evidence.executable}:${evidence.reason}`),
+  };
+}
+
+function collapseEmbeddedOpenAiAppStack(
+  processes: ProcessEntry[],
+  direct: Map<number, AgentEvidence>,
+): Map<number, AgentEvidence> {
+  const byPid = new Map(processes.map((entry) => [entry.pid, entry]));
+  const chatGptRootsWithCodex = new Set<number>();
+  const embeddedCodexPids = new Set<number>();
+  for (const entry of processes) {
+    const owner = direct.get(entry.pid);
+    if (owner?.signature.signature !== 'codex') continue;
+    const chatGptRoot = nearestDirectAncestor(byPid, direct, entry, 'chatgpt');
+    if (chatGptRoot === null) continue;
+    chatGptRootsWithCodex.add(chatGptRoot);
+    embeddedCodexPids.add(entry.pid);
+  }
+  if (chatGptRootsWithCodex.size === 0) return direct;
+  const collapsed = new Map<number, AgentEvidence>();
+  for (const [pid, evidence] of direct) {
+    if ((evidence.signature.signature === 'chatgpt' && chatGptRootsWithCodex.has(pid))
+      || (evidence.signature.signature === 'codex' && embeddedCodexPids.has(pid))) {
+      collapsed.set(pid, asEmbeddedChatGptCodex(evidence));
+    } else {
+      collapsed.set(pid, evidence);
+    }
+  }
+  return collapsed;
+}
+
 /**
  * Builds private process-tree evidence for the activity monitor. PIDs and raw
  * commands remain internal and are deliberately absent from public reports.
@@ -166,11 +269,12 @@ export function classifyAgentProcessTrees(
     const evidence = classifyProcess(entry);
     if (evidence) direct.set(entry.pid, evidence);
   }
+  const collapsedDirect = collapseEmbeddedOpenAiAppStack(processes, direct);
 
   const result: ClassifiedAgentProcess[] = [];
   for (const entry of processes) {
     if (excluded.has(entry.pid)) continue;
-    let owner = direct.get(entry.pid) ?? null;
+    let owner = collapsedDirect.get(entry.pid) ?? null;
     let relationship: ClassifiedAgentProcess['relationship'] = 'direct';
     if (!owner) {
       const visited = new Set<number>();
@@ -178,7 +282,7 @@ export function classifyAgentProcessTrees(
       for (let depth = 0; parentPid !== undefined && parentPid > 0 && depth < 24; depth += 1) {
         if (visited.has(parentPid) || excluded.has(parentPid)) break;
         visited.add(parentPid);
-        owner = direct.get(parentPid) ?? null;
+        owner = collapsedDirect.get(parentPid) ?? null;
         if (owner) { relationship = 'descendant'; break; }
         parentPid = byPid.get(parentPid)?.ppid;
       }
@@ -196,6 +300,7 @@ export function classifyAgentProcessTrees(
       memory_percent: Number.isFinite(entry.memory_percent) ? Math.max(0, Number(entry.memory_percent)) : null,
       memory_bytes: Number.isFinite(entry.rss_bytes) ? Math.max(0, Number(entry.rss_bytes)) : null,
       cpu_time_ms: Number.isFinite(entry.cpu_time_ms) ? Math.max(0, Number(entry.cpu_time_ms)) : null,
+      activity_signal: !isPassiveAppHelperProcess(entry),
     });
   }
   return result.sort((left, right) => left.signature.localeCompare(right.signature) || left.pid - right.pid);
@@ -246,10 +351,14 @@ function confidenceRank(confidence: Confidence): number {
 }
 
 export function detectAgentProducts(processes: ProcessEntry[]): CensusAgent[] {
-  const grouped = new Map<string, AgentEvidence[]>();
+  const direct = new Map<number, AgentEvidence>();
   for (const process of processes) {
     const evidence = classifyProcess(process);
-    if (!evidence) continue;
+    if (evidence) direct.set(process.pid, evidence);
+  }
+  const collapsedDirect = collapseEmbeddedOpenAiAppStack(processes, direct);
+  const grouped = new Map<string, AgentEvidence[]>();
+  for (const evidence of collapsedDirect.values()) {
     grouped.set(evidence.signature.signature, [
       ...(grouped.get(evidence.signature.signature) ?? []),
       evidence,

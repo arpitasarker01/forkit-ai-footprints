@@ -10,7 +10,7 @@ async function report() {
 
 function monitor(overrides: Partial<MonitorSnapshot> = {}): MonitorSnapshot {
   return {
-    schema_version: '1.0', lifecycle: 'stopped', started_at: null, stopped_at: null,
+    schema_version: '1.0', observation_id: 1, lifecycle: 'stopped', started_at: null, stopped_at: null,
     observed_seconds: 600, active_seconds: 120, activity_ratio: 0.2,
     products: [{
       signature: 'private-signature', name: 'Private App Name', kind: 'coding-agent',

@@ -1,7 +1,7 @@
 import type { ActivityTimelineSegment, MonitorSnapshot } from './monitor';
 import { type UiLocale, uiText } from './localization';
 
-export type LocalInsightKind = 'activity-share' | 'longest-block' | 'workflow' | 'local-models-unused' | 'mostly-idle';
+export type LocalInsightKind = 'activity-share' | 'longest-block' | 'workflow' | 'local-models-unused' | 'mostly-idle' | 'hosted-local';
 
 export interface LocalInsight {
   kind: LocalInsightKind;
@@ -62,18 +62,18 @@ export function buildLocalInsights(
   if (monitor.activity_ratio <= 0.2) {
     insights.push({ kind: 'mostly-idle', text: uiText(locale, 'insightMostlyIdle') });
   } else if (activeProducts.length === 1) {
-    insights.push({ kind: 'activity-share', text: uiText(locale, 'insightActivityProduct', { product: activeProducts[0]!.name, percent: activityPercent }) });
+    insights.push({ kind: 'workflow', text: uiText(locale, 'insightFocused', { product: activeProducts[0]!.name }) });
   } else {
     insights.push({ kind: 'activity-share', text: uiText(locale, 'insightActivityGeneric', { percent: activityPercent }) });
   }
 
   const longest = longestActiveSeconds(monitor.timeline, monitor.sample_interval_ms * 3);
-  if (longest >= 10) insights.push({ kind: 'longest-block', text: uiText(locale, 'insightLongest', { duration: durationLabel(longest, locale) }) });
+  if (longest >= 10) insights.push({ kind: 'longest-block', text: uiText(locale, 'insightDeepWork', { duration: durationLabel(longest, locale) }) });
 
   if (activeProducts.length > 1) {
     insights.push({ kind: 'workflow', text: uiText(locale, 'insightMulti', { count: activeProducts.length }) });
   } else if (footprint.model_record_count > 0 && footprint.confirmed_running_model_count === 0) {
-    insights.push({ kind: 'local-models-unused', text: uiText(locale, 'insightModelsUnused', { count: footprint.model_record_count }) });
+    insights.push({ kind: activeProducts.length ? 'hosted-local' : 'local-models-unused', text: uiText(locale, activeProducts.length ? 'insightHostedFirst' : 'insightModelsUnused', { product: activeProducts[0]?.name ?? '', count: footprint.model_record_count }) });
   } else if (activeProducts.length === 1 && insights[0]?.kind !== 'activity-share') {
     insights.push({ kind: 'workflow', text: uiText(locale, 'insightFocused', { product: activeProducts[0]!.name }) });
   }

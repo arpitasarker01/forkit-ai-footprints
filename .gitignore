@@ -17,3 +17,13 @@ test-results/
 local-truth*.json
 macos-field-results/
 artifacts/
+
+# Keep the runtime logo PNGs tracked, but ignore bulky source/export variants
+# copied beside them during local brand work.
+Logo_Forkit/**
+!Logo_Forkit/
+!Logo_Forkit/logo_Only/
+!Logo_Forkit/logo_Only/color_Dark/
+!Logo_Forkit/logo_Only/color_Dark/color_Dark.png
+!Logo_Forkit/logo_Only/color_Light/
+!Logo_Forkit/logo_Only/color_Light/color_Light.png

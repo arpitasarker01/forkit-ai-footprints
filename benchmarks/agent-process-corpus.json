@@ -2,6 +2,10 @@
   "schema_version": "1.0",
   "description": "Curated process-metadata conformance cases. This is not a representative field-device accuracy sample.",
   "cases": [
+    { "case_id": "chatgpt-macos-app", "process": { "name": "ChatGPT", "cmd": "/Applications/ChatGPT.app/Contents/MacOS/ChatGPT" }, "expected_signature": "chatgpt" },
+    { "case_id": "jan-macos-app", "process": { "name": "Jan", "cmd": "/Applications/Jan.app/Contents/MacOS/Jan" }, "expected_signature": "jan" },
+    { "case_id": "lm-studio-macos-app", "process": { "name": "LM Studio", "cmd": "/Applications/LM Studio.app/Contents/MacOS/LM Studio" }, "expected_signature": "lm-studio" },
+    { "case_id": "open-webui-executable", "process": { "name": "open-webui", "cmd": "open-webui serve" }, "expected_signature": "open-webui" },
     { "case_id": "codex-macos-executable", "process": { "name": "codex", "cmd": "/opt/homebrew/bin/codex app-server" }, "expected_signature": "codex" },
     { "case_id": "codex-windows-executable", "process": { "name": "codex.exe", "cmd": "C:\\Tools\\codex.exe app-server" }, "expected_signature": "codex" },
     { "case_id": "claude-linux-executable", "process": { "name": "claude", "cmd": "/usr/local/bin/claude --print" }, "expected_signature": "claude" },
@@ -56,10 +60,16 @@
     { "case_id": "negative-smolagents-docs", "process": { "name": "node", "cmd": "node smolagents-docs build" }, "expected_signature": null },
     { "case_id": "negative-generic-node", "process": { "name": "node", "cmd": "node server.js" }, "expected_signature": null },
     { "case_id": "negative-generic-python", "process": { "name": "python3", "cmd": "python3 worker.py" }, "expected_signature": null },
+    { "case_id": "negative-chatgpt-notes", "process": { "name": "node", "cmd": "node chatgpt-notes.js" }, "expected_signature": null },
+    { "case_id": "negative-lm-studio-report", "process": { "name": "python", "cmd": "python lm-studio-report.py" }, "expected_signature": null },
     { "case_id": "negative-vscode", "process": { "name": "code", "cmd": "/usr/bin/code --reuse-window" }, "expected_signature": null },
     { "case_id": "negative-unrelated-grep-codex", "process": { "name": "grep", "cmd": "grep codex README.md" }, "expected_signature": null },
     { "case_id": "negative-unrelated-claude-path", "process": { "name": "python3", "cmd": "python3 /tmp/claude report.py" }, "expected_signature": null },
     { "case_id": "negative-unrelated-cursor-shell-argument", "process": { "name": "bash", "cmd": "bash -c echo-cursor cursor" }, "expected_signature": null },
-    { "case_id": "negative-unrelated-langchain-argument", "process": { "name": "node", "cmd": "node docs.js langchain" }, "expected_signature": null }
+    { "case_id": "negative-unrelated-langchain-argument", "process": { "name": "node", "cmd": "node docs.js langchain" }, "expected_signature": null },
+    { "case_id": "negative-chatgpt-codex-crashpad-full-name", "process": { "name": "/Applications/ChatGPT.app/Contents/Frameworks/Codex Framework.framework/Versions/150.0.7871.124/Helpers/browser_crashpad_handler", "cmd": "/Applications/ChatGPT.app/Contents/Frameworks/Codex Framework.framework/Versions/150.0.7871.124/Helpers/browser_crashpad_handler --monitor-self --annotation=prod=ChatGPT_Mac" }, "expected_signature": null },
+    { "case_id": "negative-chatgpt-codex-crashpad-short-name", "process": { "name": "browser_crashpad_handler", "cmd": "/Applications/ChatGPT.app/Contents/Frameworks/Codex Framework.framework/Versions/151.0.7922.170/Helpers/browser_crashpad_handler --no-periodic-tasks" }, "expected_signature": null },
+    { "case_id": "negative-chatgpt-codex-autoupdate", "process": { "name": "Autoupdate", "cmd": "/Applications/ChatGPT.app/Contents/Frameworks/Sparkle.framework/Versions/B/Autoupdate com.openai.codex /Users/example" }, "expected_signature": null },
+    { "case_id": "negative-chatgpt-codex-updater", "process": { "name": "Updater", "cmd": "/Users/example/Library/Caches/com.openai.codex/org.sparkle-project.Sparkle/Launcher/Updater.app/Contents/MacOS/Updater /Applications/ChatGPT.app 0" }, "expected_signature": null }
   ]
 }
