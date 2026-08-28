@@ -1,6 +1,6 @@
 # Forkit AI Footprints public GitHub handoff
 
-Status: approved public release for `forkit-ai-footprints@0.2.3`.
+Status: release candidate for `forkit-ai-footprints@0.2.4`.
 
 ## Product identity
 
@@ -19,7 +19,7 @@ tag, package artifact, and npm version must all refer to the same source.
 Required before public handoff:
 
 1. Push only a clean, reviewed release branch after founder approval.
-2. Create the `v0.2.3` release from the same commit that passed tests.
+2. Create the `v0.2.4` release from the same commit that passed tests.
 3. Attach the npm tarball, release manifest, checksum, SBOM, and validation
    evidence.
 

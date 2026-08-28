@@ -63,7 +63,7 @@ test('process existence alone never becomes working and sleep gaps are excluded'
   assert.equal(snapshot.timeline[0]?.observation_id, snapshot.observation_id);
 });
 
-test('locked or inactive device time is paused and breaks activity continuity', async () => {
+test('locked device time is paused and breaks activity continuity even when AI CPU changes', async () => {
   let now = 0;
   let cpuTime = 10;
   let eligible = true;
@@ -71,7 +71,7 @@ test('locked or inactive device time is paused and breaks activity continuity', 
     now: () => now,
     intervalMs: 1000,
     excludedRootPid: null,
-    devicePresence: async () => ({ state: eligible ? 'active' : 'idle', idle_seconds: eligible ? 2 : 61, observation_eligible: eligible }),
+    devicePresence: async () => ({ state: eligible ? 'active' : 'locked', idle_seconds: eligible ? 2 : 61, observation_eligible: eligible }),
     sampleProcesses: async () => [codex(10, cpuTime)],
   });
   await monitor.start({ schedule: false });
@@ -86,7 +86,7 @@ test('locked or inactive device time is paused and breaks activity continuity', 
   const paused = monitor.snapshot();
   assert.equal(paused.observed_seconds, 2);
   assert.equal(paused.active_seconds, 1);
-  assert.equal(paused.presence.state, 'idle');
+  assert.equal(paused.presence.state, 'locked');
   assert.equal(paused.products[0]?.state, 'open-idle');
   eligible = true;
   now += 1000; cpuTime += 400; await monitor.sampleNow();
@@ -96,6 +96,49 @@ test('locked or inactive device time is paused and breaks activity continuity', 
   assert.equal(resumed.observed_seconds, 3);
   assert.equal(resumed.timeline[0]?.observation_id, resumed.timeline.at(-1)?.observation_id);
   assert.notEqual(resumed.timeline[0]?.continuity_id, resumed.timeline.at(-1)?.continuity_id);
+});
+
+test('unlocked input-idle time remains eligible while supported AI work is measured', async () => {
+  let now = 0;
+  let cpuTime = 10;
+  const monitor = new ActivityMonitor({
+    now: () => now,
+    intervalMs: 1000,
+    excludedRootPid: null,
+    devicePresence: async () => ({ state: 'idle', idle_seconds: 90, observation_eligible: false }),
+    sampleProcesses: async () => [codex(10, cpuTime)],
+  });
+  await monitor.start({ schedule: false });
+  for (const delta of [40, 40, 40]) {
+    now += 1000;
+    cpuTime += delta;
+    await monitor.sampleNow();
+  }
+  const snapshot = monitor.stop();
+  assert.equal(snapshot.presence.state, 'idle');
+  assert.equal(snapshot.presence.observation_eligible, true);
+  assert.equal(snapshot.observed_seconds, 2);
+  assert.equal(snapshot.active_seconds, 1);
+  assert.equal(snapshot.products[0]?.state, 'working-now');
+});
+
+test('unlocked input-idle time remains paused when a supported app is only ready', async () => {
+  let now = 0;
+  const monitor = new ActivityMonitor({
+    now: () => now,
+    intervalMs: 1000,
+    excludedRootPid: null,
+    devicePresence: async () => ({ state: 'idle', idle_seconds: 90, observation_eligible: false }),
+    sampleProcesses: async () => [codex(10, 10)],
+  });
+  await monitor.start({ schedule: false });
+  now += 1000; await monitor.sampleNow();
+  now += 1000; await monitor.sampleNow();
+  const snapshot = monitor.stop();
+  assert.equal(snapshot.presence.observation_eligible, false);
+  assert.equal(snapshot.observed_seconds, 0);
+  assert.equal(snapshot.active_seconds, 0);
+  assert.equal(snapshot.products[0]?.state, 'open-idle');
 });
 
 test('one explicit monitor run keeps one observation identity across continuity gaps', async () => {
@@ -119,6 +162,9 @@ test('one explicit monitor run keeps one observation identity across continuity 
   now += 1000;
   const restarted = await monitor.start({ schedule: false });
   assert.equal(restarted.observation_id, observationId + 1);
+  assert.equal(restarted.observed_seconds, 0);
+  assert.equal(restarted.active_seconds, 0);
+  assert.deepEqual(restarted.timeline, []);
 });
 
 test('timeline intervals preserve every valid observed second across state transitions', async () => {
@@ -145,6 +191,29 @@ test('timeline intervals preserve every valid observed second across state trans
     .reduce((sum, segment) => sum + (Date.parse(segment.ended_at) - Date.parse(segment.started_at)) / 1000, 0);
   assert.equal(timelineSeconds, snapshot.observed_seconds);
   assert.equal(activeTimelineSeconds, snapshot.active_seconds);
+});
+
+test('bounded visual history never reduces cumulative observation totals', async () => {
+  let now = 0;
+  let cpuTime = 100;
+  const monitor = new ActivityMonitor({
+    now: () => now,
+    intervalMs: 1000,
+    historyLimit: 10,
+    excludedRootPid: null,
+    sampleProcesses: async () => [codex(10, cpuTime)],
+  });
+  await monitor.start({ schedule: false });
+  for (let index = 0; index < 100; index += 1) {
+    now += 1000;
+    cpuTime += index % 5 < 2 ? 40 : 0;
+    await monitor.sampleNow();
+  }
+  const snapshot = monitor.stop();
+  assert.equal(snapshot.observed_seconds, 100);
+  assert.ok(snapshot.active_seconds > 0);
+  assert.equal(snapshot.activity_ratio, snapshot.active_seconds / snapshot.observed_seconds);
+  assert.ok(snapshot.timeline.length <= 10);
 });
 
 test('monitor includes supported descendants but excludes its own process tree', async () => {
@@ -238,6 +307,25 @@ test('restoreStoppedSnapshot keeps previous summary without silently restarting 
   assert.equal(restored.observation_id, saved.observation_id);
   assert.equal(restored.observed_seconds, saved.observed_seconds);
   assert.deepEqual(restored.timeline, saved.timeline);
+});
+
+test('resume keeps a restored observation identity and totals without counting the offline gap', async () => {
+  let now = 0;
+  let frame: ProcessEntry[] = [codex(10, 10)];
+  const original = new ActivityMonitor({ now: () => now, excludedRootPid: null, sampleProcesses: async () => frame });
+  await original.start({ schedule: false });
+  now += 1000; frame = [codex(10, 60)]; await original.sampleNow();
+  const saved = original.stop();
+  now += 60_000;
+  frame = [codex(10, 90)];
+  const resumedMonitor = new ActivityMonitor({ now: () => now, excludedRootPid: null, sampleProcesses: async () => frame });
+  resumedMonitor.restoreStoppedSnapshot(saved);
+  const resumed = await resumedMonitor.resume({ schedule: false });
+  assert.equal(resumed.lifecycle, 'monitoring');
+  assert.equal(resumed.observation_id, saved.observation_id);
+  assert.equal(resumed.started_at, saved.started_at);
+  assert.equal(resumed.observed_seconds, saved.observed_seconds);
+  assert.deepEqual(resumed.timeline, saved.timeline);
 });
 
 test('monitor retains bounded aggregate CPU and memory history per AI app', async () => {

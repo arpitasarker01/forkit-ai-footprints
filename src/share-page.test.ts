@@ -140,6 +140,8 @@ test('one-page app puts truthful activity before footprint and comparison', asyn
   assert.match(html, /focusedSystemSignature/);
   assert.match(html, /function viewForSystem/);
   assert.match(html, /function renderSystemTimeline/);
+  assert.match(html, /trackWidth<420\?2:trackWidth<700\?3:5/);
+  assert.match(html, /timeline-tick:not\(:first-child\):not\(:last-child\)/);
   assert.match(html, /function renderRuntimeFootprint/);
   assert.match(html, /function renderBelowSummary/);
   assert.match(html, /function renderInspectorApps/);
@@ -152,6 +154,7 @@ test('one-page app puts truthful activity before footprint and comparison', asyn
   assert.match(html, /Hosted-first workflow: active AI work used hosted AI while local models stayed idle/);
   assert.match(html, /AI work made visible/);
   assert.match(html, /This is how much I control my AI workflow, what about yours\?/);
+  assert.match(html, /monitor\.last_observation/);
   assert.match(html, /Shared by choice\./);
   assert.match(html, /shareMeasuredDurations/);
   assert.match(html, /renderDetails\(\)/);

@@ -1,7 +1,8 @@
 # Forkit AI Footprints macOS Field Test
 
-This is a metadata-only Apple Silicon macOS field test. Forkit AI Footprints has
-no uploader. Do not test it on a machine where
+This is a metadata-only Apple Silicon macOS field test. Forkit AI Footprints
+keeps detailed evidence local. Optional anonymous aggregate sync stays off
+until explicit permission. Do not test it on a machine where
 you are unable to review the local metadata it will inspect.
 
 ## What the test reads
@@ -15,14 +16,14 @@ commands, emit full paths or MCP values, authenticate, or contact Forkit.dev.
 
 - a Mac you are authorized to inspect;
 - Node.js 20, 22, or 24 and npm;
-- the provided `forkit-ai-footprints-0.2.3.tgz` test artifact;
+- the provided `forkit-ai-footprints-0.2.4.tgz` test artifact;
 - its SHA-256 checksum from the test coordinator.
 
 Verify and install the artifact:
 
 ```bash
-shasum -a 256 ./forkit-ai-footprints-0.2.3.tgz
-npm install -g ./forkit-ai-footprints-0.2.3.tgz
+shasum -a 256 ./forkit-ai-footprints-0.2.4.tgz
+npm install -g ./forkit-ai-footprints-0.2.4.tgz
 forkit-ai-footprints doctor
 ```
 

@@ -6,11 +6,11 @@ import test from 'node:test';
 import { loadLocalObservationState, saveLocalObservationState } from './local-observation-state';
 import type { MonitorSnapshot } from './monitor';
 
-function snapshot(observedSeconds: number): MonitorSnapshot {
+function snapshot(observedSeconds: number, lifecycle: MonitorSnapshot['lifecycle'] = 'monitoring'): MonitorSnapshot {
   return {
     schema_version: '1.0',
     observation_id: 9,
-    lifecycle: 'monitoring',
+    lifecycle,
     started_at: '2026-08-28T10:00:00.000Z',
     stopped_at: null,
     observed_seconds: observedSeconds,
@@ -54,4 +54,19 @@ test('local observation state is atomically replaced with the latest complete sn
   assert.equal(loaded?.timeline_blocks[0]?.continuity_id, 12);
   assert.deepEqual(loaded?.latest_insights, ['second']);
   assert.deepEqual(await fs.readdir(stateDirectory), ['observation-state.json']);
+});
+
+test('a fresh or active observation cannot erase the last completed useful result', async (t) => {
+  const stateDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'forkit-observation-last-result-'));
+  t.after(() => fs.rm(stateDirectory, { recursive: true, force: true }));
+  await saveLocalObservationState(snapshot(20, 'stopped'), {
+    latestInsights: ['complete'], localModelsFound: 5, localModelsRunning: 0, stateDirectory,
+  });
+  await saveLocalObservationState(snapshot(0, 'monitoring'), {
+    latestInsights: [], localModelsFound: 5, localModelsRunning: 0, stateDirectory,
+  });
+  const loaded = await loadLocalObservationState(stateDirectory);
+  assert.equal(loaded?.snapshot.observed_seconds, 0);
+  assert.equal(loaded?.last_stopped_summary?.observed_seconds, 20);
+  assert.equal(loaded?.last_stopped_summary?.active_seconds, 10);
 });

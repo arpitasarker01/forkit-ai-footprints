@@ -2,11 +2,11 @@
 
 Last updated: 2026-08-28
 
-Version: `0.2.3`
+Version: `0.2.4`
 
 Production classification: `current` for Apple Silicon macOS
 
-Release state: v0.2.3 npm-first community Preview release. The npm
+Release state: v0.2.4 npm-first community Preview candidate. The npm
 bootstrap installs a persistent unsigned local app; Developer ID signing and
 notarization remain future work.
 
@@ -33,9 +33,10 @@ notarization remain future work.
   width instead of staying at tiny fixed pixel sizes.
 - Explicit Start/Stop Monitoring with repeated one-second macOS process-tree
   sampling, cumulative CPU-time deltas, two-sample entry and three-sample exit
-  hysteresis, and sleep-gap exclusion. Observation pauses while macOS is locked
-  or after 60 seconds without user input; every invalid interval starts a new
-  continuous activity block when valid observation resumes.
+  hysteresis, and sleep-gap exclusion. Locked and unavailable time is excluded.
+  Unlocked input-idle time remains excluded unless sustained supported AI work
+  is still measured, so long-running agents do not disappear merely because the
+  keyboard and pointer are untouched.
 - One explicit Start-to-Stop run now keeps one stable observation identity.
   Sleep, lock, and inactivity create separate continuity periods without
   inventing new observations. Timeline intervals preserve every valid measured
@@ -52,6 +53,12 @@ notarization remain future work.
 - The monitor is owned by the local service, not a browser tab. Closing the
   window does not end a session; stopping preserves the summary; clearing is a
   separate explicit action.
+- Service reconnect resumes the same observation without counting its offline
+  gap. An explicit Stop followed by Start creates a clean new observation and
+  never carries old totals, products, or timeline blocks into the new run.
+- Detailed timeline, one-minute per-app resource buckets, and monitor-overhead
+  samples remain bounded locally; cumulative observed and AI-active totals are
+  maintained independently and are not reduced when old visual blocks age out.
 - A persistent native AppKit/WebKit app installed into the current user's
   Applications folder by a one-time npm bootstrap. Later launches use normal
   macOS surfaces and do not require Terminal.

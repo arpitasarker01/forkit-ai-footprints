@@ -169,6 +169,7 @@ export async function startAiFootprintsServer(options: AiFootprintsServerOptions
           localModelsFound: currentReport?.summary.model_count ?? 0,
           localModelsRunning: currentReport?.summary.confirmed_running_model_count ?? 0,
           userStopped: userStoppedMonitoring,
+          lastStoppedSummary: lastObservation,
           ...(localStateDirectory ? { stateDirectory: localStateDirectory } : {}),
         });
         lastObservation = state.last_stopped_summary ?? lastObservation;
@@ -401,7 +402,7 @@ export async function startAiFootprintsServer(options: AiFootprintsServerOptions
     void refreshReport().catch(() => { initialScanFailed = true; }).finally(() => { scanning = false; });
   }
   if (!userStoppedMonitoring && monitor.snapshot().lifecycle !== 'monitoring') {
-    void monitor.start().catch(() => undefined);
+    void monitor.resume().catch(() => undefined);
   }
   previewTimer = setInterval(() => { void syncGlobalPreview(); }, 60_000);
   previewTimer.unref();

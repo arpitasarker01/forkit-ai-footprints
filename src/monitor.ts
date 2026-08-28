@@ -224,6 +224,8 @@ export class ActivityMonitor {
   async start(options: { schedule?: boolean } = {}): Promise<MonitorSnapshot> {
     if (this.lifecycle === 'monitoring') return this.snapshot();
     const now = this.now();
+    if (this.timer) clearInterval(this.timer);
+    this.timer = null;
     this.lifecycle = 'monitoring';
     this.observationId += 1;
     this.continuityId += 1;
@@ -231,6 +233,35 @@ export class ActivityMonitor {
     this.stoppedAt = null;
     this.previousAt = null;
     this.previousCpuTimes.clear();
+    this.observedMs = 0;
+    this.activeMs = 0;
+    this.products.clear();
+    this.timeline = [];
+    this.resourceBuckets = [];
+    this.overheadCpuSamples = [];
+    this.overheadMemorySamples = [];
+    this.presence = { state: 'active', idle_seconds: 0, observation_eligible: true };
+    this.nodeCpuUsage = process.cpuUsage();
+    this.nodeCpuAt = now;
+    await this.sampleNow();
+    if (options.schedule !== false) {
+      this.timer = setInterval(() => { void this.sampleNow(); }, this.intervalMs);
+      this.timer.unref();
+    }
+    return this.snapshot();
+  }
+
+  async resume(options: { schedule?: boolean } = {}): Promise<MonitorSnapshot> {
+    if (this.lifecycle === 'monitoring') return this.snapshot();
+    if (this.observationId <= 0 || this.startedAt === null) return this.start(options);
+    const now = this.now();
+    if (this.timer) clearInterval(this.timer);
+    this.timer = null;
+    this.lifecycle = 'monitoring';
+    this.stoppedAt = null;
+    this.previousAt = null;
+    this.previousCpuTimes.clear();
+    this.continuityId += 1;
     this.nodeCpuUsage = process.cpuUsage();
     this.nodeCpuAt = now;
     await this.sampleNow();
@@ -248,19 +279,13 @@ export class ActivityMonitor {
       const [entries, sampledPresence] = await Promise.all([this.sampleProcesses(), this.devicePresence()]);
       const now = this.now();
       const previousPresenceEligible = this.presence.observation_eligible;
-      this.presence = sampledPresence;
       const elapsed = this.previousAt === null ? 0 : Math.max(0, now - this.previousAt);
       const elapsedContinuous = elapsed > 0 && elapsed <= this.intervalMs * 3;
-      const continuityBroken = this.previousAt !== null
-        && (!elapsedContinuous || !previousPresenceEligible || !sampledPresence.observation_eligible);
-      if (continuityBroken && previousPresenceEligible) this.continuityId += 1;
-      const validElapsed = elapsedContinuous && previousPresenceEligible && sampledPresence.observation_eligible ? elapsed : 0;
       const grouped = groupProcesses(await this.classifyProcesses(entries));
       const signatures = new Set([...this.products.keys(), ...grouped.keys()]);
-
+      const measured = new Map<string, { current: ClassifiedAgentProcess[]; measuredDelta: number | null; rawStrongSignal: boolean }>();
       for (const signature of signatures) {
         const current = grouped.get(signature) ?? [];
-        const previous = this.products.get(signature);
         const signalEntries = current.filter((entry) => entry.activity_signal !== false);
         let cpuDeltaMs = 0;
         let deltaCount = 0;
@@ -272,14 +297,33 @@ export class ActivityMonitor {
           deltaCount += 1;
         }
         const measuredDelta = deltaCount > 0 ? cpuDeltaMs : null;
-        const strongSignal = sampledPresence.observation_eligible
+        const rawStrongSignal = elapsedContinuous
+          && sampledPresence.state !== 'locked'
+          && sampledPresence.state !== 'unavailable'
           && signalEntries.length > 0
-          && validElapsed > 0
           && measuredDelta !== null
-          && measuredDelta >= Math.max(20, validElapsed * 0.02);
+          && measuredDelta >= Math.max(20, elapsed * 0.02);
+        measured.set(signature, { current, measuredDelta, rawStrongSignal });
+      }
+      const backgroundAiActive = sampledPresence.state === 'idle'
+        && [...measured.values()].some((item) => item.rawStrongSignal);
+      const effectivePresenceEligible = sampledPresence.observation_eligible || backgroundAiActive;
+      this.presence = { ...sampledPresence, observation_eligible: effectivePresenceEligible };
+      const continuityBroken = this.previousAt !== null
+        && (!elapsedContinuous || !previousPresenceEligible || !effectivePresenceEligible);
+      if (continuityBroken && previousPresenceEligible) this.continuityId += 1;
+      const validElapsed = elapsedContinuous && previousPresenceEligible && effectivePresenceEligible ? elapsed : 0;
+
+      for (const signature of signatures) {
+        const measurement = measured.get(signature)!;
+        const { current, measuredDelta, rawStrongSignal } = measurement;
+        const previous = this.products.get(signature);
+        const strongSignal = effectivePresenceEligible
+          && validElapsed > 0
+          && rawStrongSignal;
         const signals = [...(continuityBroken ? [] : previous?.signals ?? []), strongSignal].slice(-3);
         let state: AiActivityState;
-        if (!sampledPresence.observation_eligible) state = current.length === 0 ? 'not-running' : 'open-idle';
+        if (!effectivePresenceEligible) state = current.length === 0 ? 'not-running' : 'open-idle';
         else if (current.length === 0) state = 'not-running';
         else if (previous?.state === 'working-now') state = signals.every((value) => !value) ? 'open-idle' : 'working-now';
         else state = signals.slice(-2).length === 2 && signals.slice(-2).every(Boolean) ? 'working-now' : 'open-idle';
@@ -577,7 +621,7 @@ export class ActivityMonitor {
       history_limit: this.historyLimit,
       evidence: 'repeated-process-tree-cpu-time-deltas' as const,
       presence: { ...this.presence },
-      limitation: 'Active now means sustained recent CPU time in a supported local AI-app process tree while this Mac is awake, unlocked, and recently used; it is not prompt, task, token, energy, or cost attribution.',
+      limitation: 'Active now means sustained recent CPU time in a supported local AI-app process tree while this device is unlocked. Inactive input time is excluded unless supported AI work is still measured; locked or unavailable time is always excluded. This is not prompt, task, token, energy, or cost attribution.',
     };
     const memory = this.overheadMemorySamples.at(-1) ?? process.memoryUsage().rss;
     return {

@@ -88,13 +88,17 @@ export async function saveLocalObservationState(
     localModelsRunning: number;
     appColorMapping?: Record<string, string>;
     userStopped?: boolean;
+    lastStoppedSummary?: LastStoppedSummary | null;
     stateDirectory?: string;
   },
 ): Promise<LocalObservationState> {
+  const previousLastStoppedSummary = options.lastStoppedSummary !== undefined
+    ? options.lastStoppedSummary
+    : (await loadLocalObservationState(options.stateDirectory))?.last_stopped_summary ?? null;
   const activeTool = snapshot.products
     .filter((product) => product.kind !== 'local-model-runtime' && (product.active_seconds > 0 || product.state === 'working-now'))
     .sort((left, right) => right.active_seconds - left.active_seconds || left.name.localeCompare(right.name))[0]?.name ?? null;
-  const lastStoppedSummary: LastStoppedSummary | null = snapshot.observed_seconds > 0 ? {
+  const completedSummary: LastStoppedSummary | null = snapshot.lifecycle === 'stopped' && snapshot.observed_seconds > 0 ? {
     saved_at: new Date().toISOString(),
     observed_seconds: snapshot.observed_seconds,
     active_seconds: snapshot.active_seconds,
@@ -109,6 +113,7 @@ export async function saveLocalObservationState(
       local_models_running: options.localModelsRunning,
     },
   } : null;
+  const lastStoppedSummary = completedSummary ?? previousLastStoppedSummary;
   const persistedSnapshot = stripSnapshot(snapshot);
   const state: LocalObservationState = {
     schema_version: '1.0',
