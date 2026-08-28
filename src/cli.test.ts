@@ -159,7 +159,7 @@ test('consent cannot bypass the required valid monitor session and exact preview
   ]);
   assert.equal(result.status, 2);
   assert.equal(JSON.parse(result.stdout).product, 'forkit-ai-footprints');
-  assert.match(result.stderr, /valid 10-minute monitor session/i);
+  assert.match(result.stderr, /valid one-hour monitor session/i);
   assert.match(result.stderr, /Nothing was uploaded/i);
 });
 

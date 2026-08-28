@@ -12,7 +12,7 @@ function runtimeFiles(directory: string): string[] {
   });
 }
 
-test('compiled runtime contains no Forkit production write client', () => {
+test('compiled runtime contains only the approved Forkit Global AI Preview write client', () => {
   const files = runtimeFiles(path.join(process.cwd(), 'dist'));
   const runtime = files.map((file) => fs.readFileSync(file, 'utf8')).join('\n');
   for (const forbidden of [
@@ -24,15 +24,20 @@ test('compiled runtime contains no Forkit production write client', () => {
   ]) {
     assert.equal(runtime.includes(forbidden), false, `unexpected production surface: ${forbidden}`);
   }
-  assert.equal(runtime.match(/https:\/\/www\.forkit\.dev/g)?.length, 1);
+  assert.match(runtime, /https:\/\/www\.forkit\.dev\/api\/v1\/ai-footprints/);
   assert.match(runtime, /ai-footprint#global-vision/);
-  assert.doesNotMatch(runtime, /fetch\([^)]*https:\/\/www\.forkit\.dev/);
+  assert.match(runtime, /preview-contribution/);
+  assert.match(runtime, /community-ed25519/);
+  assert.doesNotMatch(runtime, /https:\/\/www\.forkit\.dev\/api\/(?!v1\/ai-footprints)/);
 });
 
-test('native global action opens only the fixed public vision route', () => {
+test('native global action opens only the fixed public benchmark route', () => {
   const launcher = fs.readFileSync(path.join(process.cwd(), 'native/macos/ForkitAiFootprintsLauncher.swift'), 'utf8');
   assert.match(launcher, /action == "open-global"/);
-  assert.match(launcher, /https:\/\/www\.forkit\.dev\/\\\(globalPath\)#global-vision/);
+  assert.match(launcher, /let globalPath = uiLocale == "de" \? "de\/ai-footprint" : "ai-footprint"/);
+  assert.match(launcher, /URL\(string: "https:\/\/www\.forkit\.dev\/\\\(globalPath\)#global-vision"\)/);
   assert.match(launcher, /NSWorkspace\.shared\.open\(url\)/);
   assert.doesNotMatch(launcher, /body\["url"\]/);
+  assert.match(launcher, /globalPermissionVersion = "ai-footprints-global-preview-v2"/);
+  assert.match(launcher, /api\/native\/global-permission\/grant/);
 });

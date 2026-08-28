@@ -10,11 +10,13 @@ import { createDefaultProviders } from './providers';
 import { classifyLoadedRuntimeProcesses, loadedRuntimeModels } from './runtime-activity';
 import { buildAnonymousAiFootprintPreview } from './sharing';
 import { buildLocalInsights } from './insights';
+import { buildActivityExplorerViewModel, type ActivityExplorerViewModel } from './activity-view-model';
 import type { CensusReport } from './types';
 import { normalizeLocale, uiText, type UiLocale } from './localization';
 import { createLocalWorkflowContextProvider } from './workflow-context';
 import { createMacosDevicePresenceProvider } from './device-presence';
 import { clearLocalObservationState, loadLocalObservationState, saveLocalObservationState, type LastStoppedSummary } from './local-observation-state';
+import { GlobalPreviewContributor, type GlobalPreviewStatus } from './global-preview';
 
 export interface AiFootprintsServerOptions {
   hostname?: '127.0.0.1';
@@ -26,6 +28,8 @@ export interface AiFootprintsServerOptions {
   globalPermission?: 'granted' | 'declined' | 'unset';
   deferInitialScan?: boolean;
   localStateDirectory?: string;
+  globalPreviewEndpoint?: string;
+  globalPreviewFetch?: typeof fetch;
 }
 
 export interface AiFootprintsServer {
@@ -74,11 +78,16 @@ export async function startAiFootprintsServer(options: AiFootprintsServerOptions
   const recordScan = options.recordScan ?? ((generatedAt: string) => recordLocalScan({ now: () => new Date(generatedAt) }));
   const sessionToken = crypto.randomBytes(24).toString('hex');
   const nativeToken = options.nativeToken ?? process.env.FORKIT_AI_FOOTPRINTS_NATIVE_TOKEN ?? null;
-  const globalPermission = options.globalPermission
+  let globalPermission = options.globalPermission
     ?? (process.env.FORKIT_AI_FOOTPRINTS_GLOBAL_PERMISSION === 'granted' ? 'granted'
       : process.env.FORKIT_AI_FOOTPRINTS_GLOBAL_PERMISSION === 'declined' ? 'declined' : 'unset');
   const deferInitialScan = options.deferInitialScan ?? process.env.FORKIT_AI_FOOTPRINTS_APP_BUNDLE === '1';
   const localStateDirectory = options.localStateDirectory;
+  const globalPreviewContributor = new GlobalPreviewContributor({
+    ...(localStateDirectory ? { stateDirectory: localStateDirectory } : {}),
+    ...(options.globalPreviewEndpoint ? { endpoint: options.globalPreviewEndpoint } : {}),
+    ...(options.globalPreviewFetch ? { fetchFn: options.globalPreviewFetch } : {}),
+  });
   const runtimeProviders = createDefaultProviders();
   let loadedRuntimeCache = new Map<string, string[]>();
   let loadedRuntimeCacheAt = 0;
@@ -118,6 +127,18 @@ export async function startAiFootprintsServer(options: AiFootprintsServerOptions
   let origin = '';
   let closing: Promise<void> | null = null;
   let currentLocale: UiLocale = 'en';
+  let previewTimer: NodeJS.Timeout | null = null;
+
+  async function syncGlobalPreview(snapshot: MonitorSnapshot = monitor.snapshot()): Promise<GlobalPreviewStatus> {
+    if (globalPermission !== 'granted' || !currentReport || snapshot.observed_seconds < 3600) {
+      return globalPreviewContributor.status(globalPermission);
+    }
+    try {
+      return await globalPreviewContributor.sync(buildAnonymousAiFootprintPreview(currentReport, snapshot), globalPermission);
+    } catch {
+      return globalPreviewContributor.status(globalPermission);
+    }
+  }
 
   function browserAuthorized(request: http.IncomingMessage): boolean {
     return request.headers.origin === origin
@@ -154,16 +175,21 @@ export async function startAiFootprintsServer(options: AiFootprintsServerOptions
     }
   }
 
-  function browserSnapshot(snapshot: MonitorSnapshot = monitor.snapshot()): MonitorSnapshot & { insights: string[]; last_observation: LastStoppedSummary | null } {
-    const insights = buildLocalInsights(snapshot, {
+  function browserSnapshot(snapshot: MonitorSnapshot = monitor.snapshot()): MonitorSnapshot & { insights: string[]; activity_view: ActivityExplorerViewModel; last_observation: LastStoppedSummary | null; global_permission: 'granted' | 'declined' | 'unset'; global_preview: GlobalPreviewStatus } {
+    const insightDetails = buildLocalInsights(snapshot, {
       model_record_count: currentReport?.summary.model_count ?? 0,
       confirmed_running_model_count: currentReport?.summary.confirmed_running_model_count ?? 0,
-    }, 60, currentLocale).map((insight) => insight.text);
+    }, 60, currentLocale);
+    const insights = insightDetails.map((insight) => insight.text);
     void persistObservation(snapshot, insights);
+    void syncGlobalPreview(snapshot);
     return {
       ...snapshot,
       insights,
+      activity_view: buildActivityExplorerViewModel(snapshot, insightDetails),
       last_observation: lastObservation,
+      global_permission: globalPermission,
+      global_preview: globalPreviewContributor.status(globalPermission),
     };
   }
 
@@ -312,7 +338,17 @@ export async function startAiFootprintsServer(options: AiFootprintsServerOptions
 
     if (request.method === 'POST' && pathname === '/api/native/status') {
       if (!nativeControl) { sendJson(response, 403, { error: 'NATIVE_CONTROL_REQUIRED' }); return; }
-      sendJson(response, 200, { ...monitor.snapshot(), ui_locale: currentLocale });
+      const snapshot = monitor.snapshot();
+      void syncGlobalPreview(snapshot);
+      sendJson(response, 200, { ...snapshot, ui_locale: currentLocale, global_preview: globalPreviewContributor.status(globalPermission) });
+      return;
+    }
+
+    if (request.method === 'POST' && (pathname === '/api/native/global-permission/grant' || pathname === '/api/native/global-permission/decline')) {
+      if (!nativeControl) { sendJson(response, 403, { error: 'NATIVE_CONTROL_REQUIRED' }); return; }
+      globalPermission = pathname.endsWith('/grant') ? 'granted' : 'declined';
+      if (globalPermission === 'granted') void syncGlobalPreview();
+      sendJson(response, 200, { global_permission: globalPermission, global_preview: globalPreviewContributor.status(globalPermission) });
       return;
     }
 
@@ -362,6 +398,9 @@ export async function startAiFootprintsServer(options: AiFootprintsServerOptions
   if (!userStoppedMonitoring && monitor.snapshot().lifecycle !== 'monitoring') {
     void monitor.start().catch(() => undefined);
   }
+  previewTimer = setInterval(() => { void syncGlobalPreview(); }, 60_000);
+  previewTimer.unref();
+  void syncGlobalPreview();
 
   function closeService(): Promise<void> {
     if (closing) return closing;
@@ -372,6 +411,7 @@ export async function startAiFootprintsServer(options: AiFootprintsServerOptions
         confirmed_running_model_count: currentReport?.summary.confirmed_running_model_count ?? 0,
       }, 60, currentLocale).map((insight) => insight.text), { userStopped: true });
       stopStreams();
+      if (previewTimer) { clearInterval(previewTimer); previewTimer = null; }
       if (!server.listening) { resolve(); return; }
       server.close((error) => error ? reject(error) : resolve());
       server.closeIdleConnections();

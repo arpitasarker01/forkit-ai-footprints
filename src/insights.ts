@@ -70,12 +70,12 @@ export function buildLocalInsights(
   const longest = longestActiveSeconds(monitor.timeline, monitor.sample_interval_ms * 3);
   if (longest >= 10) insights.push({ kind: 'longest-block', text: uiText(locale, 'insightDeepWork', { duration: durationLabel(longest, locale) }) });
 
-  if (activeProducts.length > 1) {
+  if (footprint.confirmed_running_model_count > 0) {
+    insights.push({ kind: 'hosted-local', text: uiText(locale, 'hostedModelsRunningInsight') });
+  } else if (activeProducts.length > 1) {
     insights.push({ kind: 'workflow', text: uiText(locale, 'insightMulti', { count: activeProducts.length }) });
   } else if (footprint.model_record_count > 0 && footprint.confirmed_running_model_count === 0) {
     insights.push({ kind: activeProducts.length ? 'hosted-local' : 'local-models-unused', text: uiText(locale, activeProducts.length ? 'insightHostedFirst' : 'insightModelsUnused', { product: activeProducts[0]?.name ?? '', count: footprint.model_record_count }) });
-  } else if (activeProducts.length === 1 && insights[0]?.kind !== 'activity-share') {
-    insights.push({ kind: 'workflow', text: uiText(locale, 'insightFocused', { product: activeProducts[0]!.name }) });
   }
 
   return insights.slice(0, 3);

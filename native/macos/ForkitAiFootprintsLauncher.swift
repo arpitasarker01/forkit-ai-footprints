@@ -11,6 +11,8 @@ private let keychainService = "dev.forkit.ai-footprints.app-attest"
 private let keychainAccount = "verified-installation"
 private let globalPermissionAskedKey = "ForkitFootprintsGlobalPermissionAsked"
 private let globalPermissionAllowedKey = "ForkitFootprintsGlobalPermissionAllowed"
+private let globalPermissionVersionKey = "ForkitFootprintsGlobalPermissionVersion"
+private let globalPermissionVersion = "ai-footprints-global-preview-v2"
 
 private enum LauncherError: Error {
     case appAttestUnavailable, invalidHash, keyMissing, resourceMissing
@@ -120,7 +122,9 @@ private final class FootprintsAppDelegate: NSObject, NSApplicationDelegate, NSWi
 
     private func requestGlobalPermission(force: Bool = false) -> Bool {
         let defaults = UserDefaults.standard
-        if defaults.bool(forKey: globalPermissionAskedKey) && !force {
+        if defaults.bool(forKey: globalPermissionAskedKey)
+            && defaults.string(forKey: globalPermissionVersionKey) == globalPermissionVersion
+            && !force {
             return defaults.bool(forKey: globalPermissionAllowedKey)
         }
         let alert = NSAlert()
@@ -131,6 +135,7 @@ private final class FootprintsAppDelegate: NSObject, NSApplicationDelegate, NSWi
         let allowed = alert.runModal() == .alertFirstButtonReturn
         defaults.set(true, forKey: globalPermissionAskedKey)
         defaults.set(allowed, forKey: globalPermissionAllowedKey)
+        defaults.set(globalPermissionVersion, forKey: globalPermissionVersionKey)
         return allowed
     }
 
@@ -259,7 +264,9 @@ private final class FootprintsAppDelegate: NSObject, NSApplicationDelegate, NSWi
         }
         if action == "global-permission" {
             let allowed = requestGlobalPermission(force: true)
-            notifyShareResult(action, copy(allowed ? "permissionGranted" : "permissionDeclined"), allowed: allowed)
+            post(allowed ? "/api/native/global-permission/grant" : "/api/native/global-permission/decline") { [weak self] _ in
+                self?.notifyShareResult(action, self?.copy(allowed ? "permissionGranted" : "permissionDeclined") ?? "", allowed: allowed)
+            }
             return
         }
         if action == "copy-caption" {

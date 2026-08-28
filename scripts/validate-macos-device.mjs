@@ -59,6 +59,7 @@ for (const report of [first, second]) {
       'exact_executable_match',
       'explicit_module_invocation',
       'explicit_package_runner_invocation',
+      'embedded_chatgpt_codex_process_tree',
     ].includes(agent.detection_reason), `unsupported agent evidence: ${agent.detection_reason}`);
   }
 }

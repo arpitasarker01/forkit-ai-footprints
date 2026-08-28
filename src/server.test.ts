@@ -34,7 +34,7 @@ test('local server owns one monitor independently of browser streams', async () 
     assert.match(page.headers.get('content-security-policy') ?? '', /img-src data:/);
     assert.match(html, /Start Monitoring/);
     assert.match(html, /AI Activity Now/);
-    assert.match(html, /Global AI mirror/);
+    assert.match(html, /Compare globally/);
     assert.match(html, /"global_permission":"granted"/);
     assert.doesNotMatch(html, />Discover</);
     assert.doesNotMatch(html, />Observe</);
@@ -44,15 +44,25 @@ test('local server owns one monitor independently of browser streams', async () 
     assert.equal(service.monitor.snapshot().lifecycle, 'monitoring');
     const started = await fetch(`${service.url}api/monitor/start`, { method: 'POST', headers });
     assert.equal(started.status, 200);
-    assert.equal((await started.json() as { lifecycle: string }).lifecycle, 'monitoring');
+    const startedSnapshot = await started.json() as { lifecycle: string; observation_id: number };
+    assert.equal(startedSnapshot.lifecycle, 'monitoring');
 
     const controller = new AbortController();
     const stream = await fetch(`${service.url}api/monitor/stream`, { method: 'POST', headers, signal: controller.signal });
     const reader = stream.body!.getReader();
     const first = await reader.read();
-    const streamed = JSON.parse(new TextDecoder().decode(first.value).trim()) as { lifecycle: string; insights: string[] };
+    const streamed = JSON.parse(new TextDecoder().decode(first.value).trim()) as {
+      lifecycle: string;
+      observation_id: number;
+      insights: string[];
+      activity_view: { segments: unknown[]; contributions: unknown[]; insights: unknown[] };
+    };
     assert.equal(streamed.lifecycle, 'monitoring');
+    assert.equal(streamed.observation_id, startedSnapshot.observation_id);
     assert.deepEqual(streamed.insights, []);
+    assert.equal(streamed.activity_view.segments.length, 1);
+    assert.deepEqual(streamed.activity_view.contributions, []);
+    assert.deepEqual(streamed.activity_view.insights, []);
     controller.abort();
     await new Promise((resolve) => setTimeout(resolve, 20));
     assert.equal(service.monitor.snapshot().lifecycle, 'monitoring');
@@ -100,7 +110,7 @@ test('native app opens a local loading view before the first full scan completes
   try {
     const opening = await fetch(service.url);
     assert.equal(opening.status, 200);
-    assert.match(await opening.text(), /Opening your AI Footprint/);
+    assert.match(await opening.text(), /Opening the device AI Footprint/);
     const pending = await fetch(`${service.url}api/ready`, { method: 'POST', headers });
     assert.deepEqual(await pending.json(), { ready: false, failed: false });
 

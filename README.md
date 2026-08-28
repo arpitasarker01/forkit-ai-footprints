@@ -58,7 +58,7 @@ git clone https://github.com/arpitasarker01/forkit-ai-footprints.git
 cd forkit-ai-footprints
 npm ci
 npm pack
-npm install -g ./forkit-ai-footprints-0.2.1.tgz
+npm install -g ./forkit-ai-footprints-0.2.2.tgz
 forkit-ai-footprints serve
 ```
 
@@ -140,10 +140,12 @@ metadata, not prompt inspection or per-workflow resource attribution. It never
 enters the share image, caption, saved share page, or global payload.
 
 The revealed resource view reports deduplicated recognized logical model-file
-bytes and provider-native loaded-model evidence. The activity view uses private
-process-tree CPU-time deltas and separately displays Forkit's measured CPU,
-resident memory, and bounded-history overhead. None is an energy, token, cost,
-or lifetime-usage measurement.
+bytes, provider-native loaded-model evidence, current supported-process CPU/RAM,
+and bounded per-AI-app aggregate CPU/RAM history buckets retained locally for the
+observation. The activity view uses private process-tree CPU-time deltas and
+separately displays Forkit's measured CPU, resident memory, and bounded-history
+overhead. None is an energy, token, cost, prompt, task, or lifetime-usage
+measurement.
 
 AI Footprints does not claim prompt, task, or local-model inference ownership.
 **Active now** means sustained recent CPU time inside a supported local AI-app
@@ -183,9 +185,10 @@ forkit-ai-footprints scan --no-mcp
 ```
 
 CLI flags cannot bypass the required monitoring session. The local UI enables
-an exact schema `2.0` aggregate preview only after 600 valid observed seconds;
-the installed app asks once on first launch whether aggregate comparison is
-allowed, and no upload transport exists. The
+an exact schema `2.0` aggregate preview only after 3,600 valid observed seconds;
+the installed app asks with versioned consent whether the anonymous aggregate
+may join the Global AI Preview. When allowed, the app sends one latest signed
+aggregate after the one-hour gate and refreshes it when internet is available. The
 payload excludes app/model names, process counts, CPU/RAM, chat, workspace,
 repository, device, guess, local scan, and account identifiers.
 

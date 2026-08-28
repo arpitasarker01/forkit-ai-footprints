@@ -13,7 +13,9 @@ Before changing code:
 
 - AI Footprints is read-only and metadata-only.
 - Never add Forkit.dev authentication, passport Mint, registry writes,
-  Runtime_C2 mutation, telemetry upload, billing, or deployment behavior.
+  Runtime_C2 mutation, billing, or deployment behavior. The only permitted
+  network write is the production-lock-approved, versioned, consented,
+  aggregate-only Global AI Preview contribution.
 - Reject non-loopback runtime endpoints.
 - Never retain or report raw process commands, process IDs, full paths, model
   bytes, prompts, responses, credentials, or account identity.

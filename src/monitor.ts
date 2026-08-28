@@ -37,6 +37,23 @@ export interface ActivityTimelineSegment {
   observation_id?: number;
 }
 
+export interface ResourceHistoryBucket {
+  started_at: string;
+  ended_at: string;
+  system_signature: string;
+  system_name: string;
+  kind: string;
+  observed_seconds: number;
+  active_seconds: number;
+  avg_cpu_percent: number | null;
+  peak_cpu_percent: number | null;
+  avg_memory_bytes: number | null;
+  peak_memory_bytes: number | null;
+  peak_process_count: number;
+  sample_count: number;
+  measurement: 'bounded-local-process-tree-resource-bucket';
+}
+
 export interface MonitorOverhead {
   current_cpu_percent: number | null;
   current_memory_bytes: number;
@@ -59,6 +76,7 @@ export interface MonitorSnapshot {
   activity_ratio: number | null;
   products: AiActivityProduct[];
   timeline: ActivityTimelineSegment[];
+  resource_history?: ResourceHistoryBucket[];
   overhead: MonitorOverhead;
   sample_interval_ms: number;
   history_limit: number;
@@ -82,6 +100,24 @@ interface ProductTracker {
   context: ActivityContext;
 }
 
+interface ResourceBucketTracker {
+  startedAt: number;
+  endedAt: number;
+  signature: string;
+  name: string;
+  kind: string;
+  observedMs: number;
+  activeMs: number;
+  cpuWeightedMs: number;
+  cpuMeasuredMs: number;
+  peakCpuPercent: number | null;
+  memoryWeightedMs: number;
+  memoryMeasuredMs: number;
+  peakMemoryBytes: number | null;
+  peakProcessCount: number;
+  sampleCount: number;
+}
+
 export interface ActivityMonitorOptions {
   sampleProcesses?: () => Promise<ProcessEntry[]>;
   now?: () => number;
@@ -95,10 +131,15 @@ export interface ActivityMonitorOptions {
 
 const DEFAULT_INTERVAL_MS = 1000;
 const DEFAULT_HISTORY_LIMIT = 900;
+const RESOURCE_BUCKET_MS = 60_000;
 
 function rounded(value: number, digits = 1): number {
   const factor = 10 ** digits;
   return Math.round(value * factor) / factor;
+}
+
+function finiteOrNull(value: number | null | undefined): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
 function sum(values: Array<number | null>): number | null {
@@ -158,6 +199,7 @@ export class ActivityMonitor {
   private activeMs = 0;
   private products = new Map<string, ProductTracker>();
   private timeline: ActivityTimelineSegment[] = [];
+  private resourceBuckets: ResourceBucketTracker[] = [];
   private timer: NodeJS.Timeout | null = null;
   private sampling = false;
   private nodeCpuUsage: NodeJS.CpuUsage | null = null;
@@ -261,6 +303,7 @@ export class ActivityMonitor {
       if (validElapsed > 0) {
         this.observedMs += validElapsed;
         if ([...this.products.values()].some((product) => product.state === 'working-now')) this.activeMs += validElapsed;
+        this.recordResourceHistory(now, validElapsed);
       }
       if (sampledPresence.observation_eligible) this.updateTimeline(now);
       this.previousCpuTimes = new Map(entries.flatMap((entry) => Number.isFinite(entry.cpu_time_ms)
@@ -292,6 +335,7 @@ export class ActivityMonitor {
     this.activeMs = 0;
     this.products.clear();
     this.timeline = [];
+    this.resourceBuckets = [];
     this.overheadCpuSamples = [];
     this.overheadMemorySamples = [];
     this.nodeCpuUsage = process.cpuUsage();
@@ -334,6 +378,29 @@ export class ActivityMonitor {
       product_signatures: [...segment.product_signatures],
       ...(segment.observation_id === undefined ? {} : { observation_id: segment.observation_id }),
     }));
+    this.resourceBuckets = (snapshot.resource_history ?? []).slice(-this.historyLimit).map((bucket) => {
+      const observedMs = Math.max(0, Number(bucket.observed_seconds) || 0) * 1000;
+      const activeMs = Math.max(0, Number(bucket.active_seconds) || 0) * 1000;
+      const cpuMeasuredMs = bucket.avg_cpu_percent === null ? 0 : observedMs;
+      const memoryMeasuredMs = bucket.avg_memory_bytes === null ? 0 : observedMs;
+      return {
+        startedAt: Date.parse(bucket.started_at),
+        endedAt: Date.parse(bucket.ended_at),
+        signature: bucket.system_signature,
+        name: bucket.system_name,
+        kind: bucket.kind,
+        observedMs,
+        activeMs,
+        cpuWeightedMs: bucket.avg_cpu_percent === null ? 0 : bucket.avg_cpu_percent * cpuMeasuredMs,
+        cpuMeasuredMs,
+        peakCpuPercent: finiteOrNull(bucket.peak_cpu_percent),
+        memoryWeightedMs: bucket.avg_memory_bytes === null ? 0 : bucket.avg_memory_bytes * memoryMeasuredMs,
+        memoryMeasuredMs,
+        peakMemoryBytes: finiteOrNull(bucket.peak_memory_bytes),
+        peakProcessCount: Math.max(0, Math.trunc(Number(bucket.peak_process_count) || 0)),
+        sampleCount: Math.max(0, Math.trunc(Number(bucket.sample_count) || 0)),
+      };
+    }).filter((bucket) => Number.isFinite(bucket.startedAt) && Number.isFinite(bucket.endedAt) && bucket.endedAt >= bucket.startedAt);
     this.presence = snapshot.presence ?? { state: 'active', idle_seconds: 0, observation_eligible: true };
     this.overheadCpuSamples = [];
     this.overheadMemorySamples = [];
@@ -354,6 +421,63 @@ export class ActivityMonitor {
     if (latest && latest.observation_id === this.observationId && latest.state === state && latest.product_signatures.join('|') === signatures.join('|')) latest.ended_at = at;
     else this.timeline.push({ started_at: at, ended_at: at, state, product_signatures: signatures, observation_id: this.observationId });
     if (this.timeline.length > this.historyLimit) this.timeline.splice(0, this.timeline.length - this.historyLimit);
+  }
+
+  private recordResourceHistory(now: number, elapsedMs: number): void {
+    if (elapsedMs <= 0) return;
+    const products = [...this.products.values()].filter((product) => product.processCount > 0 && product.state !== 'not-running');
+    if (products.length === 0) return;
+    const intervalStart = now - elapsedMs;
+    for (const product of products) {
+      for (let cursor = intervalStart; cursor < now;) {
+        const bucketStart = Math.floor(cursor / RESOURCE_BUCKET_MS) * RESOURCE_BUCKET_MS;
+        const bucketEnd = Math.min(now, bucketStart + RESOURCE_BUCKET_MS);
+        const sliceMs = Math.max(0, bucketEnd - cursor);
+        cursor = bucketEnd;
+        if (sliceMs <= 0) continue;
+        let bucket = this.resourceBuckets.find((item) => item.signature === product.signature && item.startedAt === bucketStart);
+        if (!bucket) {
+          bucket = {
+            startedAt: bucketStart,
+            endedAt: bucketStart,
+            signature: product.signature,
+            name: product.name,
+            kind: product.kind,
+            observedMs: 0,
+            activeMs: 0,
+            cpuWeightedMs: 0,
+            cpuMeasuredMs: 0,
+            peakCpuPercent: null,
+            memoryWeightedMs: 0,
+            memoryMeasuredMs: 0,
+            peakMemoryBytes: null,
+            peakProcessCount: 0,
+            sampleCount: 0,
+          };
+          this.resourceBuckets.push(bucket);
+        }
+        bucket.name = product.name;
+        bucket.kind = product.kind;
+        bucket.endedAt = Math.max(bucket.endedAt, bucketEnd);
+        bucket.observedMs += sliceMs;
+        if (product.state === 'working-now') bucket.activeMs += sliceMs;
+        if (product.cpuPercent !== null && Number.isFinite(product.cpuPercent)) {
+          const cpu = Math.max(0, product.cpuPercent);
+          bucket.cpuWeightedMs += cpu * sliceMs;
+          bucket.cpuMeasuredMs += sliceMs;
+          bucket.peakCpuPercent = bucket.peakCpuPercent === null ? cpu : Math.max(bucket.peakCpuPercent, cpu);
+        }
+        if (product.memoryBytes !== null && Number.isFinite(product.memoryBytes)) {
+          const memory = Math.max(0, product.memoryBytes);
+          bucket.memoryWeightedMs += memory * sliceMs;
+          bucket.memoryMeasuredMs += sliceMs;
+          bucket.peakMemoryBytes = bucket.peakMemoryBytes === null ? memory : Math.max(bucket.peakMemoryBytes, memory);
+        }
+        bucket.peakProcessCount = Math.max(bucket.peakProcessCount, Math.max(0, Math.trunc(product.processCount || 0)));
+        bucket.sampleCount += 1;
+      }
+    }
+    if (this.resourceBuckets.length > this.historyLimit) this.resourceBuckets.splice(0, this.resourceBuckets.length - this.historyLimit);
   }
 
   private sampleOverhead(now: number, entries: ProcessEntry[]): void {
@@ -410,6 +534,22 @@ export class ActivityMonitor {
       activity_ratio: this.observedMs > 0 ? rounded(this.activeMs / this.observedMs, 3) : null,
       products,
       timeline: this.timeline.map((segment) => ({ ...segment, product_signatures: [...segment.product_signatures] })),
+      resource_history: this.resourceBuckets.map((bucket) => ({
+        started_at: new Date(bucket.startedAt).toISOString(),
+        ended_at: new Date(bucket.endedAt).toISOString(),
+        system_signature: bucket.signature,
+        system_name: bucket.name,
+        kind: bucket.kind,
+        observed_seconds: rounded(bucket.observedMs / 1000),
+        active_seconds: rounded(bucket.activeMs / 1000),
+        avg_cpu_percent: bucket.cpuMeasuredMs > 0 ? rounded(bucket.cpuWeightedMs / bucket.cpuMeasuredMs) : null,
+        peak_cpu_percent: bucket.peakCpuPercent === null ? null : rounded(bucket.peakCpuPercent),
+        avg_memory_bytes: bucket.memoryMeasuredMs > 0 ? Math.round(bucket.memoryWeightedMs / bucket.memoryMeasuredMs) : null,
+        peak_memory_bytes: bucket.peakMemoryBytes === null ? null : Math.round(bucket.peakMemoryBytes),
+        peak_process_count: bucket.peakProcessCount,
+        sample_count: bucket.sampleCount,
+        measurement: 'bounded-local-process-tree-resource-bucket' as const,
+      })),
       sample_interval_ms: this.intervalMs,
       history_limit: this.historyLimit,
       evidence: 'repeated-process-tree-cpu-time-deltas' as const,

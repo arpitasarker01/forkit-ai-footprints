@@ -2,6 +2,8 @@ export { detectAgentProducts, listSystemProcesses } from './agents';
 export { aggregateMacosFieldEvaluationDirectory, aggregateMacosFieldEvaluations } from './aggregate';
 export { runCensus } from './census';
 export { authorizeAnonymousAiFootprintContribution, buildAnonymousAiFootprintPreview, MINIMUM_COMPARISON_SECONDS } from './sharing';
+export { GlobalPreviewContributor, GLOBAL_PREVIEW_ENDPOINT, GLOBAL_PREVIEW_SYNC_INTERVAL_MS } from './global-preview';
+export type { GlobalPreviewContributorOptions, GlobalPreviewStatus } from './global-preview';
 export { ActivityMonitor } from './monitor';
 export type * from './monitor';
 export { buildCensusShareSnapshot, renderCensusSharePage } from './share-page';

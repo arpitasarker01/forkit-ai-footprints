@@ -52,8 +52,8 @@ Options:
   --verbose              Show detector and identity details
   --guess <count>        Compare your estimate with discovered models
   --copy                 Copy the rendered local result to the clipboard
-  --anonymous-payload    Reserved for a completed 10-minute monitor session
-  --consent-share        Separate consent; never enables upload in this build
+  --anonymous-payload    Reserved for a completed one-hour monitor session
+  --consent-share        Prepare an aggregate payload; native-app consent controls Preview sync
   --output <file>        Save the selected human or JSON report
   --model-dir <path>     Inspect an explicit model directory; repeatable
   --truth <file>         Evaluate locally against manually labelled macOS truth
@@ -320,7 +320,7 @@ export async function main(args = process.argv.slice(2)): Promise<number> {
   }
   if (options.command === 'install') {
     const destination = await installPersistentMacApp();
-    process.stdout.write(`Forkit AI Footprint is installed at ${destination}\nOpen it later from Applications or Spotlight; Terminal is no longer required.\nOn first launch, Forkit asks whether aggregate-only measurements may be prepared for global comparison. No contribution is sent unless verified collection is available.\n`);
+    process.stdout.write(`Forkit AI Footprint is installed at ${destination}\nOpen it later from Applications or Spotlight; Terminal is no longer required.\nOn first launch, Forkit asks whether an aggregate-only measurement may be contributed to the Global AI Preview after one valid observed hour. Nothing is sent unless the person explicitly agrees.\n`);
     return 0;
   }
   if (options.command === 'serve') {
@@ -352,7 +352,7 @@ export async function main(args = process.argv.slice(2)): Promise<number> {
       : `Observed ${summary.observed_seconds.toFixed(1)}s · AI active ${summary.active_seconds.toFixed(1)}s · ratio ${summary.activity_ratio === null ? 'unavailable' : `${Math.round(summary.activity_ratio * 100)}%`}\n`;
     await emit(rendered, options.output);
     if (options.anonymousPayload) {
-      process.stderr.write('Anonymous preview requires a completed 10-minute GUI session with the exact payload reviewed first. Nothing was uploaded.\n');
+      process.stderr.write('Anonymous preview requires a completed one-hour GUI session with the exact payload reviewed first. Nothing was uploaded.\n');
       return 2;
     }
     return 0;
@@ -430,7 +430,7 @@ export async function main(args = process.argv.slice(2)): Promise<number> {
   }
   if (options.anonymousPayload) {
     process.stderr.write(options.shareConsent
-      ? 'Anonymous contribution was not prepared: a valid 10-minute monitor session and exact payload review are required. Nothing was uploaded.\n'
+      ? 'Anonymous contribution was not prepared: a valid one-hour monitor session and exact payload review are required. Nothing was uploaded.\n'
       : 'Anonymous contribution was not prepared: separate --consent-share is required. Nothing was uploaded.\n');
     return 2;
   }

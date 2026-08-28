@@ -11,8 +11,9 @@ Forkit AI Footprints (`forkit-ai-footprints`) is metadata-only by design.
   executable, module, or package-runner evidence; raw commands are not included
   in the report or in the evidence hash;
 - cumulative CPU time, current CPU percentage, and resident memory for supported
-  process trees, held locally for repeated activity classification; raw process
-  entries are never exported;
+  process trees, held locally for repeated activity classification and bounded
+  aggregate per-app resource-history buckets; raw process entries are never
+  exported;
 - the macOS console-lock flag and aggregate HID idle duration, used only to
   pause observation while the device is locked or has not recently been used;
   no keys, pointer movements, or input content are recorded;
@@ -58,10 +59,13 @@ AI Footprints may call HTTP(S) endpoints only when the hostname is one of:
 - `localhost`
 - `127.0.0.1`
 - `::1`
+- `www.forkit.dev`, limited to `/api/v1/ai-footprints/challenges` and
+  `/api/v1/ai-footprints/contributions` after explicit Preview consent and the
+  one-hour eligibility gate.
 
-Remote endpoints and endpoints containing embedded credentials are rejected.
+Other remote endpoints and endpoints containing embedded credentials are rejected.
 AI Footprints contains no Forkit.dev login, registry-write, passport-publish,
-Runtime_C2-write, billing, telemetry-upload, or deployment client.
+Runtime_C2-write, billing, general telemetry, or deployment client.
 
 `forkit-ai-footprints serve` binds only to `127.0.0.1`. Its rescan route
 requires the same page origin and a random in-memory session token. The route
@@ -94,11 +98,11 @@ generate one App Attest key and store only its opaque key identifier in the
 device-only Keychain. The current UI and CLI do not invoke enrollment,
 attestation, assertion generation, or upload.
 
-On first launch, the native app asks whether aggregate measurements may be
-prepared for global comparison. The answer is stored locally in macOS user
-defaults as two booleans (asked and allowed). It is not a device identifier and
-is never transmitted. A user who chose “Not now” can reopen the same permission
-from the comparison view.
+On first launch of the v2 Preview consent, the native app states that an
+anonymous aggregate will be sent after one valid observed hour and refreshed
+when internet is available. The answer and consent version are stored locally
+in macOS user defaults. A user who chose “Not now” can reopen the same
+permission from the comparison view. No request is made before permission.
 
 ## Filesystem identity
 
@@ -122,10 +126,15 @@ and unsupported model locations can make actual disk blocks differ.
 **Working now** requires sustained cumulative CPU-time deltas across repeated
 samples of a supported process tree. Two positive samples enter working and
 three negative samples exit it. Process presence alone remains **Open / idle**.
-This is still not exclusive per-prompt proof. Forkit's own process tree is
-excluded from AI activity and measured separately for CPU, RAM, and bounded
-history overhead. Static hardware metadata describes capability, not use. GPU
-and per-process network attribution remain unavailable; no estimate is used.
+This is still not exclusive per-prompt proof. Supported AI-app CPU/RAM history
+is retained only as bounded local aggregate buckets by app signature/name,
+observed time, active time, average/peak CPU, average/peak memory, peak process
+count, and sample count. It excludes raw process rows, process IDs, commands,
+paths, prompts, responses, and account identity, and it is not included in the
+anonymous/global payload. Forkit's own process tree is excluded from AI activity
+and measured separately for CPU, RAM, and bounded history overhead. Static
+hardware metadata describes capability, not use. GPU and per-process network
+attribution remain unavailable; no estimate is used.
 
 ## Review rule
 
@@ -134,19 +143,20 @@ used as automatic evidence of ownership, safety, provenance, or passport status.
 
 ## Anonymous contribution boundary
 
-The local app can create an allowlisted schema `2.0` preview only after at least
-600 valid observed seconds. First-launch permission and exact payload review are
-separate actions. The preview
+The local app can create and send an allowlisted schema `2.0` Preview only after
+at least 3,600 valid observed seconds and explicit v2 native permission. The Preview
 contains valid seconds, AI-active seconds, activity ratio, supported app count
 and categories, model/loaded/runtime counts, recognized model-file bytes,
 macOS major, architecture, and scanner/runtime schema versions. It excludes
 names, process counts, CPU/RAM values, guess, device identity, local scan ID,
-timestamps, and all item-level records. The CLI and app still have no uploader. A
-separate Forkit.dev aggregate endpoint candidate exists with contribution writes
-disabled by default. That candidate now fails closed without Apple App Attest
-verification and excludes quarantined or revoked installations from the public
-pulse. The CLI still contains no proof enrollment or upload transport. Enabling
-either remains a founder/security release gate.
+timestamps, and all item-level records. The native app generates one owner-only
+local Ed25519 key, signs the exact aggregate against a one-time server challenge,
+and stores a small local sync receipt. The server persists only a keyed hash of
+the public contribution identity and one latest aggregate. Community Preview
+signatures prevent undetected payload changes and simple replay; they do not
+prove unique hardware or truthful measurement. Public Preview copy must say
+community-reported and not hardware-verified. Apple App Attest verification and
+verified ranking remain a separate founder/security release gate.
 
 ## Local share page
 

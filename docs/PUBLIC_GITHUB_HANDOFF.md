@@ -1,6 +1,6 @@
 # Forkit AI Footprints public GitHub handoff
 
-Status: local release candidate for `forkit-ai-footprints@0.2.1`.
+Status: local release candidate for `forkit-ai-footprints@0.2.2`.
 
 ## Product identity
 
@@ -23,7 +23,7 @@ Required before public handoff:
    `arpitasarker01/forkit-ai-footprints`.
 2. Update the local `origin` remote to that repository.
 3. Push only a clean, reviewed release branch.
-4. Create the `v0.2.1` release from the same commit that passed tests.
+4. Create the `v0.2.2` release from the same commit that passed tests.
 5. Attach the npm tarball, release manifest, checksum, SBOM, and validation
    evidence.
 

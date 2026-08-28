@@ -189,3 +189,42 @@ test('restoreStoppedSnapshot keeps previous summary without silently restarting 
   assert.equal(restored.observed_seconds, saved.observed_seconds);
   assert.deepEqual(restored.timeline, saved.timeline);
 });
+
+test('monitor retains bounded aggregate CPU and memory history per AI app', async () => {
+  let now = Date.parse('2026-08-26T08:00:00.000Z');
+  let frame: ProcessEntry[] = [codex(10, 100, 1)];
+  const monitor = new ActivityMonitor({
+    now: () => now,
+    intervalMs: 1000,
+    excludedRootPid: null,
+    sampleProcesses: async () => frame,
+  });
+  await monitor.start({ schedule: false });
+  now += 1000; frame = [codex(10, 150, 5)]; await monitor.sampleNow();
+  now += 1000; frame = [codex(10, 210, 6)]; await monitor.sampleNow();
+  const snapshot = monitor.stop();
+  assert.equal(snapshot.resource_history?.length, 1);
+  const bucket = snapshot.resource_history?.[0];
+  assert.equal(bucket?.system_signature, 'codex');
+  assert.equal(bucket?.observed_seconds, 2);
+  assert.equal(bucket?.active_seconds, 1);
+  assert.equal(bucket?.avg_cpu_percent, 5.5);
+  assert.equal(bucket?.peak_cpu_percent, 6);
+  assert.equal(bucket?.avg_memory_bytes, 50_000_000);
+  assert.equal(bucket?.peak_memory_bytes, 50_000_000);
+  assert.equal(bucket?.peak_process_count, 1);
+  assert.equal(bucket?.measurement, 'bounded-local-process-tree-resource-bucket');
+
+  const restored = new ActivityMonitor({ now: () => now, excludedRootPid: null, sampleProcesses: async () => [] }).restoreStoppedSnapshot(snapshot);
+  assert.deepEqual(restored.resource_history, snapshot.resource_history);
+});
+
+test('clearHistory removes retained resource buckets', async () => {
+  let now = Date.parse('2026-08-26T08:00:00.000Z');
+  let frame: ProcessEntry[] = [codex(10, 100, 4)];
+  const monitor = new ActivityMonitor({ now: () => now, excludedRootPid: null, sampleProcesses: async () => frame });
+  await monitor.start({ schedule: false });
+  now += 1000; frame = [codex(10, 150, 5)]; await monitor.sampleNow();
+  assert.ok((monitor.snapshot().resource_history?.length ?? 0) > 0);
+  assert.deepEqual(monitor.clearHistory().resource_history, []);
+});

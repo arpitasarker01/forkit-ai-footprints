@@ -20,9 +20,10 @@ inventory CLI. Its prepared package and only public command are
   memory, and show local runtime, model, AI-app, and AI-tool names; an explicitly
   created local share image may include the supported active tool product name,
   while saved HTML and anonymous/global artifacts remain aggregate-only;
-- keep an owner-only local device journal containing the Mac display name, first
-  scan time, last scan time, and scan count; never add the device name to a saved
-  share page or anonymous/global payload;
+- keep an owner-only local device journal containing the local device display
+  name, observation sequence, first scan time, last scan time, and scan count;
+  use that identity only inside the protected local UI and never add it to a
+  saved share page or anonymous/global payload;
 - continuously monitor supported process trees at a one-second target interval,
   use repeated cumulative CPU-time deltas and hysteresis to distinguish Working
   now from Open / idle, and exclude the Forkit process tree and sleep gaps;
@@ -31,15 +32,23 @@ inventory CLI. Its prepared package and only public command are
 - compare a browser-local numeric guess with the discovered model-record count;
 - derive one to three deterministic local insights from valid measured time and
   keep explicit Stop/restart sessions separate for longest-block calculations;
-- show clearly labelled supported-process CPU/memory context and separately
+- show clearly labelled supported-process current CPU/memory context, bounded
+  local aggregate CPU/RAM history buckets per supported AI app, and separately
   measured Forkit CPU/RAM/history overhead without task attribution;
+- keep the main activity explorer on the left and a local observation inspector
+  on the right for measured runtime, current and retained aggregate CPU/RAM,
+  recognized model space,
+  verified runtimes, per-app activity filters, and per-app evidence; label GPU
+  and per-app storage as unavailable when they are not measured or attributable;
 - expose a resource-evidence manifest that marks unsupported exclusive task
   attribution, GPU, and network traffic as unavailable instead of estimating;
 - diagnose local AI Footprints readiness;
-- prepare a consent-gated, aggregate-only anonymous contribution preview without
-  transmitting it;
-- open the public Forkit AI Footprint global-vision page only after an explicit
-  user click; opening the page sends no local observation payload;
+- after a versioned native opt-in and one valid observed hour, transmit only the
+  allowlisted aggregate to the fixed Forkit.dev Global AI Preview endpoint;
+  sign the exact payload with a stable local Ed25519 key, retain one local
+  receipt, and retry no more than every 15 minutes when internet is available;
+- open the public Forkit AI Footprint global vision section only after an
+  explicit user click; opening the page sends no local observation payload;
 - package and publish the approved macOS-only release through npm;
 - display optional cooperating-app chat/workspace metadata locally only; for
   Codex, read only the latest local catalog display title, recency, and project
@@ -56,7 +65,7 @@ support claim until separately validated and promoted.
 - registry writes;
 - Runtime_C2 mutation or heartbeat;
 - billing, plans, workspaces, or account state;
-- telemetry or Global AI Footprints upload;
+- telemetry outside the consented allowlisted Global AI Preview aggregate;
 - remote endpoint inspection;
 - mobile packaging;
 - website or backend deployment from this standalone repository.
