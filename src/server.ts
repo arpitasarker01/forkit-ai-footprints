@@ -128,6 +128,7 @@ export async function startAiFootprintsServer(options: AiFootprintsServerOptions
   let closing: Promise<void> | null = null;
   let currentLocale: UiLocale = 'en';
   let previewTimer: NodeJS.Timeout | null = null;
+  let persistenceQueue: Promise<void> = Promise.resolve();
 
   async function syncGlobalPreview(snapshot: MonitorSnapshot = monitor.snapshot()): Promise<GlobalPreviewStatus> {
     if (globalPermission !== 'granted' || !currentReport || snapshot.observed_seconds < 3600) {
@@ -158,21 +159,25 @@ export async function startAiFootprintsServer(options: AiFootprintsServerOptions
     streams.clear();
   }
 
-  async function persistObservation(snapshot: MonitorSnapshot, insights: string[], options: { userStopped?: boolean } = {}): Promise<void> {
-    try {
-      if (typeof options.userStopped === 'boolean') userStoppedMonitoring = options.userStopped;
-      else if (snapshot.lifecycle === 'monitoring') userStoppedMonitoring = false;
-      const state = await saveLocalObservationState(snapshot, {
-        latestInsights: insights,
-        localModelsFound: currentReport?.summary.model_count ?? 0,
-        localModelsRunning: currentReport?.summary.confirmed_running_model_count ?? 0,
-        userStopped: userStoppedMonitoring,
-        ...(localStateDirectory ? { stateDirectory: localStateDirectory } : {}),
-      });
-      lastObservation = state.last_stopped_summary ?? lastObservation;
-    } catch {
-      // Persistence is local convenience only; monitor streaming must continue.
-    }
+  function persistObservation(snapshot: MonitorSnapshot, insights: string[], options: { userStopped?: boolean } = {}): Promise<void> {
+    const persist = async () => {
+      try {
+        if (typeof options.userStopped === 'boolean') userStoppedMonitoring = options.userStopped;
+        else if (snapshot.lifecycle === 'monitoring') userStoppedMonitoring = false;
+        const state = await saveLocalObservationState(snapshot, {
+          latestInsights: insights,
+          localModelsFound: currentReport?.summary.model_count ?? 0,
+          localModelsRunning: currentReport?.summary.confirmed_running_model_count ?? 0,
+          userStopped: userStoppedMonitoring,
+          ...(localStateDirectory ? { stateDirectory: localStateDirectory } : {}),
+        });
+        lastObservation = state.last_stopped_summary ?? lastObservation;
+      } catch {
+        // Persistence is local convenience only; monitor streaming must continue.
+      }
+    };
+    persistenceQueue = persistenceQueue.then(persist, persist);
+    return persistenceQueue;
   }
 
   function browserSnapshot(snapshot: MonitorSnapshot = monitor.snapshot()): MonitorSnapshot & { insights: string[]; activity_view: ActivityExplorerViewModel; last_observation: LastStoppedSummary | null; global_permission: 'granted' | 'declined' | 'unset'; global_preview: GlobalPreviewStatus } {

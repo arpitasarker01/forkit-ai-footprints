@@ -44,6 +44,8 @@ requireMatch(installerSource.includes('Forkit-AI-Footprints-${productVersion}'),
 requireMatch(status.includes(`Version: \`${version}\``), 'STATUS.md version differs from package.json');
 
 const resolvedChannels = resolveVersion(channelPlan.channels, version);
+const publicReleaseAvailable = resolvedChannels.github_release?.status === 'available'
+  && resolvedChannels.npm?.status === 'available';
 const manifest = {
   schema_version: channelPlan.schema_version,
   generated_at: new Date().toISOString(),
@@ -52,8 +54,8 @@ const manifest = {
   version_source: channelPlan.version_source,
   repository: channelPlan.repository,
   release_tag: `v${version}`,
-  availability: 'prelaunch',
-  promotion_required: true,
+  availability: publicReleaseAvailable ? 'available' : 'prelaunch',
+  promotion_required: !publicReleaseAvailable,
   support: channelPlan.support,
   channels: resolvedChannels,
 };

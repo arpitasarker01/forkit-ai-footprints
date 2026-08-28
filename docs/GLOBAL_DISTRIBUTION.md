@@ -1,6 +1,6 @@
 # Forkit AI Footprints global distribution
 
-Status: v0.2.2 npm-first Apple Silicon macOS community Preview candidate.
+Status: v0.2.3 npm-first Apple Silicon macOS community Preview release.
 
 ## Goal
 
@@ -23,8 +23,8 @@ does not publish anything.
 
 | Channel | Audience | Cost to users | Current state |
 |---|---|---:|---|
-| GitHub Release | canonical immutable source/release identity | Free | Target repo not created |
-| npm public registry | primary Apple Silicon bootstrap; installs a persistent app in `~/Applications` | Free | v0.2.2 release target |
+| GitHub Release | canonical immutable source/release identity | Free | v0.2.3 available |
+| npm public registry | primary Apple Silicon bootstrap; installs a persistent app in `~/Applications` | Free | v0.2.3 available |
 | Homebrew tap | optional future package-manager channel | Free | Tap not created |
 | Signed `.pkg` | future click installation | Free to users | Blocked on paid Apple identity and notarization |
 

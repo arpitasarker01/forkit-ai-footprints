@@ -12,8 +12,10 @@ export interface ActivityVisualSegment {
   valid: boolean;
   system_signatures: string[];
   observation_id: number | null;
+  continuity_id: number | null;
   excluded_reason: null;
   is_longest_active: boolean;
+  active_block_id: number | null;
 }
 
 export interface SystemContribution {
@@ -111,6 +113,7 @@ export interface ActivityExplorerViewModel {
   simultaneous_systems_max: number;
   active_tool_count: number;
   observation_ids: number[];
+  continuity_ids: number[];
   available_date_keys: string[];
   systems: SystemActivitySummary[];
   current_resources: CurrentAiResources;
@@ -125,6 +128,7 @@ interface NormalizedSegment {
   valid: boolean;
   system_signatures: string[];
   observation_id: number | null;
+  continuity_id: number | null;
   excluded_reason: null;
 }
 
@@ -140,7 +144,7 @@ function sameStrings(left: string[], right: string[]): boolean {
 function canMerge(left: NormalizedSegment, right: NormalizedSegment, toleranceMs: number): boolean {
   return left.state === right.state
     && left.valid === right.valid
-    && left.observation_id === right.observation_id
+    && left.continuity_id === right.continuity_id
     && left.excluded_reason === right.excluded_reason
     && sameStrings(left.system_signatures, right.system_signatures)
     && right.start_ms - left.end_ms <= toleranceMs;
@@ -172,6 +176,7 @@ export function normalizeActivitySegments(
       valid: true,
       system_signatures: [...new Set(segment.product_signatures)].sort(),
       observation_id: segment.observation_id ?? null,
+      continuity_id: segment.continuity_id ?? segment.observation_id ?? null,
       excluded_reason: null,
     }];
   }).sort((left, right) => left.start_ms - right.start_ms || left.end_ms - right.end_ms);
@@ -192,6 +197,7 @@ export function normalizeActivitySegments(
           valid: false,
           system_signatures: [],
           observation_id: null,
+          continuity_id: null,
           excluded_reason: null,
         });
       }
@@ -200,26 +206,28 @@ export function normalizeActivitySegments(
   }
 
   const merged = mergeActivitySegments(withExcluded, safeInterval * 1.5);
-  const activeBlocks: Array<{ start_ms: number; end_ms: number; indexes: number[]; observation_id: number | null }> = [];
+  const activeBlocks: Array<{ start_ms: number; end_ms: number; indexes: number[]; continuity_id: number | null }> = [];
   merged.forEach((segment, index) => {
     if (segment.state !== 'active') return;
     const previous = activeBlocks.at(-1);
     const continues = previous
-      && previous.observation_id === segment.observation_id
+      && previous.continuity_id === segment.continuity_id
       && segment.start_ms - previous.end_ms <= safeInterval * 3
       && merged.slice(previous.indexes.at(-1)! + 1, index).every((between) => between.state === 'active');
     if (continues) {
       previous.end_ms = Math.max(previous.end_ms, segment.end_ms);
       previous.indexes.push(index);
-    } else activeBlocks.push({ start_ms: segment.start_ms, end_ms: segment.end_ms, indexes: [index], observation_id: segment.observation_id });
+    } else activeBlocks.push({ start_ms: segment.start_ms, end_ms: segment.end_ms, indexes: [index], continuity_id: segment.continuity_id });
   });
   const longestBlock = activeBlocks.sort((left, right) => (right.end_ms - right.start_ms) - (left.end_ms - left.start_ms))[0] ?? null;
   const longestIndexes = new Set(longestBlock?.indexes ?? []);
+  const activeBlockByIndex = new Map(activeBlocks.flatMap((block, blockIndex) => block.indexes.map((index) => [index, blockIndex] as const)));
   return merged.map((segment, index) => ({
     id: `segment-${index}-${segment.start_ms}`,
     ...segment,
     duration_seconds: Math.max(0, segment.end_ms - segment.start_ms) / 1000,
     is_longest_active: longestIndexes.has(index),
+    active_block_id: activeBlockByIndex.get(index) ?? null,
   }));
 }
 
@@ -469,6 +477,7 @@ export function buildActivityExplorerViewModel(
   const resourceHistory = buildResourceHistoryView(snapshot.resource_history ?? []);
   const contributions = calculateSystemContributions(snapshot.products);
   const activeSegments = segments.filter((segment) => segment.state === 'active');
+  const activeBlockIds = new Set(activeSegments.flatMap((segment) => segment.active_block_id === null ? [] : [segment.active_block_id]));
   const longestSegments = activeSegments.filter((segment) => segment.is_longest_active);
   const longestRange = longestSegments.length
     ? { start_ms: longestSegments[0]!.start_ms, end_ms: longestSegments.at(-1)!.end_ms }
@@ -488,7 +497,7 @@ export function buildActivityExplorerViewModel(
       evidence: insightEvidenceTarget(insight.kind, segments, contributions),
     })),
     extent,
-    active_block_count: activeSegments.length,
+    active_block_count: activeBlockIds.size,
     longest_active_seconds: longestRange ? Math.max(0, longestRange.end_ms - longestRange.start_ms) / 1000 : 0,
     longest_active_range: longestRange,
     idle_seconds: Math.max(0, snapshot.observed_seconds - snapshot.active_seconds),
@@ -496,6 +505,7 @@ export function buildActivityExplorerViewModel(
     simultaneous_systems_max: activeSegments.reduce((maximum, segment) => Math.max(maximum, segment.system_signatures.length), 0),
     active_tool_count: systems.filter((system) => system.active_seconds > 0 || system.state === 'working-now').length,
     observation_ids: [...new Set(segments.flatMap((segment) => segment.observation_id === null ? [] : [segment.observation_id]))].sort((left, right) => left - right),
+    continuity_ids: [...new Set(segments.flatMap((segment) => segment.continuity_id === null ? [] : [segment.continuity_id]))].sort((left, right) => left - right),
     available_date_keys: availableLocalDateKeys(segments),
     systems,
     current_resources: aggregateCurrentAiResources(snapshot.products),

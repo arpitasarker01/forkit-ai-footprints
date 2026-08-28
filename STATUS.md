@@ -1,12 +1,12 @@
 # Forkit AI Footprints Status
 
-Last updated: 2026-08-27
+Last updated: 2026-08-28
 
-Version: `0.2.2`
+Version: `0.2.3`
 
 Production classification: `current` for Apple Silicon macOS
 
-Release state: v0.2.2 npm-first community Preview candidate. The npm
+Release state: v0.2.3 npm-first community Preview release. The npm
 bootstrap installs a persistent unsigned local app; Developer ID signing and
 notarization remain future work.
 
@@ -36,6 +36,11 @@ notarization remain future work.
   hysteresis, and sleep-gap exclusion. Observation pauses while macOS is locked
   or after 60 seconds without user input; every invalid interval starts a new
   continuous activity block when valid observation resumes.
+- One explicit Start-to-Stop run now keeps one stable observation identity.
+  Sleep, lock, and inactivity create separate continuity periods without
+  inventing new observations. Timeline intervals preserve every valid measured
+  second across state changes, and filtered period counts use continuous blocks
+  rather than raw render fragments.
 - Clear states: **Active now**, **Ready**, **Monitoring**, and **Stopped**.
   Process presence alone never becomes active activity.
 - Durations retain seconds at every scale, including observations longer than
@@ -114,12 +119,12 @@ notarization remain future work.
   and stored local model records without attributing prompts or tasks.
 - A separate earlier real session crossed the previous 10-minute gate at exactly
   **600 valid seconds** and **598 AI-active seconds**. The current global
-  comparison candidate now requires **3,600 valid seconds** before the local
-  preview becomes available; no transport is enabled.
+  comparison requires **3,600 valid seconds** before a consented community
+  Preview aggregate becomes eligible for sync.
 
 ## Validation completed locally
 
-- TypeScript build and the complete local test suite: **119/119** tests passed.
+- TypeScript build and the complete local test suite: **130/130** tests passed.
 - Deterministic active → idle/locked → resumed lifecycle coverage confirms that
   paused time changes neither observed nor AI-active seconds and cannot bridge
   the longest continuous activity block.
@@ -145,7 +150,8 @@ notarization remain future work.
 ## Intentionally not enabled or not yet field-validated
 
 - No verified global contribution/ranking, account, passport registry
-  write, passport, Mint, Runtime_C2 write, telemetry, or production deployment.
+  write, passport, Mint, Runtime_C2 write, or general telemetry. Only the
+  explicitly consented community Preview aggregate transport is enabled.
 - No Homebrew tap, signed direct download, or click installer.
 - No Developer ID signature, notarization, stapling, Gatekeeper distribution
   test, or clean external-Mac installation test.
@@ -173,5 +179,6 @@ claim that a cloud model is running locally.
 ## Smallest release gate
 
 Future expansion requires representative multi-device field accuracy, Intel Mac
-validation, and Apple signing/notarization. Global contribution remains closed
-until its separate server-side verification and abuse-control gate passes.
+validation, and Apple signing/notarization. Community Preview contribution is
+open under the v2 consent/integrity boundary; verified global ranking remains
+closed until its separate hardware-verification and abuse-control gate passes.

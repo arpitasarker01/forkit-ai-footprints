@@ -13,13 +13,13 @@
       "role": "canonical immutable release",
       "tag": "v{version}",
       "manifest_asset": "forkit-ai-footprints-{version}-release.json",
-      "status": "repo-not-created"
+      "status": "available"
     },
     "npm": {
       "role": "global developer installation",
       "package": "forkit-ai-footprints",
       "install": "npx --yes forkit-ai-footprints@{version}",
-      "status": "candidate-unpublished"
+      "status": "available"
     },
     "homebrew": {
       "role": "global macOS package-manager installation",
@@ -35,7 +35,7 @@
     "website": {
       "role": "public recommendation surface",
       "path": "/ai-footprint",
-      "status": "local-candidate"
+      "status": "production-community-preview"
     }
   }
 }

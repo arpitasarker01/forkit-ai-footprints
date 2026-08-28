@@ -79,9 +79,24 @@ test('overall longest block remains continuous across measured system-signature 
     ],
   }), [{ kind: 'longest-block', text: 'Continuous block' }]);
   assert.equal(view.longest_active_seconds, 20);
+  assert.equal(view.active_block_count, 1);
   assert.deepEqual(view.longest_active_range, { start_ms: Date.parse('2026-08-26T08:00:00.000Z'), end_ms: Date.parse('2026-08-26T08:00:20.000Z') });
   assert.equal(view.segments.filter((segment) => segment.is_longest_active).length, 2);
+  assert.equal(view.segments[0]?.active_block_id, view.segments[1]?.active_block_id);
   assert.equal(view.insights[0]?.evidence.type, 'range');
+});
+
+test('continuity breaks split active periods without changing the observation identity', () => {
+  const view = buildActivityExplorerViewModel(snapshot({
+    observed_seconds: 20, active_seconds: 20, activity_ratio: 1,
+    timeline: [
+      { started_at: '2026-08-26T08:00:00.000Z', ended_at: '2026-08-26T08:00:10.000Z', state: 'working-now', product_signatures: ['codex'], observation_id: 7, continuity_id: 11 },
+      { started_at: '2026-08-26T08:01:00.000Z', ended_at: '2026-08-26T08:01:10.000Z', state: 'working-now', product_signatures: ['codex'], observation_id: 7, continuity_id: 12 },
+    ],
+  }));
+  assert.deepEqual(view.observation_ids, [7]);
+  assert.deepEqual(view.continuity_ids, [11, 12]);
+  assert.equal(view.active_block_count, 2);
 });
 
 test('system contribution shares use measured per-product active seconds', () => {

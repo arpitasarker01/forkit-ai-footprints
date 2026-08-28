@@ -35,6 +35,7 @@ export interface ActivityTimelineSegment {
   state: 'working-now' | 'open-idle' | 'not-running';
   product_signatures: string[];
   observation_id?: number;
+  continuity_id?: number;
 }
 
 export interface ResourceHistoryBucket {
@@ -194,6 +195,7 @@ export class ActivityMonitor {
   private stoppedAt: number | null = null;
   private previousAt: number | null = null;
   private observationId = 0;
+  private continuityId = 0;
   private previousCpuTimes = new Map<number, number>();
   private observedMs = 0;
   private activeMs = 0;
@@ -224,6 +226,7 @@ export class ActivityMonitor {
     const now = this.now();
     this.lifecycle = 'monitoring';
     this.observationId += 1;
+    this.continuityId += 1;
     this.startedAt = now;
     this.stoppedAt = null;
     this.previousAt = null;
@@ -250,7 +253,7 @@ export class ActivityMonitor {
       const elapsedContinuous = elapsed > 0 && elapsed <= this.intervalMs * 3;
       const continuityBroken = this.previousAt !== null
         && (!elapsedContinuous || !previousPresenceEligible || !sampledPresence.observation_eligible);
-      if (continuityBroken && previousPresenceEligible) this.observationId += 1;
+      if (continuityBroken && previousPresenceEligible) this.continuityId += 1;
       const validElapsed = elapsedContinuous && previousPresenceEligible && sampledPresence.observation_eligible ? elapsed : 0;
       const grouped = groupProcesses(await this.classifyProcesses(entries));
       const signatures = new Set([...this.products.keys(), ...grouped.keys()]);
@@ -305,7 +308,7 @@ export class ActivityMonitor {
         if ([...this.products.values()].some((product) => product.state === 'working-now')) this.activeMs += validElapsed;
         this.recordResourceHistory(now, validElapsed);
       }
-      if (sampledPresence.observation_eligible) this.updateTimeline(now);
+      if (validElapsed > 0) this.updateTimeline(now, validElapsed);
       this.previousCpuTimes = new Map(entries.flatMap((entry) => Number.isFinite(entry.cpu_time_ms)
         ? [[entry.pid, Number(entry.cpu_time_ms)] as const]
         : []));
@@ -340,6 +343,10 @@ export class ActivityMonitor {
     this.overheadMemorySamples = [];
     this.nodeCpuUsage = process.cpuUsage();
     this.nodeCpuAt = now;
+    if (this.lifecycle === 'monitoring') {
+      this.observationId += 1;
+      this.continuityId += 1;
+    }
     return this.snapshot();
   }
 
@@ -348,6 +355,10 @@ export class ActivityMonitor {
     this.timer = null;
     this.lifecycle = 'stopped';
     this.observationId = Math.max(0, Math.floor(snapshot.observation_id ?? 0));
+    this.continuityId = Math.max(
+      this.observationId,
+      ...(snapshot.timeline ?? []).map((segment) => Math.max(0, Math.floor(segment.continuity_id ?? segment.observation_id ?? 0))),
+    );
     this.startedAt = snapshot.started_at ? Date.parse(snapshot.started_at) : null;
     this.stoppedAt = snapshot.stopped_at ? Date.parse(snapshot.stopped_at) : this.startedAt;
     this.previousAt = null;
@@ -377,6 +388,7 @@ export class ActivityMonitor {
       state: segment.state,
       product_signatures: [...segment.product_signatures],
       ...(segment.observation_id === undefined ? {} : { observation_id: segment.observation_id }),
+      ...(segment.continuity_id === undefined ? {} : { continuity_id: segment.continuity_id }),
     }));
     this.resourceBuckets = (snapshot.resource_history ?? []).slice(-this.historyLimit).map((bucket) => {
       const observedMs = Math.max(0, Number(bucket.observed_seconds) || 0) * 1000;
@@ -409,17 +421,28 @@ export class ActivityMonitor {
     return this.snapshot();
   }
 
-  private updateTimeline(now: number): void {
+  private updateTimeline(now: number, elapsedMs: number): void {
     const working = [...this.products.values()].filter((product) => product.state === 'working-now');
     const running = [...this.products.values()].filter((product) => product.state !== 'not-running');
     const state: ActivityTimelineSegment['state'] = working.length > 0
       ? 'working-now'
       : running.length > 0 ? 'open-idle' : 'not-running';
     const signatures = (working.length > 0 ? working : running).map((product) => product.signature).sort();
-    const at = new Date(now).toISOString();
+    const startedAt = new Date(Math.max(0, now - elapsedMs)).toISOString();
+    const endedAt = new Date(now).toISOString();
     const latest = this.timeline.at(-1);
-    if (latest && latest.observation_id === this.observationId && latest.state === state && latest.product_signatures.join('|') === signatures.join('|')) latest.ended_at = at;
-    else this.timeline.push({ started_at: at, ended_at: at, state, product_signatures: signatures, observation_id: this.observationId });
+    if (latest
+      && (latest.continuity_id ?? latest.observation_id) === this.continuityId
+      && latest.state === state
+      && latest.product_signatures.join('|') === signatures.join('|')) latest.ended_at = endedAt;
+    else this.timeline.push({
+      started_at: startedAt,
+      ended_at: endedAt,
+      state,
+      product_signatures: signatures,
+      observation_id: this.observationId,
+      continuity_id: this.continuityId,
+    });
     if (this.timeline.length > this.historyLimit) this.timeline.splice(0, this.timeline.length - this.historyLimit);
   }
 

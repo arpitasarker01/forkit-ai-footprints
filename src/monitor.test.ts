@@ -59,8 +59,8 @@ test('process existence alone never becomes working and sleep gaps are excluded'
   assert.equal(snapshot.products[0]?.state, 'open-idle');
   assert.equal(snapshot.observed_seconds, 1);
   assert.equal(snapshot.active_seconds, 0);
-  assert.equal(snapshot.timeline.length, 2);
-  assert.notEqual(snapshot.timeline[0]?.observation_id, snapshot.timeline[1]?.observation_id);
+  assert.equal(snapshot.timeline.length, 1);
+  assert.equal(snapshot.timeline[0]?.observation_id, snapshot.observation_id);
 });
 
 test('locked or inactive device time is paused and breaks activity continuity', async () => {
@@ -94,7 +94,57 @@ test('locked or inactive device time is paused and breaks activity continuity', 
   now += 1000; cpuTime += 40; await monitor.sampleNow();
   const resumed = monitor.stop();
   assert.equal(resumed.observed_seconds, 3);
-  assert.notEqual(resumed.timeline[0]?.observation_id, resumed.timeline.at(-1)?.observation_id);
+  assert.equal(resumed.timeline[0]?.observation_id, resumed.timeline.at(-1)?.observation_id);
+  assert.notEqual(resumed.timeline[0]?.continuity_id, resumed.timeline.at(-1)?.continuity_id);
+});
+
+test('one explicit monitor run keeps one observation identity across continuity gaps', async () => {
+  let now = 0;
+  let cpuTime = 10;
+  const monitor = new ActivityMonitor({
+    now: () => now,
+    intervalMs: 1000,
+    excludedRootPid: null,
+    sampleProcesses: async () => [codex(10, cpuTime)],
+  });
+  const started = await monitor.start({ schedule: false });
+  const observationId = started.observation_id;
+  now += 1000; cpuTime += 40; await monitor.sampleNow();
+  now += 10_000; cpuTime += 400; await monitor.sampleNow();
+  now += 1000; cpuTime += 40; await monitor.sampleNow();
+  const stopped = monitor.stop();
+  assert.equal(stopped.observation_id, observationId);
+  assert.ok(stopped.timeline.every((segment) => segment.observation_id === observationId));
+
+  now += 1000;
+  const restarted = await monitor.start({ schedule: false });
+  assert.equal(restarted.observation_id, observationId + 1);
+});
+
+test('timeline intervals preserve every valid observed second across state transitions', async () => {
+  let now = 0;
+  let cpuTime = 100;
+  const monitor = new ActivityMonitor({
+    now: () => now,
+    intervalMs: 1000,
+    excludedRootPid: null,
+    sampleProcesses: async () => [codex(10, cpuTime)],
+  });
+  await monitor.start({ schedule: false });
+  for (const delta of [40, 40, 0, 0, 0]) {
+    now += 1000;
+    cpuTime += delta;
+    await monitor.sampleNow();
+  }
+  const snapshot = monitor.stop();
+  const timelineSeconds = snapshot.timeline.reduce((sum, segment) => (
+    sum + (Date.parse(segment.ended_at) - Date.parse(segment.started_at)) / 1000
+  ), 0);
+  const activeTimelineSeconds = snapshot.timeline
+    .filter((segment) => segment.state === 'working-now')
+    .reduce((sum, segment) => sum + (Date.parse(segment.ended_at) - Date.parse(segment.started_at)) / 1000, 0);
+  assert.equal(timelineSeconds, snapshot.observed_seconds);
+  assert.equal(activeTimelineSeconds, snapshot.active_seconds);
 });
 
 test('monitor includes supported descendants but excludes its own process tree', async () => {

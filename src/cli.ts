@@ -67,9 +67,10 @@ Options:
   -h, --help             Show this help
 
 Privacy:
-  AI Footprints reads metadata only. It does not read model bytes, retain raw process
-  commands or MCP configuration values, authenticate to Forkit.dev, or write to
-  any passport, registry, Runtime_C2, or production service.
+  AI Footprints reads metadata only. It does not read model bytes or retain raw
+  process commands or MCP configuration values. It does not write to any passport,
+  registry, or Runtime_C2 service. The installed app may sync only the allowlisted anonymous
+  Global AI Preview aggregate after explicit v2 consent and one valid hour.
 `;
 
 export function parseArgs(args: string[]): ParsedOptions {

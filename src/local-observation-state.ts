@@ -131,8 +131,14 @@ export async function saveLocalObservationState(
     snapshot: persistedSnapshot,
   };
   const targetPath = localObservationStatePath(options.stateDirectory);
+  const temporaryPath = `${targetPath}.${process.pid}.tmp`;
   await fs.mkdir(path.dirname(targetPath), { recursive: true, mode: 0o700 });
-  await fs.writeFile(targetPath, `${JSON.stringify(state, null, 2)}\n`, { mode: 0o600 });
+  try {
+    await fs.writeFile(temporaryPath, `${JSON.stringify(state, null, 2)}\n`, { mode: 0o600 });
+    await fs.rename(temporaryPath, targetPath);
+  } finally {
+    await fs.rm(temporaryPath, { force: true }).catch(() => undefined);
+  }
   return state;
 }
 

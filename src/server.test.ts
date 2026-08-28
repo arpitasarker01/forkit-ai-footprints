@@ -60,7 +60,7 @@ test('local server owns one monitor independently of browser streams', async () 
     assert.equal(streamed.lifecycle, 'monitoring');
     assert.equal(streamed.observation_id, startedSnapshot.observation_id);
     assert.deepEqual(streamed.insights, []);
-    assert.equal(streamed.activity_view.segments.length, 1);
+    assert.equal(streamed.activity_view.segments.length, 0);
     assert.deepEqual(streamed.activity_view.contributions, []);
     assert.deepEqual(streamed.activity_view.insights, []);
     controller.abort();
