@@ -179,7 +179,7 @@ test('one-page app puts truthful activity before footprint and comparison', asyn
   assert.match(mainBeforeDetails, /id="rail-memory"/);
   assert.match(mainBeforeDetails, /id="rail-space"/);
   assert.doesNotMatch(mainBeforeDetails, /measured processes|process-count graph/i);
-  const inlineScript = /<script>([\s\S]*?)<\/script>/.exec(html)?.[1];
+  const inlineScript = /<script>([\s\S]*?)<\/script>/i.exec(html)?.[1];
   assert.ok(inlineScript);
   assert.doesNotThrow(() => new Function(inlineScript));
 });

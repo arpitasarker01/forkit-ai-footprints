@@ -8,25 +8,24 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const work = fs.mkdtempSync(path.join(os.tmpdir(), 'forkit-ai-footprints-smoke-'));
 
 function run(command, args, options = {}) {
-  const executable = process.platform === 'win32' ? 'cmd.exe' : command;
-  const executableArgs = process.platform === 'win32'
-    ? ['/d', '/s', '/c', command, ...args]
-    : args;
-  const result = spawnSync(executable, executableArgs, {
+  const executable = process.platform === 'win32' && (command === 'npm' || command === 'npx')
+    ? `${command}.cmd`
+    : command;
+  const result = spawnSync(executable, args, {
     cwd: root,
     encoding: 'utf8',
     stdio: 'inherit',
+    shell: false,
     ...options,
   });
   if (result.status !== 0) throw new Error(`Command failed: ${command}`);
 }
 
 function capture(command, args, options = {}) {
-  const executable = process.platform === 'win32' ? 'cmd.exe' : command;
-  const executableArgs = process.platform === 'win32'
-    ? ['/d', '/s', '/c', command, ...args]
-    : args;
-  const result = spawnSync(executable, executableArgs, { cwd: root, encoding: 'utf8', ...options });
+  const executable = process.platform === 'win32' && (command === 'npm' || command === 'npx')
+    ? `${command}.cmd`
+    : command;
+  const result = spawnSync(executable, args, { cwd: root, encoding: 'utf8', shell: false, ...options });
   if (result.status !== 0) throw new Error(result.stderr || `Command failed: ${command}`);
   return result.stdout;
 }
