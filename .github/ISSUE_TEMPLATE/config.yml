@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security or privacy vulnerability
+    url: https://github.com/arpitasarker01/forkit-ai-footprints/security/advisories/new
+    about: Send sensitive reports privately to the maintainers.
+  - name: Privacy and collection boundary
+    url: https://github.com/arpitasarker01/forkit-ai-footprints/blob/main/PRIVACY.md
+    about: Review exactly what the app may read, retain, and send.

@@ -3,7 +3,15 @@
 /src/agents.ts @arpitasarker01 @syedofc
 /src/filesystem.ts @arpitasarker01 @syedofc
 /src/endpoints.ts @arpitasarker01 @syedofc
+/src/global-preview.ts @arpitasarker01 @syedofc
+/src/server.ts @arpitasarker01 @syedofc
+/src/sharing.ts @arpitasarker01 @syedofc
+/src/monitor.ts @arpitasarker01 @syedofc
+/src/local-observation-state.ts @arpitasarker01 @syedofc
+/src/device-presence.ts @arpitasarker01 @syedofc
 /PRIVACY.md @arpitasarker01 @syedofc
+/SECURITY.md @arpitasarker01 @syedofc
 /docs/PRODUCT_BOUNDARY.md @arpitasarker01 @syedofc
 /package.json @arpitasarker01 @syedofc
+/.github/workflows/ @arpitasarker01 @syedofc
 /.github/ @arpitasarker01 @syedofc

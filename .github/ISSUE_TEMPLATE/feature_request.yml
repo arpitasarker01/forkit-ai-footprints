@@ -1,0 +1,40 @@
+name: Feature proposal
+description: Propose a focused, privacy-preserving improvement
+title: "[Proposal]: "
+labels: [enhancement, needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please describe the user outcome before proposing architecture. New operating systems, network destinations, collected fields, or persistence surfaces require product-boundary and privacy review before implementation.
+  - type: textarea
+    id: outcome
+    attributes:
+      label: User outcome
+      description: What should become easier, clearer, safer, or more accurate?
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Why this belongs in AI Footprints
+      description: Explain how it supports private, metadata-only AI activity measurement.
+    validations:
+      required: true
+  - type: dropdown
+    id: boundary
+    attributes:
+      label: Does this change a privacy or product boundary?
+      options:
+        - No
+        - Unsure — maintainer review needed
+        - Yes — explicit review needed
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Truthful validation
+      description: How can the change be tested without inventing measurements or exposing private data?
+    validations:
+      required: true

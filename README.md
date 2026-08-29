@@ -294,6 +294,18 @@ Storage, runtime-freshness, resource-attribution, and Developer ID truth
 boundaries are defined in
 [`docs/MACOS_MEASUREMENT_FOUNDATION.md`](./docs/MACOS_MEASUREMENT_FOUNDATION.md).
 
+## Contributing and security
+
+Forkit AI Footprints is an MIT-licensed open-source client. Bug reports, focused
+feature proposals, tests, accessibility and localization improvements, and
+privacy-preserving detector fixes are welcome through GitHub issues and pull
+requests. Maintainers review every accepted change; pull requests cannot publish
+an npm release automatically.
+
+Read [`CONTRIBUTING.md`](./CONTRIBUTING.md) before opening a pull request. Report
+security or privacy vulnerabilities privately through the repository Security
+tab as described in [`SECURITY.md`](./SECURITY.md), never in a public issue.
+
 ## Accuracy boundary
 
 AI Footprints has no defensible global accuracy percentage yet. Runtime API evidence is

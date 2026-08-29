@@ -1,0 +1,65 @@
+name: Bug report
+description: Report reproducible behavior in the public AI Footprints client
+title: "[Bug]: "
+labels: [bug, needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Forkit AI Footprints. Do not post prompts, credentials, account identity, full paths, or private device data. Report security and privacy vulnerabilities through the private Security Advisory form instead.
+  - type: input
+    id: version
+    attributes:
+      label: AI Footprints version
+      description: Run `npx --yes forkit-ai-footprints@latest --version` or provide the installed version.
+      placeholder: 0.2.4
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Affected surface
+      options:
+        - Monitoring and activity timeline
+        - Runtime or local-model discovery
+        - AI app detection
+        - Resource measurement
+        - Persistence or reconnect
+        - Sharing or Global AI Preview consent
+        - Installation or packaging
+        - Localization or accessibility
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: What happened?
+      description: Describe the observed behavior and what you expected. Redact private device evidence.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: List the smallest safe steps that reproduce the issue.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Supported environment
+      description: macOS major version, Apple Silicon model family, and Node major only. Do not provide a device name.
+      placeholder: macOS 15, Apple M-series, Node 22
+    validations:
+      required: true
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy check
+      options:
+        - label: I removed prompts, credentials, account identity, full paths, device names, and other private data.
+          required: true
+        - label: This is not a security vulnerability. I will use a private Security Advisory for security or privacy vulnerabilities.
+          required: true
