@@ -1,12 +1,12 @@
 # Forkit AI Footprints Status
 
-Last updated: 2026-08-28
+Last updated: 2026-08-29
 
 Version: `0.2.4`
 
 Production classification: `current` for Apple Silicon macOS
 
-Release state: v0.2.4 npm-first community Preview candidate. The npm
+Release state: v0.2.4 npm-first community Preview is public. The npm
 bootstrap installs a persistent unsigned local app; Developer ID signing and
 notarization remain future work.
 
@@ -131,7 +131,7 @@ notarization remain future work.
 
 ## Validation completed locally
 
-- TypeScript build and the complete local test suite: **130/130** tests passed.
+- TypeScript build and the complete local test suite: **135/135** tests passed.
 - Deterministic active → idle/locked → resumed lifecycle coverage confirms that
   paused time changes neither observed nor AI-active seconds and cannot bridge
   the longest continuous activity block.
