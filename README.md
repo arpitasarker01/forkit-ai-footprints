@@ -1,8 +1,17 @@
 # Forkit AI Footprints
 
-Forkit AI Footprints is a private, metadata-only view of the models, runtimes,
-and AI agents present on a Mac. The prepared package and command are
-`forkit-ai-footprints`.
+[![CI](https://github.com/arpitasarker01/forkit-ai-footprints/actions/workflows/ci.yml/badge.svg)](https://github.com/arpitasarker01/forkit-ai-footprints/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/forkit-ai-footprints)](https://www.npmjs.com/package/forkit-ai-footprints)
+[![License: MIT](https://img.shields.io/badge/License-MIT-2f2361.svg)](./LICENSE)
+
+Forkit AI Footprints is an open-source, private-by-default, metadata-only view
+of the models, runtimes, and AI agents present on a device. The public package
+and command are `forkit-ai-footprints`.
+
+[Product page](https://www.forkit.dev/ai-footprint) ·
+[npm](https://www.npmjs.com/package/forkit-ai-footprints) ·
+[Releases](https://github.com/arpitasarker01/forkit-ai-footprints/releases) ·
+[Contributing](./CONTRIBUTING.md) · [Security](./SECURITY.md)
 
 It is derived from the discovery lessons in Forkit Connect, but it has a
 different safety boundary: AI Footprints does not authenticate to Forkit.dev and has
@@ -188,9 +197,34 @@ CLI flags cannot bypass the required monitoring session. The local UI enables
 an exact schema `2.0` aggregate preview only after 3,600 valid observed seconds;
 the installed app asks with versioned consent whether the anonymous aggregate
 may join the Global AI Preview. When allowed, the app sends one latest signed
-aggregate after the one-hour gate and refreshes it when internet is available. The
-payload excludes app/model names, process counts, CPU/RAM, chat, workspace,
-repository, device, guess, local scan, and account identifiers.
+aggregate after the one-hour eligibility gate and refreshes that same row when
+new valid observation time is available. The server does not count refreshes as
+new installations. The payload excludes app/model names, process counts,
+CPU/RAM, chat, workspace, repository, device, guess, local scan, and account
+identifiers.
+
+### How the community Preview is calculated
+
+- A **contributing installation** is an opted-in local installation that has
+  reached at least 3,600 valid observed seconds and successfully submitted a
+  signed aggregate. Installing or downloading the package alone does not count.
+- Repeated syncs use the same private local contribution key and replace that
+  installation's previous aggregate. They do not increase the participant
+  total.
+- The global AI-active rate is duration-weighted:
+  `sum(AI-active seconds) / sum(valid observed seconds)` across eligible latest
+  rows. A long observation therefore contributes proportionally more evidence
+  than a short observation.
+- npm downloads are reported separately as registry download events. They are
+  not unique people, devices, installations, or consenting participants.
+- Percentile placement stays unavailable until at least 30 eligible
+  installations. Regional output stays hidden until its privacy threshold is
+  met.
+
+The service evaluates Preview eligibility once a minute. Network submissions
+are locally throttled and retried when internet is available; this is not a
+promise to upload once every 60 minutes. See [the privacy boundary](./PRIVACY.md)
+for the exact allowlist and exclusions.
 
 ## Shared core API
 

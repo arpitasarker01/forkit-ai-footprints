@@ -10,6 +10,16 @@ updates:
       - needs-triage
     commit-message:
       prefix: deps
+    ignore:
+      # Runtime support is intentionally bounded to Node 20/22/24. Review these
+      # toolchain majors in a dedicated compatibility change instead of an
+      # automated dependency-only pull request.
+      - dependency-name: typescript
+        update-types:
+          - version-update:semver-major
+      - dependency-name: "@types/node"
+        update-types:
+          - version-update:semver-major
   - package-ecosystem: github-actions
     directory: /
     schedule:
