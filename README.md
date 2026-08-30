@@ -67,7 +67,7 @@ git clone https://github.com/arpitasarker01/forkit-ai-footprints.git
 cd forkit-ai-footprints
 npm ci
 npm pack
-npm install -g ./forkit-ai-footprints-0.2.4.tgz
+npm install -g ./forkit-ai-footprints-0.2.5.tgz
 forkit-ai-footprints serve
 ```
 

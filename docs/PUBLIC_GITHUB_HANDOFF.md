@@ -1,6 +1,6 @@
 # Forkit AI Footprints public GitHub handoff
 
-Status: public open-source release for `forkit-ai-footprints@0.2.4`.
+Status: public open-source release for `forkit-ai-footprints@0.2.5`.
 
 ## Product identity
 
@@ -13,7 +13,7 @@ Public source, npm metadata, docs, and CLI commands must use
 
 ## Current release state
 
-The public GitHub repository, protected `main` branch, `v0.2.4` tag, and npm
+The public GitHub repository, protected `main` branch, `v0.2.5` tag, and npm
 package resolve. CI, CodeQL, secret scanning, push protection, Dependabot,
 private vulnerability reporting, issue templates, contribution guidance,
 CODEOWNERS, and the security policy protect the public collaboration path.

@@ -2,6 +2,13 @@
 
 All notable public changes to Forkit AI Footprints are documented here.
 
+## 0.2.5 — 2026-08-30
+
+- Simplified the local AI activity language and removed duplicate pulse metrics from the primary view.
+- Added a visible Global Preview eligibility meter, last-sync receipt, qualification state, and a way to revisit the sharing choice.
+- Clarified that npm package download events are not qualified contributors.
+- Kept detector, monitoring, persistence, resource evidence, and anonymous contribution schemas unchanged.
+
 ## 0.2.4 — 2026-08-28
 
 - Fixed long-running observation timing so cumulative valid and AI-active
