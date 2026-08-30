@@ -2,7 +2,10 @@ import { execFileSync } from 'node:child_process';
 import type { MonitorSnapshot } from './monitor';
 import type { CensusReport } from './types';
 
-export const MINIMUM_COMPARISON_SECONDS = 3600;
+/** A consented installation joins the community Preview after ten valid minutes. */
+export const MINIMUM_GLOBAL_CONTRIBUTION_SECONDS = 10 * 60;
+/** @deprecated Use MINIMUM_GLOBAL_CONTRIBUTION_SECONDS for Preview eligibility. */
+export const MINIMUM_COMPARISON_SECONDS = MINIMUM_GLOBAL_CONTRIBUTION_SECONDS;
 
 function macosMajorVersion(): number {
   try {
@@ -33,7 +36,7 @@ export interface AnonymousAiFootprintContribution {
   local_active_seconds: number;
   system_active_seconds: Record<string, number>;
   privacy: {
-    consent_version: 'ai-footprints-global-preview-v2';
+    consent_version: 'ai-footprints-global-preview-v3';
     location_mode: 'none';
     country_code: null;
     region_code: null;
@@ -84,7 +87,7 @@ export function buildAnonymousAiFootprintPreview(
 ): AnonymousAiFootprintContribution {
   if (report.system.platform !== 'darwin') throw new Error('ANONYMOUS_FOOTPRINT_MACOS_REQUIRED');
   if (!report.summary.storage_complete) throw new Error('ANONYMOUS_FOOTPRINT_STORAGE_INCOMPLETE');
-  if (monitor.observed_seconds < MINIMUM_COMPARISON_SECONDS) throw new Error('ANONYMOUS_FOOTPRINT_MINIMUM_OBSERVATION_REQUIRED');
+  if (monitor.observed_seconds < MINIMUM_GLOBAL_CONTRIBUTION_SECONDS) throw new Error('ANONYMOUS_FOOTPRINT_MINIMUM_OBSERVATION_REQUIRED');
   if (monitor.active_seconds < 0 || monitor.active_seconds > monitor.observed_seconds) throw new Error('ANONYMOUS_FOOTPRINT_INVALID_ACTIVITY_DURATION');
   const validSeconds = Math.floor(monitor.observed_seconds);
   const activeSeconds = Math.min(validSeconds, Math.floor(monitor.active_seconds));
@@ -118,7 +121,7 @@ export function buildAnonymousAiFootprintPreview(
     local_active_seconds: Math.min(activeSeconds, localActiveSeconds),
     system_active_seconds: systemActiveSeconds,
     privacy: {
-      consent_version: 'ai-footprints-global-preview-v2',
+      consent_version: 'ai-footprints-global-preview-v3',
       location_mode: 'none',
       country_code: null,
       region_code: null,

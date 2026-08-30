@@ -5,7 +5,8 @@ import { defaultLocalStateDirectory } from './local-device';
 import type { AnonymousAiFootprintContribution } from './sharing';
 
 export const GLOBAL_PREVIEW_ENDPOINT = 'https://www.forkit.dev/api/v1/ai-footprints';
-export const GLOBAL_PREVIEW_SYNC_INTERVAL_MS = 15 * 60 * 1000;
+/** The first eligible aggregate syncs immediately; later refreshes are hourly. */
+export const GLOBAL_PREVIEW_SYNC_INTERVAL_MS = 60 * 60 * 1000;
 
 interface PreviewKeyFile {
   schema_version: '1.0';
@@ -178,7 +179,9 @@ export class GlobalPreviewContributor {
     const now = this.now();
     const lastAttempt = this.currentStatus.last_attempt_at ? Date.parse(this.currentStatus.last_attempt_at) : 0;
     const observedSeconds = contribution.observation.valid_seconds;
-    if (lastAttempt && now.getTime() - lastAttempt < this.minimumSyncIntervalMs && observedSeconds <= this.currentStatus.last_observed_seconds + 60) {
+    // A new contributor is sent immediately. Once an attempt has been made,
+    // persist the hourly cadence across reconnects and browser restarts.
+    if (lastAttempt && now.getTime() - lastAttempt < this.minimumSyncIntervalMs) {
       return { ...this.currentStatus };
     }
     this.currentStatus = { ...this.currentStatus, state: 'syncing', last_attempt_at: now.toISOString(), last_error: null };

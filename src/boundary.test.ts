@@ -38,6 +38,6 @@ test('native global action opens only the fixed public benchmark route', () => {
   assert.match(launcher, /URL\(string: "https:\/\/www\.forkit\.dev\/\\\(globalPath\)#global-vision"\)/);
   assert.match(launcher, /NSWorkspace\.shared\.open\(url\)/);
   assert.doesNotMatch(launcher, /body\["url"\]/);
-  assert.match(launcher, /globalPermissionVersion = "ai-footprints-global-preview-v2"/);
+  assert.match(launcher, /globalPermissionVersion = "ai-footprints-global-preview-v3"/);
   assert.match(launcher, /api\/native\/global-permission\/grant/);
 });

@@ -12,8 +12,12 @@ function prepareLogo(source, output) {
 
 prepareLogo('../Logo_Forkit/logo_Only/color_Dark/color_Dark.png', '../dist/assets/forkit-icon-light.png');
 
-const { UI_COPY } = require('../dist/localization.js');
-fs.writeFileSync(new URL('../dist/locales.json', import.meta.url), `${JSON.stringify(UI_COPY, null, 2)}\n`);
+const { UI_COPY, uiText } = require('../dist/localization.js');
+const packagedCopy = Object.fromEntries(Object.entries(UI_COPY).map(([locale, copy]) => [
+  locale,
+  Object.fromEntries(Object.keys(copy).map((key) => [key, uiText(locale, key)])),
+]));
+fs.writeFileSync(new URL('../dist/locales.json', import.meta.url), `${JSON.stringify(packagedCopy, null, 2)}\n`);
 prepareLogo('../Logo_Forkit/logo_Only/color_Light/color_Light.png', '../dist/assets/forkit-icon-dark.png');
 
 if (process.platform !== 'win32') {

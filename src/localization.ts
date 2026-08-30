@@ -55,10 +55,47 @@ export const UI_COPY = {
 
 export type UiCopyKey = keyof typeof UI_COPY.en;
 
+// v3 lowered the explicitly-consented community entry threshold. Keeping this
+// override separate from the historical copy preserves the existing locale
+// catalogue while ensuring the native prompt, local status, and generated app
+// page always describe the currently shipped privacy terms.
+const GLOBAL_CONTRIBUTION_V3_COPY: Record<UiLocale, Partial<Record<UiCopyKey, string>>> = {
+  en: {
+    globalProgress: '{remaining} of valid observed time until this device joins the community.',
+    permissionGranted: 'Global contribution is on. After 10 valid minutes, the anonymous aggregate syncs when internet is available, then refreshes at most once an hour.',
+    previewWaiting: 'Building the first 10 valid minutes',
+    globalBuilding: 'Preparing this device’s contribution',
+    globalBuildingCopy: 'This device needs 10 valid observed minutes before its first anonymous sync.',
+    globalSyncing: 'Active contributor · sync pending',
+    globalSyncingCopy: 'The aggregate is ready and will sync when internet is available.',
+    globalQualified: 'Active in the Preview',
+    globalQualifiedCopy: 'This installation is counted as one active contributor and refreshes at most once an hour.',
+    globalRetry: 'Active contributor · connection retrying',
+    globalRetryCopy: 'The saved aggregate retries at the next hourly refresh when internet is available.',
+    globalDownloadsNote: 'NPM download events show reach; they are not active contributors.',
+    globalPermissionBody: 'After 10 valid observed minutes, Forkit sends one anonymous aggregate and refreshes it at most once per hour when internet is available. It includes observed and AI-active time, supported app categories, local model counts and storage, and system/version fields. A random local contribution key prevents duplicate counting. It excludes chat titles, projects, paths, prompts, commands, account details, and the local device name. Community Preview data is not hardware-verified.',
+  },
+  de: {
+    globalProgress: 'Noch {remaining} gültige Beobachtungszeit, bis dieses Gerät zur Community beiträgt.',
+    permissionGranted: 'Der globale Beitrag ist an. Nach 10 gültigen Minuten wird das anonyme Aggregat bei verfügbarer Internetverbindung synchronisiert und danach höchstens stündlich aktualisiert.',
+    previewWaiting: 'Die ersten 10 gültigen Minuten werden aufgebaut',
+    globalBuilding: 'Beitrag dieses Geräts wird vorbereitet',
+    globalBuildingCopy: 'Dieses Gerät benötigt 10 gültige Beobachtungsminuten vor dem ersten anonymen Sync.',
+    globalSyncing: 'Aktiver Beitrag · Sync ausstehend',
+    globalSyncingCopy: 'Das Aggregat ist bereit und wird bei verfügbarer Internetverbindung synchronisiert.',
+    globalQualified: 'In der Preview aktiv',
+    globalQualifiedCopy: 'Diese Installation zählt als ein aktiver Beitrag und wird höchstens stündlich aktualisiert.',
+    globalRetry: 'Aktiver Beitrag · Verbindung wird wiederholt',
+    globalRetryCopy: 'Das gespeicherte Aggregat versucht den Sync bei der nächsten stündlichen Aktualisierung erneut.',
+    globalDownloadsNote: 'NPM-Downloadereignisse zeigen Reichweite, keine aktiven Beiträge.',
+    globalPermissionBody: 'Nach 10 gültigen Beobachtungsminuten sendet Forkit ein anonymes Aggregat und aktualisiert es bei verfügbarer Internetverbindung höchstens einmal pro Stunde. Enthalten sind Beobachtungszeit, KI-aktive Zeit, unterstützte App-Kategorien, lokale Modellanzahl und -speicher sowie System-/Versionsfelder. Ein zufälliger lokaler Beitragsschlüssel verhindert Doppelzählung. Ausgeschlossen sind Chat-Titel, Projekte, Pfade, Prompts, Befehle, Kontodaten und der lokale Gerätename. Community-Preview-Daten sind nicht hardwareverifiziert.',
+  },
+};
+
 export function normalizeLocale(value: string | null | undefined): UiLocale { return String(value || '').toLowerCase().startsWith('de') ? 'de' : 'en'; }
 
 export function uiText(locale: UiLocale, key: UiCopyKey, values: Record<string, string | number> = {}): string {
-  let text: string = UI_COPY[locale][key];
+  let text: string = GLOBAL_CONTRIBUTION_V3_COPY[locale][key] ?? UI_COPY[locale][key];
   for (const [name, value] of Object.entries(values)) text = text.replaceAll(`{${name}}`, String(value));
   return text;
 }

@@ -117,7 +117,7 @@ test('one-page app puts truthful activity before footprint and comparison', asyn
   assert.match(html, /Global comparison/);
   assert.match(html, /Global contribution · Preview/);
   assert.match(html, /id="global-progress"/);
-  assert.match(html, /Package downloads are not counted as contributors/);
+  assert.match(html, /NPM download events show reach; they are not active contributors/);
   assert.match(html, /id="global-permission-button"/);
   assert.match(html, /nativeAction\('global-permission'\)/);
   assert.match(html, /id="share-button"/);

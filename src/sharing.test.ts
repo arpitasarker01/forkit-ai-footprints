@@ -39,16 +39,16 @@ test('anonymous preview contains only the activity-ratio allowlist', async () =>
   assert.deepEqual(payload.counts.supported_app_categories, ['coding-agent']);
   assert.deepEqual(payload.system_active_seconds, { 'coding-agent': 120 });
   assert.equal(payload.privacy.location_mode, 'none');
-  assert.equal(payload.privacy.consent_version, 'ai-footprints-global-preview-v2');
+  assert.equal(payload.privacy.consent_version, 'ai-footprints-global-preview-v3');
   const serialized = JSON.stringify(payload);
   for (const forbidden of ['Private App Name', 'Private chat', 'Private workspace', 'signature', 'process_count', 'cpu_percent', 'census_id', 'generated_at', 'guess']) {
     assert.equal(serialized.includes(forbidden), false, `unexpected ${forbidden}`);
   }
 });
 
-test('preview requires one valid hour and consistent activity duration', async () => {
+test('preview requires ten valid minutes and consistent activity duration', async () => {
   const value = await report();
-  assert.throws(() => buildAnonymousAiFootprintPreview(value, monitor({ observed_seconds: 3599 })), /MINIMUM_OBSERVATION/);
+  assert.throws(() => buildAnonymousAiFootprintPreview(value, monitor({ observed_seconds: 599 })), /MINIMUM_OBSERVATION/);
   assert.throws(() => buildAnonymousAiFootprintPreview(value, monitor({ active_seconds: 3601 })), /INVALID_ACTIVITY_DURATION/);
 });
 

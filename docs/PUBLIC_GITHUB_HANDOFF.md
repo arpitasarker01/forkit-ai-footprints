@@ -1,6 +1,6 @@
 # Forkit AI Footprints public GitHub handoff
 
-Status: public open-source release for `forkit-ai-footprints@0.2.5`.
+Status: public open-source release for `forkit-ai-footprints@0.2.6`.
 
 ## Product identity
 
@@ -13,7 +13,7 @@ Public source, npm metadata, docs, and CLI commands must use
 
 ## Current release state
 
-The public GitHub repository, protected `main` branch, `v0.2.5` tag, and npm
+The public GitHub repository, protected `main` branch, `v0.2.6` tag, and npm
 package resolve. CI, CodeQL, secret scanning, push protection, Dependabot,
 private vulnerability reporting, issue templates, contribution guidance,
 CODEOWNERS, and the security policy protect the public collaboration path.
@@ -42,7 +42,7 @@ coherence check passes.
 ## Global sync boundary
 
 Public GitHub does not mean automatic data upload. Community Preview intake is
-open only after explicit v2 consent and one valid observed hour, and accepts
+open only after explicit v3 consent and ten valid observed minutes, and accepts
 only the documented allowlisted aggregate. Apple-verified ranking remains a
 separate future gate. The public repository keeps this boundary visible in
 README, privacy docs, and release notes.

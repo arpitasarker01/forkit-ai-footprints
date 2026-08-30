@@ -12,7 +12,7 @@ private let keychainAccount = "verified-installation"
 private let globalPermissionAskedKey = "ForkitFootprintsGlobalPermissionAsked"
 private let globalPermissionAllowedKey = "ForkitFootprintsGlobalPermissionAllowed"
 private let globalPermissionVersionKey = "ForkitFootprintsGlobalPermissionVersion"
-private let globalPermissionVersion = "ai-footprints-global-preview-v2"
+private let globalPermissionVersion = "ai-footprints-global-preview-v3"
 
 private enum LauncherError: Error {
     case appAttestUnavailable, invalidHash, keyMissing, resourceMissing

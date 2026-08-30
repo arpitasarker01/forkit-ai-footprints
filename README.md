@@ -67,7 +67,7 @@ git clone https://github.com/arpitasarker01/forkit-ai-footprints.git
 cd forkit-ai-footprints
 npm ci
 npm pack
-npm install -g ./forkit-ai-footprints-0.2.5.tgz
+npm install -g ./forkit-ai-footprints-0.2.6.tgz
 forkit-ai-footprints serve
 ```
 
@@ -194,20 +194,19 @@ forkit-ai-footprints scan --no-mcp
 ```
 
 CLI flags cannot bypass the required monitoring session. The local UI enables
-an exact schema `2.0` aggregate preview only after 3,600 valid observed seconds;
-the installed app asks with versioned consent whether the anonymous aggregate
-may join the Global AI Preview. When allowed, the app sends one latest signed
-aggregate after the one-hour eligibility gate and refreshes that same row when
-new valid observation time is available. The server does not count refreshes as
-new installations. The payload excludes app/model names, process counts,
-CPU/RAM, chat, workspace, repository, device, guess, local scan, and account
-identifiers.
+an exact schema `2.0` aggregate preview after 600 valid observed seconds; the
+installed app asks with versioned consent whether the anonymous aggregate may
+join the Global AI Preview. When allowed, the app sends one latest signed
+aggregate after the ten-minute eligibility gate and refreshes that same row at
+most once per hour. The server does not count refreshes as new installations.
+The payload excludes app/model names, process counts, CPU/RAM, chat, workspace,
+repository, device, guess, local scan, and account identifiers.
 
 ### How the community Preview is calculated
 
-- A **contributing installation** is an opted-in local installation that has
-  reached at least 3,600 valid observed seconds and successfully submitted a
-  signed aggregate. Installing or downloading the package alone does not count.
+- An **active contributor** is an opted-in local installation that has reached
+  at least 600 valid observed seconds and successfully submitted a signed
+  aggregate. Installing or downloading the package alone does not count.
 - Repeated syncs use the same private local contribution key and replace that
   installation's previous aggregate. They do not increase the participant
   total.
@@ -217,13 +216,13 @@ identifiers.
   than a short observation.
 - npm downloads are reported separately as registry download events. They are
   not unique people, devices, installations, or consenting participants.
-- Percentile placement stays unavailable until at least 30 eligible
-  installations. Regional output stays hidden until its privacy threshold is
-  met.
+- Percentile placement stays unavailable until at least 30 contributors with
+  one valid observed hour. Regional output stays hidden until its privacy
+  threshold is met.
 
-The service evaluates Preview eligibility once a minute. Network submissions
-are locally throttled and retried when internet is available; this is not a
-promise to upload once every 60 minutes. See [the privacy boundary](./PRIVACY.md)
+The service evaluates Preview eligibility once a minute. The first eligible
+aggregate syncs when internet is available; subsequent submissions are locally
+throttled to no more than one per hour. See [the privacy boundary](./PRIVACY.md)
 for the exact allowlist and exclusions.
 
 ## Shared core API

@@ -2,11 +2,11 @@
 
 Last updated: 2026-08-29
 
-Version: `0.2.5`
+Version: `0.2.6`
 
 Production classification: `current` for Apple Silicon macOS
 
-Release state: v0.2.5 npm-first community Preview is public. The npm
+Release state: v0.2.6 npm-first community Preview is public. The npm
 bootstrap installs a persistent unsigned local app; Developer ID signing and
 notarization remain future work.
 
@@ -91,9 +91,10 @@ notarization remain future work.
 - A schema `2.0` Global AI Preview aggregate based on valid observed seconds and
   AI-active seconds. It excludes names, process counts, paths, commands, chat,
   workspace, device identity, guess, and local scan ID. Review and consent are
-  separate. After explicit v2 native permission and one valid observed hour,
+  separate. After explicit v3 native permission and ten valid observed minutes,
   the app signs and syncs the allowlisted aggregate to Forkit.dev, keeping one
-  latest community-reported Preview row per stable local contribution key.
+  latest community-reported Preview row per stable local contribution key and
+  refreshing it no more than once per hour.
 - A 1080×1080 local share card with Share, Save PNG, Copy Image, and Copy
   Caption controls. It contains only measured totals and supported tool names.
 - A single Forkit.dev `/ai-footprint` page with an honest benchmark-forming
@@ -124,10 +125,10 @@ notarization remain future work.
   valid time and **62.1 seconds** AI-active (ratio **0.981**). The deterministic
   evidence reports the supported app activity share, longest continuous signal,
   and stored local model records without attributing prompts or tasks.
-- A separate earlier real session crossed the previous 10-minute gate at exactly
-  **600 valid seconds** and **598 AI-active seconds**. The current global
-  comparison requires **3,600 valid seconds** before a consented community
-  Preview aggregate becomes eligible for sync.
+- A separate earlier real session crossed the **600 valid-second** active
+  contributor gate at **598 AI-active seconds**. Personal percentile ranking
+  still requires **3,600 valid seconds** when the community population is large
+  enough; contribution itself does not.
 
 ## Validation completed locally
 
@@ -187,5 +188,5 @@ claim that a cloud model is running locally.
 
 Future expansion requires representative multi-device field accuracy, Intel Mac
 validation, and Apple signing/notarization. Community Preview contribution is
-open under the v2 consent/integrity boundary; verified global ranking remains
+open under the v3 consent/integrity boundary; verified global ranking remains
 closed until its separate hardware-verification and abuse-control gate passes.

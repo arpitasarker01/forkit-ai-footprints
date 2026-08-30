@@ -10,7 +10,7 @@ import type { AnonymousAiFootprintContribution } from './sharing';
 function contribution(): AnonymousAiFootprintContribution {
   return {
     schema_version: '2.0',
-    observation: { valid_seconds: 3600, ai_active_seconds: 1800, activity_ratio: 0.5, longest_active_block_seconds: 900 },
+    observation: { valid_seconds: 600, ai_active_seconds: 300, activity_ratio: 0.5, longest_active_block_seconds: 300 },
     counts: {
       supported_apps_observed_working: 1,
       supported_app_categories: ['coding-agent'],
@@ -23,7 +23,7 @@ function contribution(): AnonymousAiFootprintContribution {
     local_active_seconds: 0,
     system_active_seconds: { 'coding-agent': 1800 },
     privacy: {
-      consent_version: 'ai-footprints-global-preview-v2',
+      consent_version: 'ai-footprints-global-preview-v3',
       location_mode: 'none',
       country_code: null,
       region_code: null,
@@ -75,6 +75,29 @@ test('preview transport makes no request without explicit permission', async () 
   assert.equal((await contributor.sync(contribution(), 'declined')).state, 'disabled');
   assert.equal((await contributor.sync(contribution(), 'unset')).state, 'disabled');
   assert.equal(requests, 0);
+});
+
+test('first eligible contribution syncs immediately and later refreshes are hourly', async () => {
+  const stateDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'forkit-preview-hourly-'));
+  let nowMs = Date.parse('2026-08-30T10:00:00.000Z');
+  let requests = 0;
+  const contributor = new GlobalPreviewContributor({
+    stateDirectory,
+    now: () => new Date(nowMs),
+    fetchFn: async (input) => {
+      requests += 1;
+      if (String(input).endsWith('/challenges')) return new Response(JSON.stringify({ challengeId: 'c'.repeat(64) }), { status: 201, headers: { 'content-type': 'application/json' } });
+      return new Response(JSON.stringify({ accepted: true, trustState: 'preview' }), { status: 202, headers: { 'content-type': 'application/json' } });
+    },
+  });
+  assert.equal((await contributor.sync(contribution(), 'granted')).state, 'contributed');
+  assert.equal(requests, 2);
+  nowMs += 59 * 60 * 1000;
+  assert.equal((await contributor.sync({ ...contribution(), observation: { ...contribution().observation, valid_seconds: 900, ai_active_seconds: 450 } }, 'granted')).state, 'contributed');
+  assert.equal(requests, 2);
+  nowMs += 60 * 1000;
+  assert.equal((await contributor.sync({ ...contribution(), observation: { ...contribution().observation, valid_seconds: 960, ai_active_seconds: 480 } }, 'granted')).state, 'contributed');
+  assert.equal(requests, 4);
 });
 
 test('preview transport retries safely and keeps the last aggregate receipt local', async () => {

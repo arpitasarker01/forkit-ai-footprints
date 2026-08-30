@@ -43,10 +43,10 @@ inventory CLI. Its prepared package and only public command are
 - expose a resource-evidence manifest that marks unsupported exclusive task
   attribution, GPU, and network traffic as unavailable instead of estimating;
 - diagnose local AI Footprints readiness;
-- after a versioned native opt-in and one valid observed hour, transmit only the
+- after a versioned native opt-in and ten valid observed minutes, transmit only the
   allowlisted aggregate to the fixed Forkit.dev Global AI Preview endpoint;
   sign the exact payload with a stable local Ed25519 key, retain one local
-  receipt, and retry no more than every 15 minutes when internet is available;
+  receipt, and refresh no more than once per hour when internet is available;
 - open the public Forkit AI Footprint global vision section only after an
   explicit user click; opening the page sends no local observation payload;
 - package and publish the approved macOS-only release through npm;

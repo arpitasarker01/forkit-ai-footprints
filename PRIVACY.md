@@ -61,7 +61,7 @@ AI Footprints may call HTTP(S) endpoints only when the hostname is one of:
 - `::1`
 - `www.forkit.dev`, limited to `/api/v1/ai-footprints/challenges` and
   `/api/v1/ai-footprints/contributions` after explicit Preview consent and the
-  one-hour eligibility gate.
+  ten-minute eligibility gate.
 
 Other remote endpoints and endpoints containing embedded credentials are rejected.
 AI Footprints contains no Forkit.dev login, registry-write, passport-publish,
@@ -98,11 +98,13 @@ generate one App Attest key and store only its opaque key identifier in the
 device-only Keychain. The current UI and CLI do not invoke enrollment,
 attestation, assertion generation, or upload.
 
-On first launch of the v2 Preview consent, the native app states that an
-anonymous aggregate will be sent after one valid observed hour and refreshed
-when internet is available. The answer and consent version are stored locally
-in macOS user defaults. A user who chose “Not now” can reopen the same
-permission from the comparison view. No request is made before permission.
+On first launch of the v3 Preview consent, the native app states that an
+anonymous aggregate will be sent after ten valid observed minutes and refreshed
+at most once per hour when internet is available. The answer and consent version
+are stored locally in macOS user defaults. A user who chose “Not now” can reopen
+the same permission from the comparison view. No request is made before
+permission. Existing v2 consent retains its original one-hour threshold until
+the person upgrades and accepts the v3 notice.
 
 ## Filesystem identity
 
@@ -144,14 +146,16 @@ used as automatic evidence of ownership, safety, provenance, or passport status.
 ## Anonymous contribution boundary
 
 The local app can create and send an allowlisted schema `2.0` Preview only after
-at least 3,600 valid observed seconds and explicit v2 native permission. The Preview
+at least 600 valid observed seconds and explicit v3 native permission. The Preview
 contains valid seconds, AI-active seconds, activity ratio, supported app count
 and categories, model/loaded/runtime counts, recognized model-file bytes,
 macOS major, architecture, and scanner/runtime schema versions. It excludes
 names, process counts, CPU/RAM values, guess, device identity, local scan ID,
 timestamps, and all item-level records. The native app generates one owner-only
 local Ed25519 key, signs the exact aggregate against a one-time server challenge,
-and stores a small local sync receipt. The server persists only a keyed hash of
+and stores a small local sync receipt. The first eligible payload may be sent
+immediately; later refreshes are limited to no more than once per hour. The
+server persists only a keyed hash of
 the public contribution identity and one latest aggregate. Community Preview
 signatures prevent undetected payload changes and simple replay; they do not
 prove unique hardware or truthful measurement. Public Preview copy must say

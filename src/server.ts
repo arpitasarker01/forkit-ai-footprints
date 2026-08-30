@@ -8,7 +8,7 @@ import { recordLocalScan, type LocalDeviceJournal } from './local-device';
 import { ActivityMonitor, type MonitorSnapshot } from './monitor';
 import { createDefaultProviders } from './providers';
 import { classifyLoadedRuntimeProcesses, loadedRuntimeModels } from './runtime-activity';
-import { buildAnonymousAiFootprintPreview } from './sharing';
+import { buildAnonymousAiFootprintPreview, MINIMUM_GLOBAL_CONTRIBUTION_SECONDS } from './sharing';
 import { buildLocalInsights } from './insights';
 import { buildActivityExplorerViewModel, type ActivityExplorerViewModel } from './activity-view-model';
 import type { CensusReport } from './types';
@@ -131,7 +131,7 @@ export async function startAiFootprintsServer(options: AiFootprintsServerOptions
   let persistenceQueue: Promise<void> = Promise.resolve();
 
   async function syncGlobalPreview(snapshot: MonitorSnapshot = monitor.snapshot()): Promise<GlobalPreviewStatus> {
-    if (globalPermission !== 'granted' || !currentReport || snapshot.observed_seconds < 3600) {
+    if (globalPermission !== 'granted' || !currentReport || snapshot.observed_seconds < MINIMUM_GLOBAL_CONTRIBUTION_SECONDS) {
       return globalPreviewContributor.status(globalPermission);
     }
     try {
