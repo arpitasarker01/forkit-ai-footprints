@@ -2,11 +2,11 @@
 
 Last updated: 2026-08-29
 
-Version: `0.2.4`
+Version: `0.2.5`
 
 Production classification: `current` for Apple Silicon macOS
 
-Release state: v0.2.4 npm-first community Preview is public. The npm
+Release state: v0.2.5 npm-first community Preview is public. The npm
 bootstrap installs a persistent unsigned local app; Developer ID signing and
 notarization remain future work.
 
