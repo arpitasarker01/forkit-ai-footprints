@@ -15,6 +15,8 @@ repository.
   product boundary.
 - Use a feature proposal before building a large change or adding a new
   detector family.
+- Use the support form linked from `SUPPORT.md` for installation or usage
+  questions that do not describe a product defect.
 - Open a focused pull request for a small fix, test, localization improvement,
   accessibility improvement, or documentation correction.
 - Report security or privacy vulnerabilities privately through GitHub Security
@@ -44,6 +46,7 @@ Node 22 is recommended for development. Node 20, 22, and 24 are supported.
   the anonymous Global AI Preview allowlist.
 - Do not bump the version or publish npm without founder authorization.
 - Update `STATUS.md` when verified behavior or a known limitation changes.
+- Update `CHANGELOG.md` when a user-visible behavior changes.
 
 Every pull request runs the macOS/Node test matrix and package smoke. Sensitive
 surfaces are owned by the maintainers in `CODEOWNERS`; passing automation does

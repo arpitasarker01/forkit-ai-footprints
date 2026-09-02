@@ -12,7 +12,7 @@ body:
     attributes:
       label: AI Footprints version
       description: Run `npx --yes forkit-ai-footprints@latest --version` or provide the installed version.
-      placeholder: 0.2.4
+      placeholder: 0.2.6
     validations:
       required: true
   - type: dropdown

@@ -4,357 +4,149 @@
 [![npm](https://img.shields.io/npm/v/forkit-ai-footprints)](https://www.npmjs.com/package/forkit-ai-footprints)
 [![License: MIT](https://img.shields.io/badge/License-MIT-2f2361.svg)](./LICENSE)
 
-Forkit AI Footprints is an open-source, private-by-default, metadata-only view
-of the models, runtimes, and AI agents present on a device. The public package
-and command are `forkit-ai-footprints`.
+Forkit AI Footprints shows when supported AI tools are active on a device, how
+long they stay active, and which local AI models are available. Monitoring is
+local by default. Joining the community Preview is optional.
 
-[Product page](https://www.forkit.dev/ai-footprint) ·
+[Product](https://www.forkit.dev/ai-footprint) ·
 [npm](https://www.npmjs.com/package/forkit-ai-footprints) ·
 [Releases](https://github.com/arpitasarker01/forkit-ai-footprints/releases) ·
-[Contributing](./CONTRIBUTING.md) · [Security](./SECURITY.md)
+[Support](./SUPPORT.md) · [Contributing](./CONTRIBUTING.md) ·
+[Security](./SECURITY.md)
 
-It is derived from the discovery lessons in Forkit Connect, but it has a
-different safety boundary: AI Footprints does not authenticate to Forkit.dev and has
-no passport, Mint, registry-write, Runtime_C2-write, or production deployment
-path.
+> **Platform support:** the current release supports Apple Silicon macOS.
+> Other platforms are not yet supported.
 
-Product status: `current` for the approved Apple Silicon macOS release
-
-Current support target: **macOS only**. The real-device validation so far is on
-Apple Silicon. Ubuntu, Windows, Android, and Intel Mac are not part of the
-current release claim.
-
-## Install on macOS
-
-The free global installation command is:
+## Install
 
 ```bash
 npx --yes forkit-ai-footprints@latest
 ```
 
-Mac users who already have Node can run it directly. Homebrew users can first
-run `brew install node`; users with neither can use the official Node LTS
-installer and verify `node`, `npm`, and `npx`. A Forkit-specific Homebrew formula
-and direct download are deliberately not advertised because those channels do
-not exist. The website presents the command only when the exact tested package
-and release metadata agree. See
-[`docs/GLOBAL_DISTRIBUTION.md`](./docs/GLOBAL_DISTRIBUTION.md).
+The bootstrap installs the persistent app in the current user's Applications
+folder and opens it. Later launches use Applications, Spotlight, the Dock, or
+the Forkit menu-bar icon. Run the same command again to update.
 
-The future click installer remains blocked until it can be Developer ID-signed
-and Apple-notarized. Developers can build the local candidate with:
+The bootstrap requires Node.js 20, 22, or 24. A signed direct download and
+Homebrew formula are not currently available. See the
+[distribution policy](./docs/GLOBAL_DISTRIBUTION.md).
 
-```bash
-npm ci
-npm run preflight:macos:release
-npm run build:macos:installer
+## What it shows
+
+- **AI activity timeline** — working, ready, paused, and excluded intervals for
+  supported AI applications.
+- **Observation summary** — valid observed time, AI-active time, longest active
+  block, and supported tools observed.
+- **Per-app evidence** — measured runtime plus current and bounded local
+  aggregate CPU and memory summaries.
+- **Local AI footprint** — recognized local model records, logical storage, and
+  supported runtime loaded-state evidence.
+- **Share image** — a local 1080×1080 summary containing measured totals and
+  supported tool names only.
+- **Community Preview** — an optional, consented comparison using an allowlisted
+  anonymous aggregate.
+
+Forkit does not infer prompts, tasks, tokens, cost, energy, or model ownership
+from process activity. GPU and per-app storage attribution are not measured.
+
+## Measurement boundary
+
+| Signal | What it means | Important limit |
+|---|---|---|
+| AI-active | Sustained recent CPU-time change in a supported AI-app process tree | Not prompt, task, or token attribution |
+| Ready | A supported app is present without sustained measured activity | Presence alone is never counted as active |
+| Valid observed time | Time while the device is awake, unlocked, and eligible for observation | Locked, stopped, sleep-gap, and excluded time do not count |
+| CPU and memory | Current process-tree readings and bounded local aggregate summaries | Not energy, cost, or exclusive workload ownership |
+| Local model storage | Logical bytes for recognized files inside supported roots | Not whole-disk or physical APFS usage |
+| Loaded local model | Provider-confirmed loaded state from a supported local runtime | Availability alone does not mean a model is running |
+
+Detector rules are conservative and reviewable. A curated conformance corpus is
+not a representative field-accuracy study. See the
+[measurement foundation](./docs/MACOS_MEASUREMENT_FOUNDATION.md) and
+[validation record](./docs/VALIDATION.md).
+
+## Privacy
+
+The app is metadata-only and private by default.
+
+It does not inspect prompts, responses, or model contents; collect credentials
+or account identity; or retain or upload raw commands, full paths, or the local
+device name. Runtime inspection is restricted to approved loopback endpoints.
+
+The protected local app may display supported tool names and limited local
+context. That context is excluded from share images, saved reports, and the
+community payload. Read the complete [privacy boundary](./PRIVACY.md) before
+changing any collection, persistence, or network behavior.
+
+## Community Preview
+
+Nothing is sent before the user accepts the separate v3 contribution notice.
+After consent and ten valid observed minutes, the app may send one signed,
+allowlisted aggregate and refresh that installation's latest row no more than
+once per hour when internet is available.
+
+An **active contributor** is an opted-in installation that has reached the
+ten-minute gate and successfully synced. Downloads are reported separately and
+do not represent people, installations, or contributors.
+
+The public AI-active rate is duration-weighted:
+
+```text
+sum(AI-active seconds) / sum(valid observed seconds)
 ```
 
-The current output is an unsigned local validation artifact because no valid
-Developer ID Application or Installer identity is available on this Mac. It
-must not be distributed until signing, notarization, stapling, Gatekeeper
-verification, and clean-Mac installation tests pass.
+Personal percentile placement remains unavailable until there are at least 30
+eligible contributors with one valid observed hour each. Community signatures
+prove payload integrity and continuity, not unique hardware or truthful
+measurement. The public result is therefore labelled **Preview** and
+**community-reported**.
 
-### Developer fallback
+See [PRIVACY.md](./PRIVACY.md) for the exact payload allowlist and exclusions.
 
-Requirements:
-
-- macOS;
-- Node.js 20, 22, or 24
-- npm
-
-```bash
-git clone https://github.com/arpitasarker01/forkit-ai-footprints.git
-cd forkit-ai-footprints
-npm ci
-npm pack
-npm install -g ./forkit-ai-footprints-0.2.6.tgz
-forkit-ai-footprints serve
-```
-
-The equivalent persistent global CLI installation is:
-
-```bash
-npm install -g forkit-ai-footprints
-forkit-ai-footprints serve
-```
-
-npm is the approved public bootstrap channel for this release. Homebrew remains
-a future optional channel.
-
-## Commands
-
-Run a local scan, verify the installation, or score one manually labelled Mac:
+## Common commands
 
 ```bash
 forkit-ai-footprints serve
 forkit-ai-footprints monitor
 forkit-ai-footprints scan
 forkit-ai-footprints doctor
-forkit-ai-footprints evaluate --truth /absolute/path/to/local-truth.json
-forkit-ai-footprints aggregate --results /absolute/path/to/evaluation-results
-forkit-ai-footprints share-page --output /absolute/path/to/local-ai-footprint.html
-```
-
-`evaluate` always runs locally and emits aggregate counts and metrics only. It
-does not upload the truth file or include its item names in the output.
-
-Create the truth file only after manually checking that Mac. Empty arrays are
-valid when a surface is not installed or running:
-
-```json
-{
-  "schema_version": "1.0",
-  "expected": {
-    "agent_signatures": ["codex"],
-    "tool_names": ["Codex"],
-    "online_runtime_names": ["ollama"],
-    "model_keys": ["ollama:example-model:latest"],
-    "mcp_clients": ["Codex"]
-  }
-}
-```
-
-Keep truth files local; model names and installed-tool labels may be private.
-The evaluation result adds only macOS major version, CPU architecture, Node
-major, and aggregate counts. A coordinator can combine explicitly shared result
-files with `aggregate`; this remains local and always keeps automatic accuracy
-claims disabled. See [`docs/MACOS_TESTER_GUIDE.md`](./docs/MACOS_TESTER_GUIDE.md).
-
-`share-page` performs the same local scan and writes a self-contained,
-aggregate-only HTML snapshot. It loads no external assets and contains no model
-names, paths, commands, endpoints, configuration values, account identity, or
-local scan ID. Its copy/share controls include only the visible aggregate summary
-and run only after a user click.
-
-`serve` binds only to `127.0.0.1`, keeps the report and monitor in memory, and
-opens the local AI-app activity → Insights → Global vision → Share experience. `Scan again` calls a random-token-protected local
-endpoint. The protected local page can name detected runtimes, models, AI apps,
-and tools. The explicitly created local share image may include the supported
-active tool product name; saved HTML and anonymous/global payloads remain
-aggregate-only.
-Start/Stop controls monitoring explicitly; browser/window closure does not stop
-it, while native Quit stops the monitor and loopback service.
-
-The local app also keeps an owner-only device journal containing the sanitized
-Mac display name, first/last scan timestamps, and scan count. This lets the Mac
-resume its local state without placing the device name in a report, saved share
-page, image, anonymous preview, or website payload. The single result view uses
-a token-protected local stream with a one-second target interval. Repeated
-cumulative CPU-time deltas and hysteresis distinguish Active now from Ready;
-process presence alone is never activity. It is near-real-time, not zero delay.
-
-For Codex, the local view can also show the most recent workflow title and the
-final folder name from Codex's private local catalog. This is contextual local
-metadata, not prompt inspection or per-workflow resource attribution. It never
-enters the share image, caption, saved share page, or global payload.
-
-The revealed resource view reports deduplicated recognized logical model-file
-bytes, provider-native loaded-model evidence, current supported-process CPU/RAM,
-and bounded per-AI-app aggregate CPU/RAM history buckets retained locally for the
-observation. The activity view uses private process-tree CPU-time deltas and
-separately displays Forkit's measured CPU, resident memory, and bounded-history
-overhead. None is an energy, token, cost, prompt, task, or lifetime-usage
-measurement.
-
-AI Footprints does not claim prompt, task, or local-model inference ownership.
-**Active now** means sustained recent CPU time inside a supported local AI-app
-process tree, which may be foreground or background. The result does not
-measure GPU, energy, tokens, cost, disk I/O, or per-process network usage.
-
-`Create share card` renders a 1080×1080 (1:1) PNG entirely on the device. Its
-result-based line and cards use measured local insights,
-model-record count, recognized model storage, activity ratio, and the supported
-active tool product name. Browser controls download or copy it; the installed
-app uses native macOS save, clipboard, and share-sheet actions after an explicit
-click. No model names, chat/workspace
-context, paths, device identity, or scan records are placed in the image or
-uploaded by AI Footprints.
-
-```bash
-forkit-ai-footprints serve
-forkit-ai-footprints scan
-forkit-ai-footprints scan --json
-forkit-ai-footprints scan --verbose --guess 5
-forkit-ai-footprints scan --copy
-forkit-ai-footprints report --json --output footprint.json
-forkit-ai-footprints scan --model-dir /path/you/selected
-forkit-ai-footprints doctor
 forkit-ai-footprints --version
 ```
 
-One `scan` includes runtime APIs, filesystem model metadata, and agent process
-metadata by default. Individual surfaces can be disabled:
+Advanced local evaluation and field-testing commands are documented in the
+[macOS tester guide](./docs/MACOS_TESTER_GUIDE.md). Truth files and evaluation
+results remain local unless a tester explicitly chooses to share an aggregate.
+
+## Development
+
+Requirements: Apple Silicon macOS, Node.js 20/22/24, and npm.
 
 ```bash
-forkit-ai-footprints scan --no-runtimes
-forkit-ai-footprints scan --no-model-files
-forkit-ai-footprints scan --no-agents
-forkit-ai-footprints scan --no-tools
-forkit-ai-footprints scan --no-mcp
-```
-
-CLI flags cannot bypass the required monitoring session. The local UI enables
-an exact schema `2.0` aggregate preview after 600 valid observed seconds; the
-installed app asks with versioned consent whether the anonymous aggregate may
-join the Global AI Preview. When allowed, the app sends one latest signed
-aggregate after the ten-minute eligibility gate and refreshes that same row at
-most once per hour. The server does not count refreshes as new installations.
-The payload excludes app/model names, process counts, CPU/RAM, chat, workspace,
-repository, device, guess, local scan, and account identifiers.
-
-### How the community Preview is calculated
-
-- An **active contributor** is an opted-in local installation that has reached
-  at least 600 valid observed seconds and successfully submitted a signed
-  aggregate. Installing or downloading the package alone does not count.
-- Repeated syncs use the same private local contribution key and replace that
-  installation's previous aggregate. They do not increase the participant
-  total.
-- The global AI-active rate is duration-weighted:
-  `sum(AI-active seconds) / sum(valid observed seconds)` across eligible latest
-  rows. A long observation therefore contributes proportionally more evidence
-  than a short observation.
-- npm downloads are reported separately as registry download events. They are
-  not unique people, devices, installations, or consenting participants.
-- Percentile placement stays unavailable until at least 30 contributors with
-  one valid observed hour. Regional output stays hidden until its privacy
-  threshold is met.
-
-The service evaluates Preview eligibility once a minute. The first eligible
-aggregate syncs when internet is available; subsequent submissions are locally
-throttled to no more than one per hour. See [the privacy boundary](./PRIVACY.md)
-for the exact allowlist and exclusions.
-
-## Shared core API
-
-Forkit Connect should delegate to this package's public, read-only core rather
-than copy its detector implementation. The package root exports the local scan
-runner, individual metadata detectors, formatters, provider adapters, endpoint
-validation, anonymous-preview builder, and TypeScript types. A fresh-install
-smoke test imports the package root and verifies that an all-disabled core scan
-makes zero external requests and writes no local state.
-
-## What AI Footprints reports
-
-- availability of supported loopback runtime APIs;
-- model names and provider identities;
-- models confirmed loaded by Ollama's read-only `/api/ps` response;
-- Ollama content digests when exposed by the runtime;
-- metadata-only fingerprints for supported local model files;
-- known AI agent products with process-instance counts;
-- passively configured or active Claude Code, Codex, Cursor, Windsurf, Gemini
-  CLI, GitHub Copilot, OpenCode, and OpenClaw surfaces;
-- aggregate server counts from known MCP client configuration files;
-- exact recognized logical model-file bytes when supported-root coverage is
-  complete, plus explicit completeness evidence and optional guess comparison;
-- confidence labels and review warnings;
-- platform, architecture, and Node major version.
-
-## What AI Footprints does not collect
-
-- model weights or file contents;
-- prompts or responses;
-- raw process commands;
-- full model paths in reports;
-- credentials, tokens, API keys, or passwords;
-- device name or hostname in reports, saved/shareable artifacts, anonymous
-  previews, or website payloads; username, email address, and account identity
-  are never collected.
-
-AI Footprints only connects to loopback HTTP(S) endpoints. Remote hosts and URLs with
-embedded credentials are rejected.
-
-Known MCP configuration files are read only to count configured server entries.
-Server names, commands, URLs, environment variables, and values are neither
-retained nor emitted.
-
-See [`PRIVACY.md`](./PRIVACY.md), [`STATUS.md`](./STATUS.md), and
-[`docs/PRODUCT_BOUNDARY.md`](./docs/PRODUCT_BOUNDARY.md).
-
-## Model identity
-
-| Source | Identity | Confidence |
-|---|---|---|
-| Ollama weights/manifest SHA-256 | Content-addressed SHA-256 | High |
-| LM Studio/OpenAI-compatible API | Hashed provider/model identity | Medium |
-| Filesystem model metadata | Hashed name, relative location, size, and modification time | Low |
-
-A filesystem identity is not a content checksum. AI Footprints says so in every report
-that includes filesystem-discovered models.
-
-## Agent identity
-
-Agent matching uses exact executable names, explicit `python -m` module
-invocations, or explicit package-runner invocations such as `npx`. Product words
-appearing in unrelated arguments or paths are rejected. Multiple processes with
-the same product signature are aggregated into one agent product with an
-`instance_count`; this is a process count, not a count of independent autonomous
-agents or user sessions.
-
-The checked-in curated conformance corpus covers all supported agent signatures
-and difficult negative names on macOS, Linux, and Windows-style process
-metadata. Run it with `npm run benchmark:agents`. Its result shows whether the
-detector conforms to those labeled fixtures; it is not a representative sample
-of real devices, so it must not be presented as field accuracy.
-
-## Validation
-
-```bash
+git clone https://github.com/arpitasarker01/forkit-ai-footprints.git
+cd forkit-ai-footprints
 npm ci
 npm test
-npm run benchmark:agents
-npm run validate:macos
 npm run smoke:package
-npm run preflight:macos:release
 ```
 
-The active GitHub Actions matrix covers Node 20, 22, and 24 on macOS, plus an
-isolated installed-package smoke on macOS. `npm test` includes the conservative
-agent conformance benchmark. See
-[`benchmarks/README.md`](./benchmarks/README.md) for the benchmark method and
-limitations.
+Detector changes require positive, negative, deduplication, and privacy tests.
+Changes to collection, persistence, network destinations, consent, or packaging
+require explicit product-boundary and maintainer review.
 
-`npm run validate:macos` performs two real-device scans, verifies stable item
-sets, rejects non-loopback requests, checks the report privacy contract, and
-fails if prohibited process/path keys appear. One machine is a release sanity
-check, not a field-accuracy sample.
+Read [CONTRIBUTING.md](./CONTRIBUTING.md) before opening a pull request. For
+installation help or bug reports, see [SUPPORT.md](./SUPPORT.md). Report
+security or privacy vulnerabilities privately as described in
+[SECURITY.md](./SECURITY.md).
 
-The multi-device protocol, local truth-file format, and quantitative public
-release thresholds are defined in
-[`docs/MACOS_ACCURACY_GATE.md`](./docs/MACOS_ACCURACY_GATE.md).
+## Project documentation
 
-Storage, runtime-freshness, resource-attribution, and Developer ID truth
-boundaries are defined in
-[`docs/MACOS_MEASUREMENT_FOUNDATION.md`](./docs/MACOS_MEASUREMENT_FOUNDATION.md).
+- [Current release status](./STATUS.md)
+- [Privacy boundary](./PRIVACY.md)
+- [Product boundary](./docs/PRODUCT_BOUNDARY.md)
+- [Validation record](./docs/VALIDATION.md)
+- [Release process](./docs/RELEASE_PROCESS.md)
+- [Global distribution](./docs/GLOBAL_DISTRIBUTION.md)
 
-## Contributing and security
+## License
 
-Forkit AI Footprints is an MIT-licensed open-source client. Bug reports, focused
-feature proposals, tests, accessibility and localization improvements, and
-privacy-preserving detector fixes are welcome through GitHub issues and pull
-requests. Maintainers review every accepted change; pull requests cannot publish
-an npm release automatically.
-
-Read [`CONTRIBUTING.md`](./CONTRIBUTING.md) before opening a pull request. Report
-security or privacy vulnerabilities privately through the repository Security
-tab as described in [`SECURITY.md`](./SECURITY.md), never in a public issue.
-
-## Accuracy boundary
-
-AI Footprints has no defensible global accuracy percentage yet. Runtime API evidence is
-strongest; filesystem findings are explicitly best-effort; tool and MCP coverage
-is limited to documented locations; and the agent benchmark is curated rather
-than independently sampled. Do not market a benchmark pass as field precision
-or recall. Global release requires a separately labelled, consented multi-device
-macOS evaluation.
-
-## Relationship to Forkit Connect
-
-- Forkit AI Footprints: canonical read-only inventory core and report generation.
-- Forkit Connect: supporting bridge for governed Model and Agent Passport flows.
-- Forkit.dev website/registry: authoritative review and explicit final Mint.
-
-AI Footprints is not a replacement production release for Connect. The intended
-integration is for `forkit-connect census` to delegate to this package's public
-core, avoiding two scanner implementations. Promotion requires an intentional
-update to the Forkit.dev production lock.
+Forkit AI Footprints is available under the [MIT License](./LICENSE).

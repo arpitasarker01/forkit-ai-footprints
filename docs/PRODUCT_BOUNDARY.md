@@ -1,14 +1,13 @@
 # Product Boundary
 
-Sector: CLI discovery and local inventory
+Surface: local AI activity, discovery, and reporting
 
 Status: `current` for the approved Apple Silicon macOS npm release
 
-Forkit AI Footprints is the public name for the experimental metadata-only
-inventory CLI. Its prepared package and only public command are
-`forkit-ai-footprints`.
+Forkit AI Footprints is a metadata-only local application and CLI. Its public
+package and command are `forkit-ai-footprints`.
 
-## Allowed MVP
+## Supported boundary
 
 - discover supported local runtime APIs;
 - inventory model metadata;
@@ -58,7 +57,7 @@ inventory CLI. Its prepared package and only public command are
 Ubuntu, Windows, Android, and other operating systems are outside the current
 support claim until separately validated and promoted.
 
-## Explicitly excluded
+## Outside the current boundary
 
 - Forkit.dev authentication;
 - passport draft creation or final Mint;
@@ -70,7 +69,7 @@ support claim until separately validated and promoted.
 - mobile packaging;
 - website or backend deployment from this standalone repository.
 
-## Promotion gate
+## Expansion gate
 
 AI Footprints is public for Apple Silicon macOS only after founders intentionally
 promote `docs/PRODUCTION_LOCK.md` in `arpitasarker01/forkit_dev_base`.

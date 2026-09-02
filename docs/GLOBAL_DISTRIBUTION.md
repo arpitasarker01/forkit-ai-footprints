@@ -35,9 +35,9 @@ Applications, Spotlight, Dock, or the Forkit menu-bar icon without Terminal.
 The current product support claim is still macOS on Apple Silicon until broader
 field validation exists.
 
-Public GitHub handoff is tracked in `docs/PUBLIC_GITHUB_HANDOFF.md`. The target
-repository must exist and resolve before the GitHub channel can be marked
-available.
+The maintainer workflow is defined in `docs/RELEASE_PROCESS.md`. The public
+repository and immutable release tag must resolve before the GitHub channel can
+be marked available.
 
 ## Release order
 

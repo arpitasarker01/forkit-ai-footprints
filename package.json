@@ -1,13 +1,13 @@
 {
   "name": "forkit-ai-footprints",
   "version": "0.2.6",
-  "description": "Forkit AI Footprints: private local AI model, runtime, and agent inventory",
+  "description": "Private-by-default AI activity and local model footprint for your device",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/arpitasarker01/forkit-ai-footprints.git"
   },
-  "homepage": "https://github.com/arpitasarker01/forkit-ai-footprints#readme",
+  "homepage": "https://www.forkit.dev/ai-footprint",
   "bugs": {
     "url": "https://github.com/arpitasarker01/forkit-ai-footprints/issues"
   },
@@ -32,11 +32,17 @@
   "files": [
     "dist",
     "README.md",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
     "STATUS.md",
+    "SUPPORT.md",
     "PRIVACY.md",
     "docs/MACOS_TESTER_GUIDE.md",
     "docs/MACOS_ACCURACY_GATE.md",
     "docs/GLOBAL_DISTRIBUTION.md",
+    "docs/RELEASE_PROCESS.md",
+    "docs/VALIDATION.md",
     "release/channels.json",
     "examples/macos-truth.template.json",
     "LICENSE"
