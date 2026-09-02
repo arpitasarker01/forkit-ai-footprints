@@ -31,5 +31,8 @@ without explicit founder approval and a product-boundary review.
 
 The only currently approved remote write is the versioned, aggregate-only
 Global AI Preview contribution described in `PRIVACY.md`. It requires explicit
-consent and one valid observed hour. Security reports should flag any path that
-bypasses that boundary.
+v3 consent and at least ten valid observed minutes before the first eligible
+aggregate is sent. Later refreshes are limited to no more than once per hour.
+Existing v2 consent retains its original one-hour threshold until the person
+upgrades and accepts the v3 notice. Security reports should flag any path that
+bypasses these consent, eligibility, payload, or refresh boundaries.
