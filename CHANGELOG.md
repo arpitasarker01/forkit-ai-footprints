@@ -2,6 +2,21 @@
 
 All notable public changes to Forkit AI Footprints are documented here.
 
+## Unreleased
+
+- Simplified public onboarding, support, release, and validation documentation.
+
+## 0.2.6 — 2026-09-02
+
+- Added explicit v3 Community Preview consent with a ten-valid-minute first
+  contribution gate and at-most-hourly aggregate refreshes.
+- Kept one stable observation across reconnects and retained cumulative totals
+  independently from bounded visual history.
+- Added the responsive activity explorer, interval inspector, per-app focus,
+  bounded local resource summaries, and English/German interface updates.
+- Strengthened signed aggregate continuity, replay protection, consent tests,
+  privacy documentation, and release coherence checks.
+
 ## 0.2.5 — 2026-08-30
 
 - Simplified the local AI activity language and removed duplicate pulse metrics from the primary view.
