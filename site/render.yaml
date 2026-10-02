@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: forkit-ai-site
+    runtime: static
+    buildCommand: ""
+    staticPublishPath: .
+    routes:
+      - type: rewrite
+        source: /footprint
+        destination: /footprint/
