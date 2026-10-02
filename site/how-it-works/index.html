@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>How Forkit works — Action model, evidence states and privacy</title>
+  <meta name="description" content="Understand the Forkit Action object, evidence reconciliation architecture, confidence states and privacy model for AI action reconstruction.">
+  <link rel="canonical" href="https://forkit-ai.com/how-it-works/">
+  <meta property="og:type" content="article"><meta property="og:title" content="How Forkit works"><meta property="og:description" content="The Action object, evidence reconciliation and privacy model behind Forkit AI."><meta property="og:url" content="https://forkit-ai.com/how-it-works/">
+  <meta name="twitter:card" content="summary"><meta name="twitter:title" content="How Forkit works"><meta name="twitter:description" content="Action model + evidence reconciliation + confidence states.">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/styles.css">
+</head>
+<body data-page="how-it-works">
+  <header class="nav">
+    <a class="brand" href="/"><span class="brand-mark">F/</span><span>Forkit <b>AI</b></span></a>
+    <nav><a href="/footprint/">Footprint</a><a href="/action-assurance/">Action Assurance</a><a class="active" href="/how-it-works/">How it works</a><a href="/contact/">Contact</a></nav>
+    <a class="nav-cta" href="/reconstruct/" data-analytics="reconstruct_click">Try Reconstruct</a>
+  </header>
+  <main>
+    <section class="hero shell interior-hero">
+      <p class="eyebrow">HOW FORKIT WORKS</p>
+      <h1>ONE ACTION.<br><em>MANY EVIDENCE SOURCES.</em></h1>
+      <p class="lead">Forkit does not replace your traces, IAM, MCP gateway, cloud audit or ERP logs. It reconciles those sources around the business action you need to understand.</p>
+    </section>
+
+    <section class="shell action-schema">
+      <div><p class="eyebrow">THE ACTION OBJECT</p><h2>A business consequence is the unit of accountability.</h2><p class="section-copy">An Action record can hold direct evidence, inferred links and explicit gaps at the same time.</p></div>
+      <pre><code>ACTION {
+  action_id
+  business_object_id
+  human / actor
+  delegated_authority
+  agent + version
+  model + provider
+  identity / credential
+  tool / MCP / API
+  target system + object
+  approval / policy state
+  source evidence refs
+  result / business effect
+  confidence
+  status
+}</code></pre>
+    </section>
+
+    <section class="shell architecture">
+      <div class="section-head"><div><p class="eyebrow">EVIDENCE RECONCILIATION</p><h2>Read-only sources in. Action record out.</h2></div><span class="tag prototype-tag">TARGET ARCHITECTURE</span></div>
+      <div class="architecture-flow">
+        <div class="arch-source"><span>Agent traces</span><span>IAM / Entra</span><span>MCP / API logs</span><span>Cloud audit</span><span>SAP / CRM / ITSM</span><span>Approvals / tickets</span></div>
+        <i>→</i><div class="arch-box"><small>01</small><strong>NORMALIZER</strong><p>Map heterogeneous evidence into stable fields.</p></div>
+        <i>→</i><div class="arch-box"><small>02</small><strong>CORRELATION</strong><p>IDs, time, resource hashes and business-object keys.</p></div>
+        <i>→</i><div class="arch-box accent-box"><small>03</small><strong>ACTION RECORD</strong><p>Evidence graph + confidence + missing/conflicting links.</p></div>
+      </div>
+    </section>
+
+    <section class="shell privacy-model">
+      <div class="section-head"><div><p class="eyebrow">PRIVACY MODEL</p><h2>Collect the minimum evidence required for the claim.</h2></div></div>
+      <div class="privacy-columns">
+        <article><span class="tag live-tag">FOOTPRINT · LIVE</span><h3>Local-first</h3><p>Monitoring history and detailed local evidence stay on the device. Optional public contribution is separate, versioned and allowlisted.</p><ul><li>no prompts/responses in aggregate</li><li>no raw commands</li><li>no full paths</li><li>no account identity</li></ul></article>
+        <article><span class="tag prototype-tag">ENTERPRISE · TARGET</span><h3>Read-only evidence ingestion</h3><p>Enterprise reconstruction is designed around source references, normalized evidence and explicit provenance—not copying arbitrary content into a new central system.</p><ul><li>read-only connectors first</li><li>source evidence references</li><li>confidence per link</li><li>gaps preserved</li></ul></article>
+      </div>
+    </section>
+
+    <section class="shell cta-band"><div><p class="eyebrow">SEE IT</p><h2>Use the live reconstruction prototype, then compare it with local Footprint.</h2></div><div class="cta-band-actions"><a class="btn primary" href="/reconstruct/" data-analytics="reconstruct_click">TRY RECONSTRUCT</a><a class="btn secondary" href="/footprint/" data-analytics="footprint_interest">EXPLORE FOOTPRINT</a></div></section>
+  </main>
+  <footer class="footer shell"><div><a class="brand footer-brand" href="/"><span class="brand-mark">F/</span><span>Forkit <b>AI</b></span></a><p>Action evidence architecture.</p></div><div class="footer-links"><a href="/">Home</a><a href="/footprint/">Footprint</a><a href="/action-assurance/">Action Assurance</a><a href="/contact/">Contact</a></div><div class="footer-meta"><span>Evidence states stay explicit.</span><span>Missing is a valid result.</span></div></footer>
+  <script src="/config.js"></script><script src="/analytics.js"></script>
+</body>
+</html>
