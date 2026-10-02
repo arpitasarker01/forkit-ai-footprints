@@ -1,67 +1,170 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Forkit AI — Evidence for AI actions</title>
-  <meta name="description" content="Forkit AI helps teams see AI activity, reconstruct consequential actions, and surface missing evidence." />
-  <link rel="stylesheet" href="/styles.css" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Forkit AI — See what your AI actually did</title>
+  <meta name="description" content="Forkit connects AI traces, identities, tools and business records into one defensible Action record, showing what is direct, supported, inferred, conflicting or missing.">
+  <link rel="canonical" href="https://forkit-ai.com/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Forkit AI — See what your AI actually did">
+  <meta property="og:description" content="AI Action Assurance: reconstruct consequential AI actions from fragmented evidence.">
+  <meta property="og:url" content="https://forkit-ai.com/">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Forkit AI — See what your AI actually did">
+  <meta name="twitter:description" content="Evidence for consequential AI actions.">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="/site.webmanifest">
+  <link rel="stylesheet" href="/styles.css">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"Organization","name":"Forkit AI","url":"https://forkit-ai.com/","description":"Infrastructure for understanding and proving what AI actually did.","email":"partnership@forkit.dev"}
+  </script>
 </head>
-<body>
+<body data-page="home">
   <header class="nav">
-    <a class="brand" href="/">Forkit <span>AI</span></a>
-    <nav>
+    <a class="brand" href="/" aria-label="Forkit AI home"><span class="brand-mark">F/</span><span>Forkit <b>AI</b></span></a>
+    <nav aria-label="Primary">
       <a href="/footprint/">Footprint</a>
-      <a href="#assurance">Action Assurance</a>
-      <a href="mailto:partnership@forkit.dev">Contact</a>
+      <a href="/action-assurance/">Action Assurance</a>
+      <a href="/how-it-works/">How it works</a>
+      <a href="/contact/">Contact</a>
     </nav>
+    <a class="nav-cta" href="/reconstruct/" data-analytics="reconstruct_click">Try Reconstruct</a>
   </header>
 
   <main>
-    <section class="hero shell">
+    <section class="hero shell hero-home">
+      <div class="status-line">
+        <span class="tag live-tag">LIVE · FOOTPRINT</span>
+        <span class="tag prototype-tag">PROTOTYPE · RECONSTRUCT</span>
+      </div>
       <p class="eyebrow">AI ACTION ASSURANCE</p>
-      <h1>AI acts.<br><span>Forkit proves what happened.</span></h1>
-      <p class="lead">A privacy-first evidence layer for AI activity: discover what is running, reconstruct consequential actions, and expose what cannot yet be proven.</p>
+      <h1>SEE WHAT YOUR AI<br><em>ACTUALLY DID.</em></h1>
+      <p class="lead">Your AI stack already has traces, identities, tools and business records. Forkit connects those fragments into one defensible Action record — showing what is direct, supported, inferred, conflicting or missing.</p>
       <div class="actions">
-        <a class="btn primary" href="/footprint/">Try Forkit Footprint</a>
-        <a class="btn secondary" href="#assurance">For enterprise teams</a>
+        <a class="btn primary" href="/reconstruct/" data-analytics="reconstruct_click">TRY RECONSTRUCT <span>↗</span></a>
+        <a class="btn secondary" href="/footprint/" data-analytics="footprint_interest">EXPLORE FOOTPRINT</a>
       </div>
     </section>
 
-    <section class="signal shell">
-      <div><strong>01</strong><span>Observe</span><p>Detect supported AI activity locally without uploading prompts or code.</p></div>
-      <div><strong>02</strong><span>Reconstruct</span><p>Connect evidence across agent, tool, identity, approval and downstream effect.</p></div>
-      <div><strong>03</strong><span>Prove</span><p>Classify the chain as reconstructable, partial, conflicting or missing.</p></div>
-    </section>
-
-    <section id="assurance" class="assurance shell">
-      <p class="eyebrow">FOR ENTERPRISES</p>
-      <h2>From “AI was used” to “we can prove the action.”</h2>
-      <p>Forkit Action Assurance is designed for production workflows where one consequential action may span agents, models, identities, tools, APIs and business systems.</p>
-      <div class="question">
-        <span>THE TEST</span>
-        <p>Given one transaction ID, can your organization show who authorized it, which agent/model acted, what identity and tools were used, what changed downstream, and the evidence connecting the chain?</p>
+    <section class="shell action-visual" aria-label="Forkit Action model">
+      <div class="action-core">
+        <span class="mini-label">ONE CORE OBJECT</span>
+        <strong>ACTION</strong>
+        <small>who · authority · agent · model · identity · tools · systems · evidence · result · confidence</small>
+      </div>
+      <div class="evidence-rail">
+        <span class="evidence-chip direct">DIRECT</span>
+        <span class="evidence-chip supported">SUPPORTED</span>
+        <span class="evidence-chip inferred">INFERRED</span>
+        <span class="evidence-chip conflict">CONFLICTING</span>
+        <span class="evidence-chip missing">MISSING</span>
       </div>
     </section>
 
-    <section class="privacy shell">
+    <section id="demo" class="demo-section shell">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">INTERACTIVE ACTION RECONSTRUCTION</p>
+          <h2>Same Action model.<br>Different scale.</h2>
+        </div>
+        <span class="tag simulated-tag">SIMULATED</span>
+      </div>
+
+      <div class="demo-tabs" role="tablist" aria-label="Reconstruction example">
+        <a class="demo-tab" data-demo-tab="developer" href="/?demo=developer#demo" data-analytics="demo_developer">DEVELOPER MODE</a>
+        <a class="demo-tab" data-demo-tab="enterprise" href="/?demo=enterprise#demo" data-analytics="demo_enterprise">ENTERPRISE MODE</a>
+      </div>
+
+      <div class="demo-frame" id="demoFrame">
+        <div class="chain" id="demoChain" aria-live="polite"></div>
+        <div class="evidence-panel">
+          <div class="evidence-panel-head">
+            <div><span class="mini-label">ACTION RECORD</span><strong id="demoTitle">Developer action</strong></div>
+            <span class="assurance-badge" id="demoAssurance">PARTIAL</span>
+          </div>
+          <div id="demoEvidence" class="evidence-list"></div>
+          <p class="demo-note" id="demoNote"></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="shell progression">
+      <div class="section-head">
+        <div><p class="eyebrow">ONE MODEL, THREE LEVELS</p><h2>Start local. Expand only when the action crosses systems.</h2></div>
+      </div>
+      <div class="level-grid">
+        <article class="level-card current">
+          <span class="tag live-tag">LIVE</span>
+          <p class="level-index">01</p>
+          <h3>Forkit Footprint</h3>
+          <p>Free, local-first AI activity evidence for Apple Silicon macOS. Metadata stays local by default.</p>
+          <a href="/footprint/">Explore Footprint →</a>
+        </article>
+        <article class="level-card">
+          <span class="tag planned-tag">PLANNED</span>
+          <p class="level-index">02</p>
+          <h3>Forkit Team</h3>
+          <p>Shared Action visibility for engineering teams without turning private developer content into central telemetry.</p>
+        </article>
+        <article class="level-card">
+          <span class="tag prototype-tag">PROTOTYPE</span>
+          <p class="level-index">03</p>
+          <h3>Forkit Enterprise</h3>
+          <p>Cross-system Action Assurance for consequential workflows: authority, identity, tools, business systems and outcomes.</p>
+          <a href="/action-assurance/" data-analytics="enterprise_interest">See Action Assurance →</a>
+        </article>
+      </div>
+    </section>
+
+    <section class="shell fragments">
+      <div class="section-head">
+        <div><p class="eyebrow">WHY TRACES ARE NOT ENOUGH</p><h2>The evidence already exists. It just lives in different systems.</h2></div>
+      </div>
+      <div class="fragment-grid">
+        <article><span>AGENT TRACE</span><strong>What the agent says it attempted.</strong><p>Useful context, but not authoritative proof of identity, permission or downstream effect.</p></article>
+        <article><span>IAM / IDENTITY</span><strong>Who or what had authority.</strong><p>Shows credentials and permissions, but not necessarily which business action those permissions produced.</p></article>
+        <article><span>TOOL / MCP / API</span><strong>What crossed an execution boundary.</strong><p>Shows requests and responses, but may not prove the final system-of-record change.</p></article>
+        <article><span>BUSINESS SYSTEM</span><strong>What actually changed.</strong><p>ERP, CRM or cloud audit records prove effects, but often lose the original human/agent decision chain.</p></article>
+      </div>
+      <div class="join-line"><span>Forkit reconciles the fragments</span><i></i><strong>→ ONE ACTION RECORD</strong></div>
+    </section>
+
+    <section class="shell use-cases">
+      <div class="use-card">
+        <p class="eyebrow">FOR DEVELOPERS</p>
+        <h2>See AI activity without shipping your prompts to another dashboard.</h2>
+        <p>Start with local process/runtime evidence, supported AI tools and local models. Move toward Action reconstruction only when enough source evidence exists.</p>
+        <a class="text-link" href="/footprint/" data-analytics="developer_interest">Open developer product →</a>
+      </div>
+      <div class="use-card enterprise-card">
+        <p class="eyebrow">FOR ENTERPRISE TEAMS</p>
+        <h2>Investigate consequential AI actions across systems.</h2>
+        <p>Procurement, finance and customer operations are where missing authority or conflicting evidence becomes a control problem—not just an observability problem.</p>
+        <a class="text-link" href="/action-assurance/" data-analytics="enterprise_interest">Open enterprise story →</a>
+      </div>
+    </section>
+
+    <section class="shell cta-band">
       <div>
-        <p class="eyebrow">PRIVACY BY DEFAULT</p>
-        <h2>Evidence, not surveillance.</h2>
+        <p class="eyebrow">THE 30-MINUTE TEST</p>
+        <h2>Given one transaction ID, can you prove the action end-to-end?</h2>
       </div>
-      <ul>
-        <li>No prompts uploaded</li>
-        <li>No source code uploaded</li>
-        <li>No repository or file paths uploaded</li>
-        <li>No account identity in public aggregates</li>
-        <li>Aggregate sharing only after explicit consent</li>
-      </ul>
+      <div class="cta-band-actions">
+        <a class="btn primary" href="/reconstruct/" data-analytics="reconstruct_click">TRY RECONSTRUCT</a>
+        <a class="btn secondary" href="/contact/" data-analytics="contact_intent">TALK TO FORKIT</a>
+      </div>
     </section>
   </main>
 
-  <footer class="shell footer">
-    <span>Forkit AI</span>
-    <span>Evidence for consequential AI actions.</span>
+  <footer class="footer shell">
+    <div><a class="brand footer-brand" href="/"><span class="brand-mark">F/</span><span>Forkit <b>AI</b></span></a><p>Evidence for consequential AI actions.</p></div>
+    <div class="footer-links"><a href="/footprint/">Footprint</a><a href="/action-assurance/">Action Assurance</a><a href="/how-it-works/">How it works</a><a href="/contact/">Contact</a></div>
+    <div class="footer-meta"><span>© 2026 Forkit AI</span><span>Privacy-first product telemetry.</span></div>
   </footer>
+
+  <script src="/config.js"></script>
+  <script src="/analytics.js"></script>
+  <script src="/app.js"></script>
 </body>
 </html>

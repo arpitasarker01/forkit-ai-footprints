@@ -1,69 +1,112 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Forkit Footprint — See what AI is actually doing</title>
-  <meta name="description" content="A local-first AI activity footprint with explicit aggregate consent. No prompts, code, paths or account identity in the public aggregate." />
-  <link rel="stylesheet" href="/styles.css" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Forkit Footprint — Local AI agent activity evidence</title>
+  <meta name="description" content="Forkit Footprint is a private-by-default local AI activity tool for Apple Silicon macOS. See supported AI tools, active time, local models and evidence gaps without uploading prompts or code.">
+  <link rel="canonical" href="https://forkit-ai.com/footprint/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Forkit Footprint — See what your AI actually did">
+  <meta property="og:description" content="Local-first AI activity evidence. Metadata, not content.">
+  <meta property="og:url" content="https://forkit-ai.com/footprint/">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Forkit Footprint">
+  <meta name="twitter:description" content="Private-by-default AI activity evidence for Apple Silicon macOS.">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"SoftwareApplication","name":"Forkit Footprint","applicationCategory":"DeveloperApplication","operatingSystem":"Apple Silicon macOS","url":"https://forkit-ai.com/footprint/","offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"},"description":"A private-by-default local application that shows supported AI activity, active time and local AI model metadata."}
+  </script>
 </head>
-<body>
+<body data-page="footprint">
   <header class="nav">
-    <a class="brand" href="/">Forkit <span>AI</span></a>
-    <nav><a class="active" href="/footprint/">Footprint</a><a href="/">Company</a></nav>
+    <a class="brand" href="/"><span class="brand-mark">F/</span><span>Forkit <b>AI</b></span></a>
+    <nav><a class="active" href="/footprint/">Footprint</a><a href="/action-assurance/">Action Assurance</a><a href="/how-it-works/">How it works</a><a href="/contact/">Contact</a></nav>
+    <a class="nav-cta" href="/reconstruct/" data-analytics="reconstruct_click">Try Reconstruct</a>
   </header>
 
   <main>
     <section class="hero shell footprint-hero">
-      <p class="eyebrow">LOCAL-FIRST AI EVIDENCE</p>
-      <h1>See what AI is active.<br><span>Then ask what can be proven.</span></h1>
-      <p class="lead">Forkit Footprint observes supported AI activity on your Mac locally. Private content stays on-device unless you explicitly choose to share a privacy-safe aggregate.</p>
+      <div class="status-line"><span class="tag live-tag">LIVE · v0.2.6</span><span class="tag planned-tag">WINDOWS / LINUX · PLANNED</span></div>
+      <p class="eyebrow">FORKIT FOOTPRINT</p>
+      <h1>SEE WHAT YOUR AI<br><em>ACTUALLY DID.</em></h1>
+      <p class="lead">A local-first view of supported AI activity on your Mac. Forkit measures metadata such as active time, supported tools and local model records. It does not infer prompts, tasks, tokens, cost or model ownership from process activity.</p>
 
       <div class="install-card">
-        <div class="install-top"><span>APPLE SILICON macOS</span><span id="version">latest</span></div>
-        <div class="install-row">
-          <code id="install">npx --yes forkit-ai-footprints@latest</code>
-          <button id="copy">Copy</button>
+        <div class="install-top"><span>APPLE SILICON macOS · NODE 20 / 22 / 24</span><span id="version">latest</span></div>
+        <div class="install-row"><code id="install">npx --yes forkit-ai-footprints@latest</code><button id="copy" type="button" data-analytics="footprint_install_copy">Copy</button></div>
+      </div>
+      <div class="actions compact-actions">
+        <a class="btn secondary" href="https://github.com/arpitasarker01/forkit-ai-footprints" target="_blank" rel="noreferrer" data-analytics="developer_interest">VIEW SOURCE ↗</a>
+        <a class="btn secondary" href="https://www.npmjs.com/package/forkit-ai-footprints" target="_blank" rel="noreferrer">NPM PACKAGE ↗</a>
+      </div>
+    </section>
+
+    <section class="shell product-preview">
+      <div class="section-head">
+        <div><p class="eyebrow">LOCAL PRODUCT VIEW</p><h2>Measure activity. Keep content private.</h2></div>
+        <span class="tag simulated-tag">SIMULATED UI · CURRENT CAPABILITIES</span>
+      </div>
+      <div class="device-window">
+        <div class="window-bar"><span></span><span></span><span></span><strong>Forkit Footprint · Local only</strong></div>
+        <div class="window-grid">
+          <div class="timeline-panel">
+            <div class="panel-title"><span>AI ACTIVITY TIMELINE</span><b>Today</b></div>
+            <div class="timeline-row"><label>Claude Code</label><div><i class="block active-block" style="width:42%"></i><i class="block ready-block" style="width:18%"></i></div><em>working</em></div>
+            <div class="timeline-row"><label>Codex</label><div><i class="block ready-block" style="width:31%"></i></div><em>ready</em></div>
+            <div class="timeline-row"><label>Local model</label><div><i class="block local-block" style="width:24%"></i></div><em>available</em></div>
+            <div class="sample-note">Illustrative rendering. Tool names may appear in the protected local UI; public aggregate payloads exclude item names.</div>
+          </div>
+          <div class="inspector-panel">
+            <span class="mini-label">OBSERVATION</span>
+            <strong>43m 18s</strong>
+            <small>valid observed time</small>
+            <dl><div><dt>AI-active</dt><dd>18m 42s</dd></div><div><dt>Supported apps</dt><dd>2</dd></div><div><dt>Local model records</dt><dd>4</dd></div><div><dt>Prompts uploaded</dt><dd>0</dd></div></dl>
+          </div>
         </div>
       </div>
     </section>
 
     <section class="observatory shell">
       <div class="section-head">
-        <div><p class="eyebrow">PUBLIC OBSERVATORY</p><h2>Only metrics we can substantiate.</h2></div>
-        <span class="live"><i></i> LIVE PUBLIC DATA</span>
+        <div><p class="eyebrow">PUBLIC SIGNAL</p><h2>Only publish metrics we can substantiate.</h2></div>
+        <span class="live"><i></i> LIVE NPM DATA</span>
       </div>
       <div class="metrics">
-        <div class="metric"><span>npm download events · 30d</span><strong id="downloads">—</strong><small>Registry download events, not unique people.</small></div>
-        <div class="metric"><span>consented contributors</span><strong>0</strong><small>No contributor count is claimed until a valid aggregate arrives.</small></div>
-        <div class="metric"><span>reconstructed evidence chains</span><strong>—</strong><small>Shown only when the reconstruction aggregate exists.</small></div>
-        <div class="metric"><span>missing-evidence actions</span><strong>—</strong><small>Never inferred from downloads or process presence.</small></div>
+        <div class="metric"><span>npm download events · 30d</span><strong id="downloads">—</strong><small>Registry download events. Not unique people, installs or active users.</small></div>
+        <div class="metric"><span>public contributors</span><strong>—</strong><small>Not displayed on this new site until the independent aggregate endpoint is launched.</small></div>
+        <div class="metric"><span>reconstructed actions</span><strong>—</strong><small>Planned Action-level metric. Current Footprint does not claim end-to-end reconstruction.</small></div>
+        <div class="metric"><span>missing-evidence actions</span><strong>—</strong><small>Never inferred from process presence alone.</small></div>
       </div>
-      <div class="warning"><b>Boundary truth:</b> detecting an AI process does not prove a sandbox escape. Forkit should label a boundary violation only when an expected boundary exists and observed evidence conflicts with it.</div>
+      <div class="warning"><b>Measurement boundary:</b> AI-active means sustained recent CPU-time change in a supported process tree. It is not prompt, task, token or sandbox-escape attribution.</div>
+    </section>
+
+    <section class="shell what-live">
+      <div class="section-head"><div><p class="eyebrow">PRODUCT TRUTH</p><h2>What is live now vs what is next.</h2></div></div>
+      <div class="truth-grid">
+        <article><span class="tag live-tag">LIVE</span><h3>Apple Silicon macOS</h3><ul><li>Supported AI app activity timeline</li><li>Valid observed / AI-active time</li><li>Current CPU + memory evidence</li><li>Recognized local model metadata</li><li>Private share image</li><li>Optional versioned aggregate consent</li></ul></article>
+        <article><span class="tag planned-tag">PLANNED</span><h3>Broader platform support</h3><ul><li>Intel Mac validation</li><li>Windows</li><li>Linux</li><li>Signed direct installer</li><li>Homebrew distribution</li></ul></article>
+        <article><span class="tag prototype-tag">PROTOTYPE</span><h3>Action reconstruction</h3><ul><li>Action object</li><li>Evidence reconciliation</li><li>Direct / supported / inferred states</li><li>Missing and conflicting evidence</li><li>Cross-system consequences</li></ul></article>
+      </div>
     </section>
 
     <section class="privacy shell">
-      <div>
-        <p class="eyebrow">WHAT STAYS PRIVATE</p>
-        <h2>Local by default.</h2>
-      </div>
-      <ul>
-        <li>Prompts and responses</li>
-        <li>Source code and file contents</li>
-        <li>Paths and repository names</li>
-        <li>Commands, process IDs and payloads</li>
-        <li>Account identity and device name</li>
-      </ul>
+      <div><p class="eyebrow">PRIVATE BY DEFAULT</p><h2>Metadata, not content.</h2><p class="section-copy">The protected local UI can use limited tool/context metadata needed for the product. Public/share artifacts are much stricter.</p></div>
+      <ul><li>No prompts or responses in public aggregate</li><li>No source code or terminal logs</li><li>No raw commands or process IDs</li><li>No full filesystem paths</li><li>No credentials, API keys or cookies</li><li>No account identity or device name in public aggregate</li></ul>
     </section>
 
-    <section class="assurance shell">
-      <p class="eyebrow">WHAT COMES NEXT</p>
-      <h2>Reconstructable → partial → conflicting → missing.</h2>
-      <p>Footprint is the local entry point to Forkit Action Assurance. The public site will add evidence-coverage and reconstruction metrics only after a separate versioned consent schema can provide them safely.</p>
+    <section class="shell cta-band">
+      <div><p class="eyebrow">FROM FOOTPRINT TO ACTION ASSURANCE</p><h2>Local evidence is the first layer—not the final claim.</h2></div>
+      <div class="cta-band-actions"><a class="btn primary" href="/action-assurance/" data-analytics="enterprise_interest">SEE ENTERPRISE MODE</a><a class="btn secondary" href="/how-it-works/">HOW IT WORKS</a></div>
     </section>
   </main>
 
-  <footer class="shell footer"><span>Forkit Footprint</span><span>No fabricated usage. No private telemetry.</span></footer>
-  <script src="/footprint.js"></script>
+  <footer class="footer shell">
+    <div><a class="brand footer-brand" href="/"><span class="brand-mark">F/</span><span>Forkit <b>AI</b></span></a><p>Local-first AI evidence.</p></div>
+    <div class="footer-links"><a href="/">Home</a><a href="/action-assurance/">Action Assurance</a><a href="/reconstruct/">Reconstruct</a><a href="/contact/">Contact</a></div>
+    <div class="footer-meta"><span>Footprint v0.2.6</span><span>Apple Silicon macOS</span></div>
+  </footer>
+  <script src="/config.js"></script><script src="/analytics.js"></script><script src="/footprint.js"></script>
 </body>
 </html>
