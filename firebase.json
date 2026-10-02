@@ -1,5 +1,5 @@
 {
-  "hosting":{"public":"site","cleanUrls":true,"trailingSlash":false,
+  "hosting":{"public":"site","cleanUrls":true,"trailingSlash":true,
     "ignore":["firebase.json","**/.*","**/node_modules/**"],
     "headers":[
       {"source":"**","headers":[
@@ -10,13 +10,6 @@
       ]},
       {"source":"**/*.@(css|js|svg)","headers":[{"key":"Cache-Control","value":"public,max-age=3600"}]}
     ],
-    "rewrites":[{"source":"/events","run":{"serviceId":"forkit-ai-analytics","region":"europe-west1"}}],
-    "redirects":[
-      {"source":"/footprint","destination":"/footprint/","type":301},
-      {"source":"/action-assurance","destination":"/action-assurance/","type":301},
-      {"source":"/how-it-works","destination":"/how-it-works/","type":301},
-      {"source":"/reconstruct","destination":"/reconstruct/","type":301},
-      {"source":"/contact","destination":"/contact/","type":301}
-    ]
+    "rewrites":[{"source":"/events","run":{"serviceId":"forkit-ai-analytics","region":"europe-west1"}}]
   }
 }
