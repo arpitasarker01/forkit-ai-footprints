@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Forkit Footprint — See what AI is actually doing</title>
+  <meta name="description" content="A local-first AI activity footprint with explicit aggregate consent. No prompts, code, paths or account identity in the public aggregate." />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="nav">
+    <a class="brand" href="/">Forkit <span>AI</span></a>
+    <nav><a class="active" href="/footprint/">Footprint</a><a href="/">Company</a></nav>
+  </header>
+
+  <main>
+    <section class="hero shell footprint-hero">
+      <p class="eyebrow">LOCAL-FIRST AI EVIDENCE</p>
+      <h1>See what AI is active.<br><span>Then ask what can be proven.</span></h1>
+      <p class="lead">Forkit Footprint observes supported AI activity on your Mac locally. Private content stays on-device unless you explicitly choose to share a privacy-safe aggregate.</p>
+
+      <div class="install-card">
+        <div class="install-top"><span>APPLE SILICON macOS</span><span id="version">latest</span></div>
+        <div class="install-row">
+          <code id="install">npx --yes forkit-ai-footprints@latest</code>
+          <button id="copy">Copy</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="observatory shell">
+      <div class="section-head">
+        <div><p class="eyebrow">PUBLIC OBSERVATORY</p><h2>Only metrics we can substantiate.</h2></div>
+        <span class="live"><i></i> LIVE PUBLIC DATA</span>
+      </div>
+      <div class="metrics">
+        <div class="metric"><span>npm download events · 30d</span><strong id="downloads">—</strong><small>Registry download events, not unique people.</small></div>
+        <div class="metric"><span>consented contributors</span><strong>0</strong><small>No contributor count is claimed until a valid aggregate arrives.</small></div>
+        <div class="metric"><span>reconstructed evidence chains</span><strong>—</strong><small>Shown only when the reconstruction aggregate exists.</small></div>
+        <div class="metric"><span>missing-evidence actions</span><strong>—</strong><small>Never inferred from downloads or process presence.</small></div>
+      </div>
+      <div class="warning"><b>Boundary truth:</b> detecting an AI process does not prove a sandbox escape. Forkit should label a boundary violation only when an expected boundary exists and observed evidence conflicts with it.</div>
+    </section>
+
+    <section class="privacy shell">
+      <div>
+        <p class="eyebrow">WHAT STAYS PRIVATE</p>
+        <h2>Local by default.</h2>
+      </div>
+      <ul>
+        <li>Prompts and responses</li>
+        <li>Source code and file contents</li>
+        <li>Paths and repository names</li>
+        <li>Commands, process IDs and payloads</li>
+        <li>Account identity and device name</li>
+      </ul>
+    </section>
+
+    <section class="assurance shell">
+      <p class="eyebrow">WHAT COMES NEXT</p>
+      <h2>Reconstructable → partial → conflicting → missing.</h2>
+      <p>Footprint is the local entry point to Forkit Action Assurance. The public site will add evidence-coverage and reconstruction metrics only after a separate versioned consent schema can provide them safely.</p>
+    </section>
+  </main>
+
+  <footer class="shell footer"><span>Forkit Footprint</span><span>No fabricated usage. No private telemetry.</span></footer>
+  <script src="/footprint.js"></script>
+</body>
+</html>
