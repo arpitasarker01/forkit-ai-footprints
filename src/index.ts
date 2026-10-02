@@ -1,5 +1,7 @@
 export { detectAgentProducts, listSystemProcesses } from './agents';
 export { aggregateMacosFieldEvaluationDirectory, aggregateMacosFieldEvaluations } from './aggregate';
+export { buildLocalActionAssurance } from './action-assurance';
+export type { ActionAssuranceState, ActionEvidenceItem, ActionEvidenceState, LocalActionAssuranceView, LocalActionRecord } from './action-assurance';
 export { runCensus } from './census';
 export { authorizeAnonymousAiFootprintContribution, buildAnonymousAiFootprintPreview, MINIMUM_COMPARISON_SECONDS, MINIMUM_GLOBAL_CONTRIBUTION_SECONDS } from './sharing';
 export { GlobalPreviewContributor, GLOBAL_PREVIEW_ENDPOINT, GLOBAL_PREVIEW_SYNC_INTERVAL_MS } from './global-preview';
