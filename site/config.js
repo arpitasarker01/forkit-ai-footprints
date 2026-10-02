@@ -1,1 +1,1 @@
-window.FORKIT_SITE_CONFIG={analyticsEndpoint:""};
+window.FORKIT_SITE_CONFIG={analyticsEndpoint:"/events"};

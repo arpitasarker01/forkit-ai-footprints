@@ -8,7 +8,7 @@ Forkit AI Footprints shows when supported AI tools are active on a device, how
 long they stay active, and which local AI models are available. Monitoring is
 local by default. Joining the community Preview is optional.
 
-[Product](https://www.forkit.dev/ai-footprint) ·
+[Product](https://forkit-ai.com/footprint/) ·
 [npm](https://www.npmjs.com/package/forkit-ai-footprints) ·
 [Releases](https://github.com/arpitasarker01/forkit-ai-footprints/releases) ·
 [Support](./SUPPORT.md) · [Contributing](./CONTRIBUTING.md) ·
